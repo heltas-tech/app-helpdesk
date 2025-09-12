@@ -1,0 +1,23 @@
+<div class="login-box">
+  <p>LOGIN</p>
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <div class="user-box">
+      <input type="text" formControlName="correo_electronico" required>
+      <label>CORREO ELECTRONICO</label>
+    </div>
+    <div class="user-box">
+      <input type="password" formControlName="password" required>
+      <label>CONTRASEÑA</label>
+    </div>
+
+    <!-- Botón animado estilo Uiverse -->
+    <button type="submit" class="btn-uiverse">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <div id="INGRESAR">INGRESAR</div>
+    </button>
+  </form>
+  <p>problemas? contactate con <a href="" class="a2">Heltastech</a></p>
+</div>

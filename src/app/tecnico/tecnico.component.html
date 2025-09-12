@@ -1,0 +1,8 @@
+<h3>Bienvenido, {{ username }}</h3>
+<p>Resumen rápido de tickets asignados</p>
+
+<div *ngFor="let s of ticketsStats">
+  <p>{{ s.titulo }}: {{ s.cantidad }}</p>
+</div>
+
+<button (click)="atenderTicket()">Atender Ticket</button>
