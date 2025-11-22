@@ -1,0 +1,291 @@
+<div class="p-6 space-y-6 bg-gray-50 min-h-screen">
+  <!-- Título -->
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h1>
+    <div class="text-sm text-gray-500">
+      Total: {{dataSource.data.length}} usuarios
+      <span *ngIf="filtrosAplicados" class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+        Filtros aplicados
+      </span>
+    </div>
+  </div>
+  
+  <hr class="border-gray-300">
+
+  <!-- 🔍 FILTROS AVANZADOS -->
+  <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+      <mat-icon class="mr-2 text-blue-500">filter_list</mat-icon>
+      Filtros Avanzados
+    </h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Filtro por Rol -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+        <select 
+          #rolFilter
+          (change)="aplicarFiltrosAvanzados()"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Todos los roles</option>
+          <option value="ADMINISTRADOR">Administradores</option>
+          <option value="TECNICO">Técnicos</option>
+          <option value="CLIENTE">Clientes</option>
+        </select>
+      </div>
+
+      <!-- Filtro por Estado -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select 
+          #estadoFilter
+          (change)="aplicarFiltrosAvanzados()"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Todos los estados</option>
+          <option value="activo">Solo activos</option>
+          <option value="inactivo">Solo inactivos</option>
+          <option value="bloqueado">Solo bloqueados</option>
+          <option value="eliminado">Solo eliminados</option>
+        </select>
+      </div>
+
+      <!-- Botones de acción filtros -->
+      <div class="flex items-end space-x-2">
+        <button 
+          (click)="limpiarFiltros()"
+          class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center space-x-1 transition shadow-md">
+          <mat-icon style="font-size: 18px;">clear</mat-icon>
+          <span>Limpiar</span>
+        </button>
+        
+        <button 
+          (click)="cargarUsuarios()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center space-x-1 transition shadow-md">
+          <mat-icon style="font-size: 18px;">refresh</mat-icon>
+          <span>Actualizar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buscador y botones principales -->
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
+    <!-- Buscador -->
+    <div class="relative w-full md:w-1/3">
+      <input 
+        type="text" 
+        placeholder="Buscar por nombre, correo, teléfono..." 
+        (input)="applyFilter($event)"
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+      <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="flex flex-wrap gap-2 justify-end">
+      <button 
+        (click)="openModal()" 
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>person_add</mat-icon>
+        <span>Nuevo Usuario</span>
+      </button>
+
+      <button 
+        (click)="exportExcel()" 
+        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>grid_on</mat-icon>
+        <span>Exportar Excel</span>
+      </button>
+
+      <button 
+        (click)="exportPDF()" 
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>picture_as_pdf</mat-icon>
+        <span>Exportar PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <table mat-table [dataSource]="dataSource" class="w-full">
+      
+      <!-- Columna Nombre Usuario -->
+      <ng-container matColumnDef="nombre_usuario">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
+          Nombre Completo
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="font-medium text-gray-800 flex items-center space-x-2">
+            <span>{{ element.nombre_usuario }}</span>
+            <!-- Indicador de bloqueado -->
+            <mat-icon 
+              *ngIf="element.bloqueado" 
+              class="text-orange-500 text-sm"
+              title="Usuario bloqueado"
+              style="font-size: 18px;">
+              lock
+            </mat-icon>
+          </div>
+          <div class="text-xs text-gray-500 mt-1 space-x-1">
+            <span *ngIf="element.eliminado" class="bg-red-100 text-red-800 px-2 py-1 rounded">Eliminado</span>
+            <span *ngIf="element.bloqueado" class="bg-orange-100 text-orange-800 px-2 py-1 rounded">Bloqueado</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Correo Electrónico -->
+      <ng-container matColumnDef="correo_electronico">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
+          Correo Electrónico
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="flex items-center space-x-1">
+            <mat-icon class="text-gray-400 text-sm">email</mat-icon>
+            <span class="text-sm">{{ element.correo_electronico }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Teléfono -->
+      <ng-container matColumnDef="telefono">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
+          Teléfono
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="flex items-center space-x-1">
+            <mat-icon class="text-gray-400 text-sm">phone</mat-icon>
+            <span>{{ element.telefono || '-' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Rol -->
+      <ng-container matColumnDef="rol">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
+          Rol
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <span [ngClass]="{
+            'bg-purple-100 text-purple-800': element.rol === 'ADMINISTRADOR',
+            'bg-blue-100 text-blue-800': element.rol === 'CLIENTE',
+            'bg-orange-100 text-orange-800': element.rol === 'TECNICO'
+          }" class="px-2 py-1 rounded-full text-xs font-semibold">
+            {{ element.rol }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Columna Estado -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
+          <div class="flex flex-col space-y-2 items-center">
+            <!-- Estado Activo/Inactivo -->
+            <button 
+              (click)="cambiarEstado(element)" 
+              [ngClass]="{
+                'bg-green-100 text-green-800 hover:bg-green-200': element.activo && !element.eliminado,
+                'bg-red-100 text-red-800 hover:bg-red-200': (!element.activo || element.eliminado) && !element.bloqueado,
+                'bg-orange-100 text-orange-800 hover:bg-orange-200': element.bloqueado
+              }" 
+              class="px-3 py-1 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm">
+              <mat-icon class="mr-1" style="font-size: 16px; height: 16px; width: 16px;">
+                {{ element.bloqueado ? 'lock' : (element.activo && !element.eliminado ? 'check_circle' : 'cancel') }}
+              </mat-icon>
+              {{ element.bloqueado ? 'Bloqueado' : (element.eliminado ? 'Eliminado' : (element.activo ? 'Activo' : 'Inactivo')) }}
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Acciones -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-center">
+          Acciones
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
+          <div class="flex justify-center gap-2">
+            <!-- Botón Editar -->
+            <button 
+              (click)="openModal(element)" 
+              class="bg-yellow-400 hover:bg-yellow-500 p-2 rounded transition transform hover:scale-110 shadow-md"
+              title="Editar usuario">
+              <mat-icon class="text-white" style="font-size: 18px;">edit</mat-icon>
+            </button>
+
+            <!-- Botón Eliminar -->
+            <button 
+              *ngIf="!element.eliminado"
+              (click)="delete(element.id)" 
+              class="bg-red-600 hover:bg-red-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              title="Eliminar usuario">
+              <mat-icon style="font-size: 18px;">delete</mat-icon>
+            </button>
+
+            <!-- 🔓 NUEVO: Botón Desbloquear (solo para usuarios bloqueados) -->
+            <button 
+              *ngIf="element.bloqueado && !element.eliminado"
+              (click)="desbloquearUsuario(element)" 
+              class="bg-orange-500 hover:bg-orange-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              title="Desbloquear usuario">
+              <mat-icon style="font-size: 18px;">lock_open</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Filas -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-blue-50"></tr>
+      <tr 
+        mat-row 
+        *matRowDef="let row; columns: displayedColumns;" 
+        class="bg-white hover:bg-gray-50 transition-colors duration-200">
+      </tr>
+    </table>
+
+    <!-- Mensaje cuando no hay datos -->
+    <div *ngIf="dataSource.data.length === 0" class="text-center py-8 text-gray-500">
+      <mat-icon class="text-4xl mb-2 text-gray-300">people</mat-icon>
+      <p class="text-lg">No se encontraron usuarios</p>
+      <p class="text-sm">Haz clic en "Nuevo Usuario" para agregar el primero</p>
+    </div>
+
+    <!-- Mensaje cuando no hay resultados del filtro -->
+    <div *ngIf="dataSource.filteredData.length === 0 && dataSource.data.length > 0" 
+         class="text-center py-8 text-gray-500">
+      <mat-icon class="text-4xl mb-2 text-gray-300">search_off</mat-icon>
+      <p class="text-lg">No se encontraron resultados</p>
+      <p class="text-sm">Intenta con otros términos de búsqueda</p>
+    </div>
+  </div>
+
+  <!-- Paginador -->
+  <mat-paginator 
+    [pageSize]="5" 
+    [pageSizeOptions]="[5, 10, 25, 50]"
+    showFirstLastButtons
+    class="mt-4 bg-white rounded-lg shadow-sm">
+  </mat-paginator>
+
+  <!-- Información del estado -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-start">
+      <mat-icon class="text-blue-500 mr-3 mt-1">info</mat-icon>
+      <div>
+        <h3 class="font-semibold text-blue-800 mb-1">Información sobre usuarios</h3>
+        <ul class="text-sm text-blue-700 space-y-1">
+          <li>• <span class="font-medium">ADMINISTRADOR:</span> Acceso completo al sistema</li>
+          <li>• <span class="font-medium">CLIENTE:</span> Acceso limitado a funciones específicas</li>
+          <li>• <span class="font-medium">TECNICO:</span> Acceso a herramientas técnicas</li>
+          <li>• <span class="font-medium">✅ Activo:</span> El usuario puede acceder al sistema</li>
+          <li>• <span class="font-medium">❌ Inactivo:</span> El usuario no puede acceder temporalmente</li>
+          <li>• <span class="font-medium">🔒 Bloqueado:</span> Usuario bloqueado por intentos fallidos - <strong>Click en 🔓 para desbloquear</strong></li>
+          <li>• <span class="font-medium">🗑️ Eliminado:</span> Usuario eliminado del sistema</li>
+          <li>• <span class="font-medium">🔍 Filtros:</span> Puedes filtrar por rol y estado específico</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

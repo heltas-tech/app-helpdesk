@@ -1,0 +1,39 @@
+<div class="dashboard">
+  <h2 class="titulo">📊 Panel de Cliente</h2>
+
+  <!-- Tarjetas animadas -->
+  <div class="cards">
+    <div
+      class="card"
+      *ngFor="let c of cards"
+      [style.background]="c.color"
+      data-aos="zoom-in"
+    >
+      <div class="card-title">{{ c.title }}</div>
+      <div class="card-value">{{ c.value }}</div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Estado de Tickets</h3>
+      <canvas
+        baseChart
+        [data]="pieChartData"
+        [type]="pieChartType"
+        [options]="pieChartOptions">
+      </canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3>Tickets por Día</h3>
+      <canvas
+        baseChart
+        [data]="barChartData"
+        [type]="barChartType"
+        [options]="barChartOptions">
+      </canvas>
+    </div>
+  </div>
+</div>

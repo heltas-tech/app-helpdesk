@@ -1,0 +1,75 @@
+<div class="p-4 space-y-4">
+    <h1 class="text-xl font-semibold">Usuario</h1>
+    <hr>
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+        <input type="text" placeholder="Filtrar..." (input)="applyFilter($event)"
+            class="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3">
+        <div class="flex flex-wrap justify-end gap-2">
+            <button mat-raised-button color="primary" (click)="openModal()"
+                class="bg-blue-600 text-white px-4 py-2 rounded flex items-center space-x-1"
+                matTooltip="Agregar nueva unidad organizacional">
+                <mat-icon>add</mat-icon>
+                <span>Usuario</span>
+            </button>
+            <button mat-button color="accent" (click)="exportExcel()">
+                <mat-icon>grid_on</mat-icon>
+                <span>Excel</span>
+            </button>
+            <button mat-fab color="warn" (click)="exportPDF()">
+                <mat-icon>picture_as_pdf</mat-icon>
+                <span class="hidden sm:inline">PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <table id="datos" mat-table [dataSource]="dataSource" class="min-w-full mat-elevation-z2 rounded overflow-hidden">
+        <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-500">Nombre de Usuario</th>
+            <td mat-cell *matCellDef="let element">{{ element.nombre }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100">Correo electrónico</th>
+            <td mat-cell *matCellDef="let element">{{ element.email }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="password">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100">Contraseña</th>
+            <td mat-cell *matCellDef="let element">
+                <span *ngIf="!element.showPassword">********</span>
+                <span *ngIf="element.showPassword">{{ element.password }}</span>
+                <button mat-icon-button (click)="element.showPassword = !element.showPassword" aria-label="Toggle password visibility">
+                <mat-icon>{{ element.showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+            </td>
+        </ng-container>
+
+        <ng-container matColumnDef="activo">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100">Estado</th>            
+            <td mat-cell *matCellDef="let element">
+                <mat-slide-toggle class="small-toggle"
+                  [checked]="element.activo"
+                  (change)="toggleActivo(element, $event.checked)"
+                  color="primary">
+                </mat-slide-toggle>
+              </td>
+        </ng-container>
+        <!-- Acciones -->
+        <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef class="bg-gray-100">Acciones</th>
+            <td mat-cell *matCellDef="let element; let i = index">
+                <button mat-icon-button color="accent" (click)="openModal(element, i,'Modificación')">
+                    <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="delete(i)">
+                    <mat-icon>delete</mat-icon>
+                </button>                
+            </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <mat-paginator [pageSize]="5"></mat-paginator>
+</div>

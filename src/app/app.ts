@@ -1,11 +1,14 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { NgxSpinnerModule } from 'ngx-spinner';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
-  imports: [RouterModule],
-  template: '<router-outlet></router-outlet>'
+  imports: [RouterOutlet, NgxSpinnerModule],
+  templateUrl: './app.html',
+  styleUrl: './app.scss'
 })
-export class AppComponent {}  // ✅ exportado
-// Componente raíz que carga las rutas definidas en app.routes.ts
+export class App {
+  protected readonly title = signal('app-template-angular');
+  //title = 'app-sicoes-ceass';
+}

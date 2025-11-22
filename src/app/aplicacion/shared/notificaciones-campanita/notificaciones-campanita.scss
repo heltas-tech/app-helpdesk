@@ -1,0 +1,463 @@
+.notificaciones-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón de la campanita */
+.campanita-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  &:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+.icono-campanita {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.contador {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: 2px solid white;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Indicador de conexión WebSocket */
+.conexion-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 8px;
+  color: #ef4444;
+  transition: color 0.3s;
+  
+  &.conectado {
+    color: #10b981;
+  }
+}
+
+/* Lista de notificaciones */
+.lista-notificaciones {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 450px;
+  max-width: 90vw;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 8px;
+  animation: slideDown 0.2s ease-out;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 20px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    transform: rotate(45deg);
+    border-left: 1px solid #e5e5e5;
+    border-top: 1px solid #e5e5e5;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header de la lista */
+.header-lista {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .marcar-todas {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+
+    &:hover {
+      background: #eff6ff;
+    }
+  }
+}
+
+/* Indicador de filtro */
+.filtro-indicator {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.debug-info {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: normal;
+}
+
+/* Contenido de la lista */
+.contenido-lista {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Estados de carga y vacío */
+.cargando {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.sin-notificaciones {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+
+  .icono-vacio {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+}
+
+/* Items de notificación */
+.notificacion-item {
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+    transform: translateX(2px);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  /* ✅ NOTIFICACIÓN NO LEÍDA - MUY VISIBLE */
+  &.no-leida {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left: 4px solid #3b82f6;
+    border-right: 1px solid #dbeafe;
+    
+    .titulo {
+      color: #1e40af;
+      font-weight: 700;
+    }
+    
+    .mensaje {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .fecha {
+      color: #1e40af;
+      font-weight: 500;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+  }
+
+  /* ✅ NOTIFICACIÓN LEÍDA - MÁS DISCRETA */
+  &.leida {
+    background: #fafafa;
+    opacity: 0.8;
+    
+    .titulo {
+      color: #6b7280;
+      font-weight: 500;
+    }
+    
+    .mensaje {
+      color: #9ca3af;
+    }
+
+    .fecha {
+      color: #9ca3af;
+    }
+
+    &:hover {
+      background: #f4f4f5;
+      opacity: 1;
+    }
+  }
+}
+
+.notificacion-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .icono-tipo {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .titulo {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fecha {
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Indicador de estado leído/no leído */
+.estado-leida {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  
+  &.no-leida {
+    background: #dc2626;
+    color: white;
+    animation: pulse 2s infinite;
+  }
+  
+  &.leida {
+    background: #10b981;
+    color: white;
+  }
+}
+
+.mensaje {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* Información de debug */
+.debug-notificacion {
+  background: #f3f4f6;
+  padding: 6px 8px;
+  font-size: 10px;
+  color: #4b5563;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-family: 'Courier New', monospace;
+  line-height: 1.3;
+
+  strong {
+    color: #1f2937;
+  }
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  button {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+
+    &.marcar-leida {
+      background: #dcfce7;
+      color: #166534;
+
+      &:hover {
+        background: #bbf7d0;
+        transform: translateY(-1px);
+      }
+    }
+
+    &.eliminar {
+      background: #fef2f2;
+      color: #dc2626;
+
+      &:hover {
+        background: #fecaca;
+        transform: translateY(-1px);
+      }
+    }
+  }
+}
+
+/* Footer de debug */
+.debug-footer {
+  background: #f8fafc;
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+
+  details {
+    font-size: 12px;
+    color: #6b7280;
+
+    summary {
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background: #f3f4f6;
+        color: #374151;
+      }
+    }
+
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 8px;
+      font-size: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .lista-notificaciones {
+    width: 320px;
+    right: -50%;
+  }
+
+  .notificacion-header {
+    flex-direction: column;
+    gap: 4px;
+
+    .fecha {
+      align-self: flex-end;
+    }
+  }
+}
+
+/* Scrollbar personalizado */
+.contenido-lista::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contenido-lista::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.contenido-lista::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.contenido-lista::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Botón de prueba temporal */
+.test-btn {
+  position: fixed;
+  top: 10px;
+  right: 100px;
+  z-index: 9999;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.test-btn-red {
+    background: #ef4444;
+    color: white;
+    
+    &:hover {
+      background: #dc2626;
+    }
+  }
+}

@@ -1,43 +1,33 @@
 import { Routes } from '@angular/router';
-import { RoleGuard } from './role.guard'; // Asegúrate de la ruta correcta
-
+import { authGuard } from './aplicacion/custom/auth-guard';
+import { Login } from './aplicacion/seguridad/login/login';
+import { Registro } from './aplicacion/seguridad/registro/registro';
+import { CambioContrasenaObligatorioComponent } from './aplicacion/seguridad/cambio-contrasena-obligatorio/cambio-contrasena-obligatorio';
+import { RestablecerContrasenaComponent } from './aplicacion/seguridad/restablecer-contrasena/restablecer-contrasena';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-
-  // Login
-  {
-    path: 'login',
-    loadComponent: () =>
-      import('./auth/login/login.component').then(m => m.LoginComponent)
+  { 
+    path: 'login', 
+    component: Login 
   },
-
-  // Home / cliente
-  {
-    path: 'home',
-    loadComponent: () =>
-      import('./home/home.component').then(m => m.HomeComponent),
-    canActivate: [RoleGuard],
-    data: { rol: 'CLIENTE' }
+  { 
+    path: 'registro', 
+    component: Registro 
   },
-
-  // Admin
-  {
-    path: 'admin',
-    loadComponent: () =>
-      import('./admin/admin.component').then(m => m.AdminComponent),
-    canActivate: [RoleGuard],
-    data: { rol: 'ADMINISTRADOR' }
+  { 
+    path: 'auth/cambio-contrasena-obligatorio', 
+    component: CambioContrasenaObligatorioComponent 
   },
-
-  // Técnico
-  {
-    path: 'tecnico',
-    loadComponent: () =>
-      import('./tecnico/tecnico.component').then(m => m.TecnicoDashboardComponent),
-    canActivate: [RoleGuard],
-    data: { rol: 'TECNICO' }
+  { 
+    path: 'auth/restablecer-contrasena', 
+    component: RestablecerContrasenaComponent 
   },
-
-  { path: '**', redirectTo: 'login' }
+  {
+    path: '',
+    canActivate: [authGuard],
+    loadChildren: () => import('./aplicacion/paginas/paginas.route')
+  },
+  // Redirección para rutas incorrectas
+  { path: 'paginas', redirectTo: '/', pathMatch: 'full' },
+  { path: '**', redirectTo: '/login' }
 ];

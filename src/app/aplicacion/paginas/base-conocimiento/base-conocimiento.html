@@ -1,0 +1,303 @@
+<div class="knowledge-base">
+  <!-- HEADER HERO -->
+  <div class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1 class="hero-title">
+            🧠 Base de Conocimiento
+          </h1>
+          <p class="hero-subtitle">Soluciones inteligentes para problemas técnicos comunes</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-number">{{ estadisticas.total }}</div>
+            <div class="stat-label">Total Artículos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number text-success">{{ estadisticas.utiles }}</div>
+            <div class="stat-label">Soluciones Útiles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number text-info">{{ estadisticas.recientes }}</div>
+            <div class="stat-label">Recientes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH AND FILTERS - ACTUALIZADO -->
+  <div class="search-section bg-white py-4 border-b border-gray-200">
+    <div class="container">
+      
+      <!-- BUSCADOR ESTILO CATEGORÍAS -->
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0 mb-4">
+        
+        <!-- Buscador -->
+        <div class="relative w-full md:w-1/2">
+          <div class="relative">
+            <input 
+              type="text" 
+              placeholder="¿Qué problema necesitas resolver? Ej: conexión, impresora, email..."
+              [(ngModel)]="textoBusqueda"
+              (input)="aplicarFiltroBusqueda($event)"
+              (keyup.enter)="buscar()"
+              class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm">
+            <span class="absolute left-4 top-3 text-gray-400 text-lg">🔍</span>
+            
+            <!-- Botón de búsqueda -->
+            <button 
+              class="absolute right-2 top-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md flex items-center space-x-1 transition transform hover:scale-105 shadow-md"
+              (click)="buscar()">
+              <span class="btn-text">Buscar</span>
+            </button>
+          </div>
+          
+          <!-- Info de resultados -->
+          <div class="search-info mt-1" *ngIf="textoBusqueda && getContadorResultados() > 0">
+            <small class="text-green-600 font-medium">
+              {{ getContadorResultados() }} resultado{{ getContadorResultados() !== 1 ? 's' : '' }} para "{{ textoBusqueda }}"
+            </small>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex flex-wrap gap-2 justify-end">
+          <button 
+            *ngIf="textoBusqueda" 
+            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md"
+            (click)="limpiarBusqueda()">
+            <span>🗑️</span>
+            <span>Limpiar</span>
+          </button>
+
+          <button 
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md"
+            (click)="cargarBasesConocimiento()" 
+            [disabled]="cargando">
+            <span>🔄</span>
+            <span>{{ cargando ? 'Actualizando...' : 'Actualizar' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros y ordenamiento -->
+      <div class="filters-row flex flex-col md:flex-row md:items-center gap-4 pt-3 border-t border-gray-100">
+        <div class="filter-group flex items-center gap-3">
+          <span class="filter-label font-medium text-gray-700 text-sm">Filtrar:</span>
+          <div class="filter-buttons flex gap-2">
+            <button 
+              class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-all border" 
+              [class]="filtroUtilidad === 'todas' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+              (click)="cambiarFiltro('todas')"
+            >
+              📁 Todas
+            </button>
+            <button 
+              class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-all border" 
+              [class]="filtroUtilidad === 'utiles' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+              (click)="cambiarFiltro('utiles')"
+            >
+              👍 Más Útiles
+            </button>
+            <button 
+              class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-all border" 
+              [class]="filtroUtilidad === 'populares' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+              (click)="cambiarFiltro('populares')"
+            >
+              🔥 Populares
+            </button>
+          </div>
+        </div>
+
+        <div class="sort-group flex items-center gap-3">
+          <span class="sort-label font-medium text-gray-700 text-sm">Ordenar:</span>
+          <div class="sort-buttons flex gap-2">
+            <button 
+              class="sort-btn px-3 py-1.5 rounded-lg text-sm transition-all border" 
+              [class]="ordenamiento === 'fecha' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+              (click)="cambiarOrden('fecha')"
+            >
+              📅 Más Recientes
+            </button>
+            <button 
+              class="sort-btn px-3 py-1.5 rounded-lg text-sm transition-all border" 
+              [class]="ordenamiento === 'utilidad' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+              (click)="cambiarOrden('utilidad')"
+            >
+              ⭐ Mejor Calificados
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="container">
+      <div class="content-grid">
+        
+        <!-- ARTICLES LIST -->
+        <div class="articles-column">
+          <div class="section-header mb-6">
+            <h3 class="section-title text-xl font-bold text-gray-800 flex items-center gap-2">
+              📚 {{ textoBusqueda ? 'Resultados de Búsqueda' : 'Artículos de Conocimiento' }}
+              <span class="bg-blue-500 text-white px-2 py-1 rounded-full text-sm font-medium">
+                {{ getContadorResultados() }}
+              </span>
+            </h3>
+          </div>
+
+          <div class="articles-list space-y-4">
+            <!-- Estado de carga -->
+            <div *ngIf="cargando" class="loading-state text-center py-8">
+              <div class="loading-spinner mx-auto mb-4"></div>
+              <p class="text-gray-600">Cargando base de conocimiento...</p>
+            </div>
+
+            <!-- Lista de artículos -->
+            <div *ngIf="!cargando">
+              <div 
+                *ngFor="let base of getArticulosAMostrar()" 
+                class="article-card bg-white border border-gray-200 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-blue-300"
+                [class.active]="baseSeleccionada?.id === base.id"
+                [class.border-green-400]="base.utilidad >= 10"
+                (click)="seleccionarBase(base)"
+              >
+                <div class="article-header flex justify-between items-start mb-3">
+                  <h4 class="article-title text-lg font-semibold text-gray-800 flex-1 mr-4 line-clamp-2">
+                    {{ base.titulo }}
+                  </h4>
+                  <div class="article-meta flex flex-col items-end gap-1">
+                    <span class="article-date text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {{ base.fecha_publicacion | date:'dd/MM/yy' }}
+                    </span>
+                    <div class="article-rating flex items-center gap-1 text-xs px-2 py-1 rounded" 
+                         [class]="base.utilidad >= 5 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'">
+                      ⭐ {{ base.utilidad }}
+                    </div>
+                  </div>
+                </div>
+
+                <p class="article-excerpt text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+                  {{ (base.contenido | slice:0:120) + (base.contenido.length > 120 ? '...' : '') }}
+                </p>
+
+                <div class="article-footer flex justify-between items-center">
+                  <div class="tags flex gap-2 flex-wrap">
+                    <span 
+                      *ngFor="let tag of getPalabrasClave(base.palabras_clave)" 
+                      class="tag bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded border border-blue-200"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
+                  <div class="article-actions">
+                    <span class="helpful-count text-sm" 
+                          [class]="base.utilidad > 0 ? 'text-green-600 font-medium' : 'text-gray-500'">
+                      👍 {{ base.utilidad }} útil{{ base.utilidad !== 1 ? 'es' : '' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Estado vacío -->
+              <div *ngIf="getContadorResultados() === 0 && !cargando" class="empty-state text-center py-12">
+                <div class="empty-icon text-6xl mb-4 opacity-50">
+                  {{ textoBusqueda ? '🔍' : '📝' }}
+                </div>
+                <h4 class="text-xl font-semibold text-gray-700 mb-2">
+                  {{ textoBusqueda ? 'No encontramos resultados' : 'Aún no hay artículos' }}
+                </h4>
+                <p class="text-gray-500 max-w-md mx-auto">
+                  {{ textoBusqueda ? 'Prueba con otros términos de búsqueda' : 'Los artículos aparecerán aquí cuando se creen soluciones' }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARTICLE DETAIL -->
+        <div class="detail-column">
+          <div class="detail-container sticky top-4">
+            <div class="detail-card bg-white rounded-2xl shadow-xl overflow-hidden" *ngIf="baseSeleccionada; else noSelection">
+              <div class="detail-header bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+                <div class="detail-title-section flex justify-between items-start mb-4">
+                  <h2 class="detail-title text-2xl font-bold flex-1 mr-4">{{ baseSeleccionada.titulo }}</h2>
+                  <div class="detail-badge bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold border border-white border-opacity-30">
+                    🏆 {{ getBadgeUtilidad(baseSeleccionada.utilidad).texto }}
+                  </div>
+                </div>
+                <div class="detail-meta flex gap-6 text-sm opacity-90">
+                  <div class="meta-item flex items-center gap-1">
+                    📅 {{ baseSeleccionada.fecha_publicacion | date:'mediumDate' }}
+                  </div>
+                  <div class="meta-item flex items-center gap-1">
+                    👤 {{ baseSeleccionada.created_by }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-content p-6">
+                <h4 class="content-title text-lg font-semibold text-gray-800 mb-3">Solución</h4>
+                <div class="solution-content bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
+                  <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ baseSeleccionada.contenido }}</p>
+                </div>
+
+                <div class="detail-tags mb-6" *ngIf="baseSeleccionada.palabras_clave">
+                  <h4 class="tags-title text-lg font-semibold text-gray-800 mb-3">Palabras Clave</h4>
+                  <div class="tags-container flex flex-wrap gap-2">
+                    <span 
+                      *ngFor="let tag of getPalabrasClave(baseSeleccionada.palabras_clave)" 
+                      class="detail-tag bg-blue-500 text-white px-3 py-1.5 rounded-full text-sm font-medium"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="feedback-section">
+                  <h4 class="feedback-title text-lg font-semibold text-gray-800 mb-3">¿Te sirvió esta solución?</h4>
+                  <div class="feedback-buttons flex gap-3">
+                    <button 
+                      class="feedback-btn flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-lg transition-all duration-200 yes-btn"
+                      [class]="'border-green-500 text-green-600 hover:bg-green-50'"
+                      (click)="votarUtil(baseSeleccionada.id, true)"
+                    >
+                      <span class="text-lg">👍</span>
+                      <span>Sí, me sirvió</span>
+                      <span class="vote-count text-sm opacity-70">({{ baseSeleccionada.utilidad }})</span>
+                    </button>
+                    <button 
+                      class="feedback-btn flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-lg transition-all duration-200 no-btn"
+                      [class]="'border-red-500 text-red-600 hover:bg-red-50'"
+                      (click)="votarUtil(baseSeleccionada.id, false)"
+                    >
+                      <span class="text-lg">👎</span>
+                      <span>No me sirvió</span>
+                      <span class="vote-count text-sm opacity-70">({{ baseSeleccionada.no_util }})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #noSelection>
+              <div class="no-selection bg-white rounded-2xl p-8 text-center shadow-xl">
+                <div class="no-selection-content">
+                  <div class="text-6xl mb-4 opacity-50">📄</div>
+                  <h3 class="text-xl font-semibold text-gray-700 mb-2">Selecciona un artículo</h3>
+                  <p class="text-gray-500">Elige un artículo de la lista para ver su contenido detallado</p>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

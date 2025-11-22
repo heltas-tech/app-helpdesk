@@ -1,0 +1,351 @@
+<div class="min-h-screen bg-gray-50 p-6">
+  <!-- Header -->
+   <!-- En el header, junto al botón de actualizar -->
+
+
+  <div class="mb-8">
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard Técnico</h1>
+        <p class="text-gray-600 mt-2">Bienvenido de vuelta, <strong class="text-blue-600">{{ tecnicoInfo.nombre }}</strong> 👋</p>
+        <p class="text-sm text-gray-500">{{ tecnicoInfo.fechaIngreso }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+          Especialidad: {{ tecnicoInfo.especialidad }} | 
+          Eficiencia: <span class="font-semibold">{{ stats.eficiencia }}%</span>
+        </p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button 
+          (click)="refreshData()"
+          class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          [disabled]="isLoading">
+          <span class="mr-2">🔄</span>
+          {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex justify-center items-center py-20">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p class="text-gray-600 mt-4">Cargando datos del dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading" class="space-y-6">
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Tickets Asignados -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Tickets Asignados</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsAsignados }}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">📋</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-blue-600">
+          <span>{{ stats.ticketsHoy }} nuevos hoy</span>
+        </div>
+      </div>
+
+      <!-- En Proceso -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">En Proceso</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsEnProceso }}</p>
+          </div>
+          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">⚡</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-yellow-600">
+          <span>Trabajando activamente</span>
+        </div>
+      </div>
+
+      <!-- Resueltos -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Resueltos</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsResueltos }}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">✅</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-green-600">
+          <span>{{ stats.eficiencia }}% de eficiencia</span>
+        </div>
+      </div>
+
+      <!-- Urgentes -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Urgentes</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsUrgentes }}</p>
+          </div>
+          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <span class="text-2xl">🚨</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-red-600">
+          <span>Requieren atención inmediata</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Gráfico de Pastel -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribución de Tickets</h3>
+        <div class="chart-container" style="position: relative; height: 300px;">
+          <canvas baseChart
+            [data]="pieChartData"
+            [options]="pieChartOptions"
+            type="pie">
+          </canvas>
+        </div>
+      </div>
+
+      <!-- Gráfico de Barras -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Actividad Semanal</h3>
+        <div class="chart-container" style="position: relative; height: 300px;">
+          <canvas baseChart
+            [data]="barChartData"
+            [options]="barChartOptions"
+            type="bar">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets Urgentes -->
+    <div *ngIf="ticketsUrgentes.length > 0" class="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-semibold text-red-900">🚨 Tickets Urgentes 
+          <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full ml-2">{{ ticketsUrgentes.length }}</span>
+        </h3>
+        <span class="text-sm text-red-600">Atención prioritaria requerida</span>
+      </div>
+      
+      <div class="space-y-3">
+        <div *ngFor="let ticket of ticketsUrgentes" 
+             class="border border-red-300 bg-red-50 rounded-lg p-4 hover:border-red-400 transition-colors">
+          <div class="flex justify-between items-start mb-3">
+            <div class="flex-1">
+              <div class="flex items-center space-x-2 mb-2">
+                <h4 class="font-bold text-red-900">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
+                  {{ getPrioridadTexto(ticket.prioridad?.nivel) }}
+                </span>
+              </div>
+              <p class="text-sm text-red-800">{{ ticket.descripcion?.substring(0, 120) }}{{ ticket.descripcion && ticket.descripcion.length > 120 ? '...' : '' }}</p>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-center text-sm text-red-700">
+            <div class="flex items-center space-x-4">
+              <span>Creado: {{ ticket.fecha_creacion | date:'dd/MM/yyyy' }}</span>
+              <span>Hace {{ getDiasTranscurridos(ticket.fecha_creacion) }} días</span>
+            </div>
+            <span class="font-semibold">{{ getTicketEstado(ticket) }}</span>
+          </div>
+          
+          <div class="mt-3 flex space-x-2">
+            <button *ngIf="puedeIniciarTicket(ticket)"
+                    (click)="iniciarTicket(ticket)"
+                    class="text-xs bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 transition-colors">
+              Iniciar Trabajo
+            </button>
+            <button *ngIf="puedeResolverTicket(ticket)"
+                    (click)="abrirResolverModal(ticket)"
+                    class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors">
+              Marcar Resuelto
+            </button>
+            <button (click)="verDetallesTicket(ticket)"
+                    class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
+              Ver Detalles
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets Asignados y Recientes -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <!-- Tickets Asignados -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Tickets Asignados</h3>
+          <span class="text-sm text-gray-500">{{ ticketsAsignados.length }} pendientes</span>
+        </div>
+        
+        <div class="space-y-4">
+          <div *ngFor="let ticket of ticketsAsignados" 
+               class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex-1">
+                <div class="flex items-center space-x-2 mb-1">
+                  <h4 class="font-medium text-gray-900">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
+                  <span class="w-2 h-2 rounded-full {{ getPrioridadColor(ticket.prioridad?.nivel) }}"></span>
+                </div>
+                <p class="text-sm text-gray-600">{{ ticket.descripcion?.substring(0, 80) }}{{ ticket.descripcion && ticket.descripcion.length > 80 ? '...' : '' }}</p>
+              </div>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ getTicketEstadoColor(getTicketEstado(ticket)) }}">
+                {{ getTicketEstado(ticket) }}
+              </span>
+            </div>
+            
+            <div class="flex justify-between items-center text-sm text-gray-500">
+              <span>{{ ticket.fecha_creacion | date:'dd/MM/yyyy' }}</span>
+              <span>{{ getPrioridadTexto(ticket.prioridad?.nivel) }}</span>
+            </div>
+            
+            <div class="mt-3 flex space-x-2">
+              <button *ngIf="puedeIniciarTicket(ticket)"
+                      (click)="iniciarTicket(ticket)"
+                      class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
+                Iniciar
+              </button>
+              <button *ngIf="puedeResolverTicket(ticket)"
+                      (click)="abrirResolverModal(ticket)"
+                      class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors">
+                Resolver
+              </button>
+              <button (click)="verDetallesTicket(ticket)"
+                      class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors">
+                Detalles
+              </button>
+            </div>
+          </div>
+          
+          <div *ngIf="ticketsAsignados.length === 0" class="text-center py-8 text-gray-500">
+            🎉 No hay tickets asignados pendientes
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets Recientes -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Actividad Reciente</h3>
+          <span class="text-sm text-gray-500">{{ stats.ticketsEsteMes }} este mes</span>
+        </div>
+        
+        <div class="space-y-3">
+          <div *ngFor="let ticket of ticketsRecientes" 
+               class="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full {{ getPrioridadColor(ticket.prioridad?.nivel) }}"></div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">#{{ ticket.id }} - {{ ticket.titulo }}</p>
+                <p class="text-xs text-gray-500">{{ ticket.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
+              </div>
+            </div>
+            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ getTicketEstadoColor(getTicketEstado(ticket)) }}">
+              {{ getTicketEstado(ticket) }}
+            </span>
+          </div>
+          
+          <div *ngIf="ticketsRecientes.length === 0" class="text-center py-8 text-gray-500">
+            No hay actividad reciente
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a [routerLink]="['/tickets-tecnico']" 
+           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group">
+          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">📋</span>
+          <span class="text-sm font-medium text-gray-700">Mis Tickets</span>
+        </a>
+        
+        <button (click)="refreshData()"
+           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group">
+          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</span>
+          <span class="text-sm font-medium text-gray-700">Actualizar</span>
+        </button>
+        
+        <a [routerLink]="['/perfil']" 
+           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors group">
+          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">👤</span>
+          <span class="text-sm font-medium text-gray-700">Mi Perfil</span>
+        </a>
+        
+        <a [routerLink]="['/base-conocimiento']" 
+           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors group">
+          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">📚</span>
+          <span class="text-sm font-medium text-gray-700">Base Conocimiento</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Resolver Ticket -->
+  <div *ngIf="showResolverModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl mx-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-semibold text-gray-900">Resolver Ticket #{{ ticketSeleccionado?.id }}</h3>
+        <button (click)="cerrarResolverModal()" class="text-gray-400 hover:text-gray-600">
+          ✕
+        </button>
+      </div>
+      
+      <div *ngIf="ticketSeleccionado" class="mb-6">
+        <h4 class="font-medium text-gray-900 mb-2">{{ ticketSeleccionado.titulo }}</h4>
+        <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{{ ticketSeleccionado.descripcion }}</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Solución Aplicada *</label>
+          <textarea 
+            [(ngModel)]="solucionTexto"
+            rows="6"
+            placeholder="Describe la solución aplicada al problema..."
+            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+          </textarea>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <h4 class="font-medium text-blue-800 mb-1">Información Importante</h4>
+          <p class="text-sm text-blue-700">
+            Al marcar como resuelto, el ticket se cerrará y se notificará al usuario. 
+            Asegúrate de que la solución esté completamente implementada.
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-3 mt-6">
+        <button 
+          (click)="cerrarResolverModal()"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+          Cancelar
+        </button>
+        <button 
+          (click)="resolverTicket()"
+          [disabled]="!solucionTexto.trim()"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="mr-2">✅</span>
+          Marcar como Resuelto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,9 @@
+:host {
+  background-color: pink !important;
+}
+:host ::ng-deep .mat-paginator {
+  background-color: #f3f4f6;
+}
+:host ::ng-deep .mat-header-row {
+  background-color: #e5e7eb;
+}

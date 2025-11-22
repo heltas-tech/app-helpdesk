@@ -1,0 +1,266 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Mis Tickets</h1>
+        <p class="text-gray-600">Gestiona y sigue el estado de todos tus tickets</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buscador -->
+  <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <div class="flex flex-col lg:flex-row gap-4 items-center">
+      <div class="flex-1">
+        <div class="relative">
+          <input 
+            type="text" 
+            [(ngModel)]="textoBusqueda"
+            placeholder="Buscar por título, descripción, categoría, técnico, estado..." 
+            (input)="aplicarBusqueda()"
+            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          <mat-icon class="absolute left-3 top-3 text-gray-400">search</mat-icon>
+        </div>
+      </div>
+      <button 
+        *ngIf="textoBusqueda"
+        (click)="limpiarBusqueda()"
+        class="px-4 py-3 text-gray-600 hover:text-gray-800 transition">
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla con estados específicos -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+      <table mat-table [dataSource]="dataSource" class="w-full">
+        
+        <!-- ID -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex items-center gap-2">
+              <span>#{{element.id}}</span>
+              <!-- Indicador de reapertura -->
+              <span 
+                *ngIf="esReabierto(element)"
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 border border-purple-200"
+                matTooltip="Ticket reabierto">
+                <mat-icon class="text-xs mr-1" style="font-size: 12px;">refresh</mat-icon>
+                {{element.veces_reabierto || 1}}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ASUNTO -->
+        <ng-container matColumnDef="asunto">
+          <th mat-header-cell *matHeaderCellDef>Asunto</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex items-center gap-3">
+              <!-- Indicador visual del estado -->
+              <div [class]="'w-3 h-3 rounded-full ' + 
+                (esResuelto(element) ? 'bg-green-500' : 
+                 esReabierto(element) ? 'bg-purple-500' :
+                 esEnProceso(element) ? 'bg-blue-500' : 
+                 esCerrado(element) ? 'bg-gray-500' : 'bg-yellow-500')"
+                [matTooltip]="getDescripcionEstado(element)"></div>
+              
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-900 truncate">{{element.titulo}}</div>
+                <div class="text-xs text-gray-500 truncate">
+                  {{element.descripcion || 'Sin descripción'}}
+                </div>
+                
+                <!-- Información de reapertura -->
+                <div 
+                  *ngIf="getInfoReaperturas(element)" 
+                  class="text-xs text-purple-600 mt-1"
+                  matTooltip="{{getInfoReaperturas(element)}}">
+                  <mat-icon class="text-xs align-text-bottom" style="font-size: 12px;">refresh</mat-icon>
+                  {{getInfoReaperturas(element)}}
+                </div>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ESTADO ESPECÍFICO -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex items-center gap-2">
+              <span 
+                [class]="'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ' + getEstadoClase(element)"
+                [matTooltip]="getDescripcionEstado(element)">
+                <mat-icon class="mr-1 text-xs" style="font-size: 14px;">
+                  {{getEstadoIcono(element)}}
+                </mat-icon>
+                {{getEstadoTexto(element)}}
+              </span>
+              
+              <!-- Indicadores adicionales -->
+              <span 
+                *ngIf="TicketUtils.slaProximoVencer(element)"
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800 border border-orange-200"
+                matTooltip="SLA próximo a vencer">
+                <mat-icon class="text-xs mr-1" style="font-size: 12px;">schedule</mat-icon>
+                Urgente
+              </span>
+              
+              <span 
+                *ngIf="TicketUtils.slaVencido(element)"
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 border border-red-200"
+                matTooltip="SLA vencido">
+                <mat-icon class="text-xs mr-1" style="font-size: 12px;">warning</mat-icon>
+                Vencido
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- TÉCNICO ASIGNADO -->
+        <ng-container matColumnDef="tecnico_asignado">
+          <th mat-header-cell *matHeaderCellDef>Técnico</th>
+          <td mat-cell *matCellDef="let element">
+            <div *ngIf="tieneTecnico(element)" class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                {{getNombreTecnico(element).charAt(0) || 'T'}}
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-900">{{getNombreTecnico(element)}}</div>
+                <div class="text-xs text-gray-500">{{getEmailTecnico(element)}}</div>
+              </div>
+            </div>
+            <div *ngIf="!tieneTecnico(element)" class="text-sm text-gray-400 italic">
+              Esperando asignación
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- PRIORIDAD -->
+        <ng-container matColumnDef="prioridad">
+          <th mat-header-cell *matHeaderCellDef>Prioridad</th>
+          <td mat-cell *matCellDef="let element">
+            <div *ngIf="element.prioridad" 
+                 [class]="'px-3 py-1 rounded-full text-xs font-medium border ' + getColorPrioridad(element.prioridad.nivel)"
+                 matTooltip="{{TicketUtils.getUrgenciaPrioridad(element.prioridad.nivel)}} - Nivel {{element.prioridad.nivel}}">
+              {{element.prioridad.nombre}}
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- CATEGORÍA -->
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef>Categoría</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex flex-col">
+              <span class="text-sm">{{element.categoria?.nombre || 'No asignada'}}</span>
+              <span *ngIf="element.subcategoria" class="text-xs text-gray-500">
+                {{element.subcategoria.nombre}}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- FECHA CREACIÓN -->
+        <ng-container matColumnDef="fecha_creacion">
+          <th mat-header-cell *matHeaderCellDef>Fecha Creación</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex flex-col">
+              <span class="text-sm">{{element.fecha_creacion | date:'dd/MM/yyyy'}}</span>
+              <span class="text-xs text-gray-500">{{element.fecha_creacion | date:'HH:mm'}}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- TIEMPO ESPERA -->
+        <ng-container matColumnDef="tiempo_espera">
+          <th mat-header-cell *matHeaderCellDef>Tiempo</th>
+          <td mat-cell *matCellDef="let element">
+            <div class="flex flex-col">
+              <span class="text-sm">{{getTiempoTranscurrido(element.fecha_creacion)}}</span>
+              <span *ngIf="element.fecha_resolucion" class="text-xs text-green-600">
+                Resuelto: {{element.fecha_resolucion | date:'dd/MM/yyyy'}}
+              </span>
+              <span *ngIf="esCerrado(element)" class="text-xs text-gray-600">
+                Cerrado definitivamente
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ACCIONES MEJORADAS -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="text-right">Acciones</th>
+          <td mat-cell *matCellDef="let element" class="text-right">
+            <div class="flex justify-end gap-2">
+              <!-- Botón VER (siempre visible) -->
+              <button 
+                (click)="abrirDetalleTicket(element)"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition"
+                matTooltip="Ver detalles completos">
+                <mat-icon class="mr-1" style="font-size: 16px;">visibility</mat-icon>
+                Ver
+              </button>
+
+              <!-- Botón CERRAR (para tickets resueltos/en proceso) -->
+              <button 
+                *ngIf="puedeCerrar(element)"
+                (click)="cerrarTicket(element)"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
+                matTooltip="Cerrar ticket definitivamente">
+                <mat-icon class="mr-1" style="font-size: 16px;">lock</mat-icon>
+                Cerrar
+              </button>
+
+              <!-- Botón REABRIR (solo para tickets resueltos/cerrados) -->
+              <button 
+                *ngIf="puedeReabrir(element)"
+                (click)="reabrirTicket(element)"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 transition"
+                matTooltip="Reabrir ticket para seguimiento adicional">
+                <mat-icon class="mr-1" style="font-size: 16px;">refresh</mat-icon>
+                Reabrir
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+
+    <!-- Estados vacíos -->
+    <div *ngIf="dataSource.filteredData.length === 0" class="text-center py-16">
+      <div class="max-w-md mx-auto">
+        <mat-icon class="text-6xl text-gray-300 mb-4">support</mat-icon>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{dataSource.data.length === 0 ? 'Aún no tienes tickets' : 'No se encontraron resultados'}}
+        </h3>
+        <p class="text-gray-500 mb-6">
+          {{dataSource.data.length === 0 ? 
+            'Todos tus tickets de soporte aparecerán aquí' : 
+            'Intenta ajustar los términos de búsqueda'
+          }}
+        </p>
+        <button 
+          *ngIf="dataSource.data.length > 0"
+          (click)="limpiarBusqueda()"
+          class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition">
+          Limpiar búsqueda
+        </button>
+      </div>
+    </div>
+
+    <mat-paginator 
+      [pageSize]="10" 
+      [pageSizeOptions]="[5, 10, 25]"
+      showFirstLastButtons
+      class="border-t border-gray-200">
+    </mat-paginator>
+  </div>
+</div>

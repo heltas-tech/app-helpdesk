@@ -1,0 +1,118 @@
+<div class="notificaciones-container">
+  <!-- Botón de la campanita con indicador de conexión -->
+  <button class="campanita-btn" (click)="toggleLista()" aria-label="Notificaciones">
+    <span class="icono-campanita">🔔</span>
+    
+    <!-- Indicador de conexión WebSocket -->
+    <span class="conexion-indicator" [class.conectado]="websocketConectado" 
+          [title]="websocketConectado ? 'WebSocket Conectado' : 'WebSocket Desconectado'">
+      ●
+    </span>
+    
+    <!-- Contador de notificaciones no leídas -->
+    <span class="contador" *ngIf="notificacionesNoLeidas > 0">
+      {{ notificacionesNoLeidas }}
+    </span>
+  </button>
+
+  <!-- Lista de notificaciones -->
+  <div class="lista-notificaciones" *ngIf="mostrarLista">
+    <!-- Header con información de filtro -->
+    <div class="header-lista">
+      <div>
+        <h3>Notificaciones 
+          <span class="debug-info">
+            ({{notificaciones.length}} mostradas, {{notificacionesNoLeidas}} no leídas)
+          </span>
+        </h3>
+        
+        <!-- Indicador de filtro por usuario -->
+        <div class="filtro-indicator" *ngIf="getUsuarioLogueado()">
+          👤 {{getUsuarioLogueado()?.nombre_usuario}} ({{getUsuarioLogueado()?.rol}})
+        </div>
+      </div>
+      
+      <button class="marcar-todas" (click)="marcarTodasComoLeidas()" *ngIf="notificacionesNoLeidas > 0">
+        Marcar todas como leídas
+      </button>
+    </div>
+
+    <!-- Contenido -->
+    <div class="contenido-lista">
+      <!-- Estado de carga -->
+      <div class="cargando" *ngIf="cargando">
+        Cargando notificaciones...
+      </div>
+
+      <!-- Sin notificaciones -->
+      <div class="sin-notificaciones" *ngIf="!cargando && notificaciones.length === 0">
+        <div class="icono-vacio">🔔</div>
+        No hay notificaciones
+      </div>
+
+      <!-- Lista de notificaciones -->
+      <div *ngIf="!cargando && notificaciones.length > 0">
+        <!-- Estadísticas -->
+        <div class="debug-stats" *ngIf="notificaciones.length > 0">
+          📊 {{notificaciones.length}} notificaciones, {{notificacionesNoLeidas}} no leídas
+        </div>
+        
+        <!-- Items de notificación -->
+        <div *ngFor="let notificacion of notificaciones; let i = index" 
+             class="notificacion-item" 
+             [class.no-leida]="!notificacion.leida"
+             [class.leida]="notificacion.leida">
+          
+          <div class="notificacion-header">
+            <span class="icono-tipo">{{ getIconoTipo(notificacion.tipo) }}</span>
+            <h4 class="titulo">{{ notificacion.titulo }}
+              <!-- Indicador de estado -->
+              <span class="estado-leida" [class.no-leida]="!notificacion.leida" [class.leida]="notificacion.leida">
+                {{ notificacion.leida ? '✅ Leída' : '🔴 No leída' }}
+              </span>
+            </h4>
+            <span class="fecha">{{ formatearFecha(notificacion.fecha_creacion) }}</span>
+          </div>
+
+          <p class="mensaje">{{ notificacion.mensaje }}</p>
+
+          <!-- Información de debug -->
+          <div class="debug-notificacion">
+            <strong>ID:</strong> {{notificacion.id}} | 
+            <strong>Tipo:</strong> {{notificacion.tipo}} | 
+            <strong>Usuario:</strong> {{notificacion.usuario?.nombre_usuario}} ({{notificacion.usuario?.rol}}) |
+            <strong>Destino:</strong> {{notificacion.usuario_id}} |
+            <strong>Índice:</strong> {{i}}
+          </div>
+
+          <div class="acciones">
+            <button class="marcar-leida" 
+                    (click)="marcarComoLeida(notificacion, $event)"
+                    *ngIf="!notificacion.leida">
+              Marcar como leída
+            </button>
+            <button class="eliminar" 
+                    (click)="eliminarNotificacion(notificacion, $event)">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debug information -->
+    <div class="debug-footer">
+      <details>
+        <summary>🔍 Debug Info ({{debug.websocketEvents}} eventos WS)</summary>
+        <pre>{{ getEstadoActual() | json }}</pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<!-- Botón de prueba temporal -->
+<button (click)="probarNotificacionNoLeida()" 
+        class="test-btn test-btn-red"
+        *ngIf="false"> <!-- Oculto por defecto -->
+  🔴 TEST NO LEÍDA
+</button>

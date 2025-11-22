@@ -1,0 +1,417 @@
+<!-- components/tickets/tickets.component.html -->
+<div class="p-6 space-y-6 bg-gray-50 min-h-screen">
+  <!-- Título y estadísticas -->
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Gestión de Tickets</h1>
+      <p class="text-sm text-gray-600 mt-1">Administración completa del sistema de tickets</p>
+    </div>
+    <div class="text-sm text-gray-500">
+      Total: {{dataSource.filteredData.length}} tickets
+    </div>
+  </div>
+  
+  <hr class="border-gray-300">
+
+  <!-- Filtros avanzados -->
+  <div class="bg-white p-4 rounded-lg shadow-md">
+    <h3 class="font-semibold text-gray-700 mb-3">Filtros Avanzados</h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Filtro por Estado -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select 
+          [(ngModel)]="filtroEstado" 
+          (change)="onFiltroChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="todos">Todos los estados</option>
+          <option value="activos">Activos</option>
+          <option value="eliminados">Eliminados</option>
+          <option value="resueltos">Resueltos</option>
+          <option value="asignados">Asignados</option>
+        </select>
+      </div>
+
+      <!-- Filtro por Prioridad -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+        <select 
+          [(ngModel)]="filtroPrioridad" 
+          (change)="onFiltroChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="todas">Todas las prioridades</option>
+          <option *ngFor="let prioridad of prioridades" [value]="prioridad.nivel">
+            {{prioridad.nombre}} (Nivel {{prioridad.nivel}})
+          </option>
+        </select>
+      </div>
+
+      <!-- Filtro por Técnico -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Técnico</label>
+        <select 
+          [(ngModel)]="filtroTecnico" 
+          (change)="onFiltroChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="todos">Todos los técnicos</option>
+          <option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">
+            {{tecnico.nombre_usuario}}
+          </option>
+        </select>
+      </div>
+
+      <!-- Botón reset filtros -->
+      <div class="flex items-end">
+        <button 
+          (click)="filtroEstado='todos'; filtroPrioridad='todas'; filtroTecnico='todos'; cargarTickets()"
+          class="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition shadow-md">
+          <mat-icon class="mr-1" style="font-size: 18px;">refresh</mat-icon>
+          Resetear Filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de búsqueda y acciones -->
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
+    <!-- Buscador -->
+    <div class="relative w-full md:w-1/3">
+      <input 
+        type="text" 
+        placeholder="Buscar por título, descripción, entidad, técnico..." 
+        (input)="applyFilter($event)"
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200">
+      <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="flex flex-wrap gap-2 justify-end">
+      <button 
+        (click)="cargarTickets(false)" 
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>visibility</mat-icon>
+        <span>Ver Activos</span>
+      </button>
+
+      <button 
+        (click)="cargarTickets(true)" 
+        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>delete</mat-icon>
+        <span>Ver Eliminados</span>
+      </button>
+
+      <button 
+        (click)="exportExcel()" 
+        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>grid_on</mat-icon>
+        <span>Exportar Excel</span>
+      </button>
+
+      <button 
+        (click)="exportPDF()" 
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>picture_as_pdf</mat-icon>
+        <span>Exportar PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla de tickets -->
+  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <table mat-table [dataSource]="dataSource" class="w-full">
+      
+      <!-- Columna Título -->
+      <ng-container matColumnDef="titulo">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Título
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="font-medium text-gray-800">{{ element.titulo }}</div>
+          <div class="text-xs text-gray-500 mt-1 flex items-center">
+            <mat-icon class="text-xs mr-1" style="font-size: 14px;">schedule</mat-icon>
+            {{ getTiempoTranscurrido(element.fecha_creacion) }}
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Descripción -->
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Descripción
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="text-gray-700 text-sm">
+            {{ element.descripcion ? (element.descripcion.substring(0, 80) + (element.descripcion.length > 80 ? '...' : '')) : 'Sin descripción' }}
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Entidad Usuario -->
+      <ng-container matColumnDef="entidad_usuario">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Entidad / Reportado por
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div *ngIf="element.entidad_usuario">
+            <div class="font-medium text-gray-800 text-sm">
+              {{ element.entidad_usuario.entidad?.denominacion }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ element.entidad_usuario.usuario?.nombre_usuario }}
+              <span class="text-xs bg-gray-100 px-1 rounded ml-1">{{ element.entidad_usuario.cargo }}</span>
+            </div>
+          </div>
+          <div *ngIf="!element.entidad_usuario" class="text-gray-400 text-sm">
+            No asignado
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Técnico -->
+      <ng-container matColumnDef="tecnico">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Técnico
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div *ngIf="element.tecnico" class="text-sm">
+            <div class="font-medium text-gray-800">{{ element.tecnico.nombre_usuario }}</div>
+            <div class="text-xs text-gray-500">{{ element.tecnico.correo_electronico }}</div>
+          </div>
+          <div *ngIf="!element.tecnico">
+            <button 
+              (click)="asignarTecnico(element)"
+              class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 transition">
+              <mat-icon class="text-xs mr-1" style="font-size: 14px;">person_add</mat-icon>
+              Asignar
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Categoría -->
+      <ng-container matColumnDef="categoria">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Categoría / Subcategoría
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="text-sm">
+            <div class="font-medium text-gray-800">{{ element.categoria?.nombre }}</div>
+            <div class="text-xs text-gray-500">{{ element.subcategoria?.nombre }}</div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Prioridad -->
+      <ng-container matColumnDef="prioridad">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Prioridad
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div *ngIf="element.prioridad" 
+               [class]="'px-2 py-1 rounded text-xs font-medium border ' + getColorPrioridad(element.prioridad.nivel)">
+            {{ element.prioridad.nombre }}
+            <div class="text-xs opacity-75">{{ getUrgenciaPrioridad(element.prioridad.nivel) }}</div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna SLA -->
+      <ng-container matColumnDef="sla">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          SLA
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div *ngIf="element.sla" class="text-sm">
+            <div class="font-medium text-gray-800">{{ element.sla.nombre }}</div>
+            <div class="text-xs text-gray-500">
+              Resolución: {{ element.sla.tiempo_resolucion }}h
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Contrato -->
+      <ng-container matColumnDef="contrato">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Contrato
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div *ngIf="element.contrato" class="text-sm">
+            <div class="font-medium text-gray-800">{{ element.contrato.numero_contrato }}</div>
+            <div class="text-xs text-gray-500">{{ element.contrato.titulo }}</div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Fecha Creación -->
+      <ng-container matColumnDef="fecha_creacion">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
+          Fecha Creación
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+          <div class="text-sm">
+            <div class="text-gray-800">{{ element.fecha_creacion | date:'dd/MM/yyyy' }}</div>
+            <div class="text-xs text-gray-500">{{ element.fecha_creacion | date:'HH:mm' }}</div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Estado -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
+          <div [ngSwitch]="true">
+            <!-- Ticket eliminado -->
+            <div *ngSwitchCase="!element.estado" 
+                 class="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-800 text-sm font-medium">
+              <mat-icon class="mr-1" style="font-size: 16px;">delete</mat-icon>
+              Eliminado
+            </div>
+
+            <!-- Ticket resuelto -->
+            <div *ngSwitchCase="element.fecha_resolucion" 
+                 class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+              <mat-icon class="mr-1" style="font-size: 16px;">check_circle</mat-icon>
+              Resuelto
+            </div>
+
+            <!-- Ticket asignado -->
+            <div *ngSwitchCase="element.tecnico_id" 
+                 class="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+              <mat-icon class="mr-1" style="font-size: 16px;">assignment_ind</mat-icon>
+              Asignado
+            </div>
+
+            <!-- Ticket nuevo -->
+            <div *ngSwitchDefault 
+                 class="inline-flex items-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium">
+              <mat-icon class="mr-1" style="font-size: 16px;">fiber_new</mat-icon>
+              Nuevo
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Columna Acciones -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
+          Acciones
+        </th>
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
+          <div class="flex justify-center gap-1">
+            <!-- Botón Editar -->
+            <button 
+              (click)="openModal(element)" 
+              class="bg-blue-500 hover:bg-blue-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              matTooltip="Editar ticket"
+              [disabled]="!element.estado">
+              <mat-icon style="font-size: 18px;">edit</mat-icon>
+            </button>
+
+            <!-- Botón Asignar Técnico -->
+            <button 
+              (click)="asignarTecnico(element)" 
+              class="bg-purple-500 hover:bg-purple-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              matTooltip="Asignar técnico"
+              [disabled]="!element.estado">
+              <mat-icon style="font-size: 18px;">person_add</mat-icon>
+            </button>
+
+            <!-- Botón Marcar Resuelto -->
+            <button 
+              (click)="marcarResuelto(element)" 
+              class="bg-green-500 hover:bg-green-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              matTooltip="Marcar como resuelto"
+              [disabled]="!element.estado || !!element.fecha_resolucion">
+              <mat-icon style="font-size: 18px;">check_circle</mat-icon>
+            </button>
+
+            <!-- Botón Eliminar/Restaurar -->
+            <button 
+              *ngIf="element.estado; else restaurarBtn"
+              (click)="delete(element.id)" 
+              class="bg-red-500 hover:bg-red-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+              matTooltip="Eliminar ticket">
+              <mat-icon style="font-size: 18px;">delete</mat-icon>
+            </button>
+
+            <ng-template #restaurarBtn>
+              <button 
+                (click)="restaurar(element.id)" 
+                class="bg-green-500 hover:bg-green-600 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
+                matTooltip="Restaurar ticket">
+                <mat-icon style="font-size: 18px;">restore</mat-icon>
+              </button>
+            </ng-template>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Filas -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-purple-50"></tr>
+      <tr 
+        mat-row 
+        *matRowDef="let row; columns: displayedColumns;" 
+        [class.bg-red-50]="!row.estado"
+        [class.hover:bg-red-100]="!row.estado"
+        [class.hover:bg-gray-50]="row.estado"
+        class="transition-colors duration-200">
+      </tr>
+    </table>
+
+    <!-- Mensaje cuando no hay datos -->
+    <div *ngIf="dataSource.data.length === 0" class="text-center py-12 text-gray-500">
+      <mat-icon class="text-6xl mb-4 text-gray-300">support</mat-icon>
+      <p class="text-lg font-medium">No se encontraron tickets</p>
+      <p class="text-sm mt-1">Los tickets aparecerán aquí cuando sean creados</p>
+    </div>
+
+    <!-- Mensaje cuando no hay resultados del filtro -->
+    <div *ngIf="dataSource.filteredData.length === 0 && dataSource.data.length > 0" 
+         class="text-center py-12 text-gray-500">
+      <mat-icon class="text-6xl mb-4 text-gray-300">search_off</mat-icon>
+      <p class="text-lg font-medium">No se encontraron resultados</p>
+      <p class="text-sm mt-1">Intenta con otros términos de búsqueda o ajusta los filtros</p>
+    </div>
+  </div>
+
+  <!-- Paginador -->
+  <mat-paginator 
+    [pageSize]="10" 
+    [pageSizeOptions]="[5, 10, 25, 50]"
+    showFirstLastButtons
+    class="mt-4 bg-white rounded-lg shadow-sm">
+  </mat-paginator>
+
+  <!-- Información del sistema -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-start">
+      <mat-icon class="text-blue-500 mr-3 mt-1">info</mat-icon>
+      <div>
+        <h3 class="font-semibold text-blue-800 mb-2">Información del Sistema de Tickets</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+          <div>
+            <h4 class="font-medium mb-1">Estados de Tickets:</h4>
+            <ul class="space-y-1">
+              <li>• <span class="font-medium">Nuevo:</span> Ticket creado, sin técnico asignado</li>
+              <li>• <span class="font-medium">Asignado:</span> Técnico asignado, en proceso</li>
+              <li>• <span class="font-medium">Resuelto:</span> Ticket solucionado y cerrado</li>
+              <li>• <span class="font-medium">Eliminado:</span> Ticket desactivado (soft delete)</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium mb-1">Niveles de Prioridad:</h4>
+            <ul class="space-y-1">
+              <li>• <span class="font-medium">Crítica (4):</span> Requiere atención inmediata</li>
+              <li>• <span class="font-medium">Alta (3):</span> Atención en menos de 4 horas</li>
+              <li>• <span class="font-medium">Media (2):</span> Atención en el día</li>
+              <li>• <span class="font-medium">Baja (1):</span> Atención en 24-48 horas</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

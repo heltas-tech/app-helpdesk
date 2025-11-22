@@ -1,0 +1,46 @@
+<section class="bg-gray-50 dark:bg-gray-900">
+    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+        <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">            
+        </a>
+        <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+            <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+              <h1 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Inicia sesión<br> <span class="text-lg text-green-900"> {{ tituloSistema }}</span></h1>
+              <form class="space-y-6" *ngIf="registroFormGroup" [formGroup]="registroFormGroup" (ngSubmit)="onSubmit()">
+                <div class="mb-4">
+                <label for="email" class="block text-sm/6 font-medium text-gray-900">Correo Electrónico</label>
+                <div class="mt-2">
+                  <input type="email" name="email" id="email" autocomplete="email" 
+                  placeholder="Ejemplo: email@gmail.com"
+                      formControlName="email" type="email" [required]="true"
+                      class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                </div>
+              </div>
+              <div>
+                <div class="mt-2">
+                  <label for="password" class="block text-sm/6 font-medium text-gray-900">Contraseña</label>
+                  <input type="password" name="password" id="password" autocomplete="current-password" 
+                  placeholder="Password" formControlName="password"
+                      type="password" [required]="true" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                </div>
+              </div>
+        
+              <div>
+                <button type="submit" class="boton boton:hover boton:focus-visible">Ingreso</button>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="text-sm">
+                  <!-- ACTUALIZADO: Ahora llama al método olvidoContrasena() -->
+                  <a (click)="olvidoContrasena()" class="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer">
+                    ¿Olvidó su contraseña?
+                  </a>
+                </div>
+              </div>
+              </form>
+              <p class="mt-10 text-center text-sm/6 text-gray-500">
+                No estas registrado?
+                <a href="registro" class="font-semibold text-indigo-600 hover:text-indigo-500">Registro</a>
+              </p>
+            </div>
+        </div>
+    </div>
+  </section>

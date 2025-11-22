@@ -1,0 +1,252 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-3xl mx-auto">
+    
+    <!-- Header Mejorado -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800">Crear Nuevo Ticket</h1>
+          <p class="text-gray-600 mt-1">Describe tu solicitud de soporte técnico de forma detallada</p>
+        </div>
+        <button 
+          (click)="cancelar()"
+          [disabled]="enviando"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition disabled:opacity-50">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Información del Contrato Mejorada -->
+    <div *ngIf="contratoActivo" class="bg-gradient-to-r from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-5 mb-6 shadow-sm">
+      <div class="flex items-center">
+        <div class="bg-green-100 p-3 rounded-full mr-4">
+          <mat-icon class="text-green-600">verified</mat-icon>
+        </div>
+        <div>
+          <h4 class="font-semibold text-green-800 text-lg">Contrato Activo</h4>
+          <p class="text-green-700 mt-1 font-medium">
+            {{ contratoActivo.numero_contrato }} - {{ contratoActivo.titulo }}
+          </p>
+          <p class="text-green-600 text-sm mt-1">
+            <span class="font-medium">SLA:</span> {{ contratoActivo.sla?.nombre || 'No asignado' }} | 
+            <span class="font-medium">Prioridad:</span> {{ contratoActivo.prioridad?.nombre || 'No asignada' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulario Mejorado -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+      <form (ngSubmit)="crearTicket()" class="space-y-6">
+        
+        <!-- Asunto Mejorado -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700">
+            Asunto del Ticket <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            [(ngModel)]="ticketData.titulo"
+            name="titulo"
+            placeholder="Ej: Problema con acceso al sistema, Error en reporte mensual..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition placeholder-gray-400"
+            required
+            [disabled]="enviando">
+        </div>
+
+        <!-- Categoría y Subcategoría Mejoradas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Categoría -->
+          <div class="space-y-2">
+            <label class="block text-sm font-semibold text-gray-700">
+              Categoría <span class="text-red-500">*</span>
+            </label>
+            <select
+              [(ngModel)]="ticketData.categoria_id"
+              (change)="onCategoriaChange()"
+              name="categoria_id"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              required
+              [disabled]="enviando">
+              <option value="" class="text-gray-400">Selecciona una categoría</option>
+              <option *ngFor="let cat of categorias" [value]="cat.id" class="text-gray-700">
+                {{ cat.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Subcategoría -->
+          <div class="space-y-2">
+            <label class="block text-sm font-semibold text-gray-700">
+              Subcategoría
+            </label>
+            <select
+              [(ngModel)]="ticketData.subcategoria_id"
+              name="subcategoria_id"
+              [disabled]="!ticketData.categoria_id || enviando"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              [class.opacity-50]="!ticketData.categoria_id">
+              <option value="" class="text-gray-400">Selecciona una subcategoría</option>
+              <option *ngFor="let sub of getSubcategoriasFiltradas()" [value]="sub.id" class="text-gray-700">
+                {{ sub.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Descripción Mejorada -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700">
+            Descripción Detallada <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            [(ngModel)]="ticketData.descripcion"
+            name="descripcion"
+            rows="6"
+            placeholder="Describe detalladamente el problema, incluyendo:
+• Pasos para reproducir el error
+• Mensajes de error específicos  
+• Fecha y hora en que ocurrió
+• Impacto en tu trabajo
+• Cualquier información adicional relevante"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition placeholder-gray-400 resize-vertical"
+            required
+            [disabled]="enviando"></textarea>
+        </div>
+
+        <!-- SECCIÓN ARCHIVOS MEJORADA -->
+        <div class="space-y-4">
+          <label class="block text-sm font-semibold text-gray-700">
+            Adjuntar Archivos (Opcional)
+          </label>
+          
+          <!-- Área de Dropzone Mejorada -->
+          <div class="border-2 border-dashed border-blue-300 rounded-2xl p-6 text-center bg-blue-50 transition hover:bg-blue-100"
+               [class.opacity-50]="enviando"
+               [class.border-green-400]="archivos.length > 0">
+            <input
+              type="file"
+              (change)="onFileSelected($event)"
+              multiple
+              accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.mp4,.avi"
+              class="hidden"
+              [disabled]="enviando"
+              #fileInput>
+            
+            <div class="space-y-3">
+              <mat-icon class="text-blue-400 text-5xl">cloud_upload</mat-icon>
+              <p class="text-gray-700 font-medium">Arrastra archivos aquí o haz clic para seleccionar</p>
+              <p class="text-sm text-gray-500">
+                Máximo 50MB por archivo • JPG, PNG, GIF, PDF, DOC, XLS, MP4, AVI
+              </p>
+              <button
+                type="button"
+                (click)="fileInput.click()"
+                [disabled]="enviando"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md">
+                <mat-icon class="mr-2" style="font-size: 18px;">attach_file</mat-icon>
+                Seleccionar Archivos
+              </button>
+            </div>
+          </div>
+
+          <!-- Archivos Seleccionados (Por Subir) -->
+          <div *ngIf="archivos.length > 0" class="space-y-3">
+            <h4 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Archivos por subir ({{archivos.length}})</h4>
+            <div *ngFor="let archivo of archivos; let i = index" 
+                 class="flex items-center justify-between bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div class="flex items-center space-x-4 flex-1">
+                <div class="bg-blue-100 p-2 rounded-lg">
+                  <mat-icon class="text-blue-600">description</mat-icon>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{ archivo.name }}</p>
+                  <p class="text-xs text-gray-500">{{ fileUploadService.formatFileSize(archivo.size) }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="eliminarArchivo(i)"
+                [disabled]="enviando"
+                class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition disabled:opacity-50">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Archivos Subiendo (Progress Bars) -->
+          <div *ngIf="archivosSubiendo.length > 0" class="space-y-3">
+            <h4 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Subiendo archivos...</h4>
+            <div *ngFor="let archivo of archivosSubiendo" 
+                 class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-3">
+                  <mat-icon class="text-blue-500">cloud_upload</mat-icon>
+                  <span class="text-sm font-medium text-gray-900">{{ archivo.nombre }}</span>
+                </div>
+                <span class="text-sm font-medium text-blue-600">{{ archivo.progreso }}%</span>
+              </div>
+              <mat-progress-bar 
+                mode="determinate" 
+                [value]="archivo.progreso"
+                class="h-2 rounded-full">
+              </mat-progress-bar>
+              <div *ngIf="!archivo.subiendo" class="mt-2 text-xs text-green-600 font-medium">
+                <mat-icon class="text-xs mr-1">check_circle</mat-icon>
+                Subido exitosamente
+              </div>
+            </div>
+          </div>
+
+          <!-- Archivos Subidos Exitosamente -->
+          <div *ngIf="archivosSubidos.length > 0" class="space-y-3">
+            <h4 class="font-semibold text-green-700 text-sm uppercase tracking-wide">Archivos subidos ({{archivosSubidos.length}})</h4>
+            <div *ngFor="let archivo of archivosSubidos" 
+                 class="flex items-center justify-between bg-green-50 border border-green-200 p-4 rounded-xl">
+              <div class="flex items-center space-x-4 flex-1">
+                <div class="bg-green-100 p-2 rounded-lg">
+                  <mat-icon class="text-green-600">check_circle</mat-icon>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{ archivo.nombre_archivo }}</p>
+                  <p class="text-xs text-gray-500">{{ fileUploadService.formatFileSize(archivo.tamano_archivo) }}</p>
+                </div>
+              </div>
+              <span class="text-xs font-medium text-green-600 px-2 py-1 bg-green-100 rounded-full">
+                Listo
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones Mejorados -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            (click)="cancelar()"
+            [disabled]="enviando"
+            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition disabled:opacity-50 font-medium">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm hover:shadow-md"
+            [disabled]="!isFormValid()">
+            <div class="flex items-center">
+              <mat-icon class="mr-2" style="font-size: 18px;">send</mat-icon>
+              {{ enviando ? 'Creando Ticket...' : 'Crear Ticket' }}
+            </div>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Información Adicional -->
+    <div class="mt-6 text-center">
+      <p class="text-sm text-gray-500">
+        ¿Necesitas ayuda? <a href="#" class="text-blue-500 hover:text-blue-700 font-medium">Contacta a soporte</a>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,231 @@
+:host {
+  display: block;
+}
+
+// Animaciones personalizadas
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Aplicar animación a las tarjetas
+.bg-white {
+  animation: fadeIn 0.5s ease-out;
+}
+
+// Modal animations
+.fixed {
+  animation: slideIn 0.3s ease-out;
+}
+
+// Estilos para los gráficos
+.chart-container {
+  canvas {
+    border-radius: 8px;
+  }
+}
+
+// Mejoras para las tablas
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  
+  th {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  
+  td {
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// Efectos hover mejorados
+.hover\\:shadow-md {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
+
+// Badges con mejor aspecto
+.inline-flex {
+  &.px-2.py-1 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+  }
+}
+
+// Progress bars
+.bg-gray-200 {
+  &.rounded-full {
+    overflow: hidden;
+    
+    div {
+      transition: width 0.5s ease-in-out;
+    }
+  }
+}
+
+// Calendario styles
+.grid.grid-cols-7 {
+  .h-12 {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #f3f4f6;
+      transform: scale(1.05);
+    }
+  }
+}
+
+// Tickets sin asignar - estilos especiales
+.bg-red-50 {
+  border-left: 4px solid #ef4444;
+}
+
+// Responsive improvements
+@media (max-width: 768px) {
+  .grid {
+    gap: 1rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+  
+  // Calendario responsive
+  .grid.grid-cols-7 {
+    .h-12 {
+      height: 2.5rem;
+      font-size: 0.75rem;
+    }
+  }
+}
+
+// Loading spinner personalizado
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Efectos de escalado para íconos
+.group {
+  span {
+    transition: all 0.2s ease-in-out;
+  }
+}
+
+// Mejoras visuales para las cards de estadísticas
+.bg-white {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover::before {
+    transform: scaleX(1);
+  }
+}
+
+// Personalización de scrollbars
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+// Estilos para el modal
+.fixed {
+  backdrop-filter: blur(4px);
+}
+
+// Efectos de pulso para elementos importantes
+.bg-red-100 {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+// Mejoras para botones
+button {
+  transition: all 0.2s ease;
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

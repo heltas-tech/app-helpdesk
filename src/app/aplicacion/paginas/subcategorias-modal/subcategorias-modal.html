@@ -1,0 +1,151 @@
+<!-- subcategorias-modal/subcategorias-modal.html -->
+<div class="p-4 bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto">
+  <!-- Encabezado compacto -->
+  <div class="text-center mb-4">
+    <div class="flex items-center justify-center mb-1">
+      <mat-icon class="text-purple-600 mr-2 text-2xl">
+        {{ isEditMode ? 'edit' : 'add_circle' }}
+      </mat-icon>
+      <h2 class="text-xl font-bold text-gray-800">
+        {{ isEditMode ? 'Editar Subcategoría' : 'Nueva Subcategoría' }}
+      </h2>
+    </div>
+    <p class="text-xs text-gray-600">
+      {{ isEditMode ? 'Modifica los datos necesarios' : 'Completa la información básica' }}
+    </p>
+  </div>
+
+  <!-- Formulario compacto -->
+  <form [formGroup]="form" class="space-y-3">
+    
+    <!-- Campo Nombre -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">
+        Nombre <span class="text-red-500">*</span>
+      </label>
+      <div class="relative">
+        <mat-icon class="absolute left-2 top-2 text-gray-400 text-sm">label</mat-icon>
+        <input 
+          type="text"
+          formControlName="nombre"
+          placeholder="Ej: Monitores, Teclados, Impresoras"
+          maxlength="100"
+          autocomplete="off"
+          class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          [class.border-red-500]="nombre?.invalid && nombre?.touched">
+      </div>
+      
+      <!-- Contador y errores -->
+      <div class="flex justify-between items-center">
+        <div class="text-xs text-gray-500">
+          {{ nombre?.value?.length || 0 }}/100 caracteres
+        </div>
+        <div *ngIf="nombre?.invalid && nombre?.touched" class="text-xs text-red-600 flex items-center">
+          <mat-icon class="text-xs mr-1">error</mat-icon>
+          {{ getErrorMessage('nombre') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Campo Descripción -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">Descripción</label>
+      <div class="relative">
+        <mat-icon class="absolute left-2 top-2 text-gray-400 text-sm">description</mat-icon>
+        <input 
+          type="text"
+          formControlName="descripcion"
+          placeholder="Descripción opcional de la subcategoría"
+          maxlength="200"
+          autocomplete="off"
+          class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+      </div>
+      
+      <!-- Contador -->
+      <div class="text-xs text-gray-500 text-right">
+        {{ form.get('descripcion')?.value?.length || 0 }}/200 caracteres
+      </div>
+    </div>
+
+    <!-- Campo Categoría -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">
+        Categoría <span class="text-red-500">*</span>
+      </label>
+      <div class="relative">
+        <mat-icon class="absolute left-2 top-2 text-gray-400 text-sm z-10">category</mat-icon>
+        <select 
+          formControlName="categoria_id"
+          class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
+          [class.border-red-500]="categoria_id?.invalid && categoria_id?.touched">
+          <option value="">Selecciona una categoría</option>
+          <option *ngFor="let cat of categorias" [value]="cat.id" [disabled]="!cat.estado && !isEditMode">
+            {{ cat.nombre }} {{ !cat.estado ? '(Inactiva)' : '' }}
+          </option>
+        </select>
+        <mat-icon class="absolute right-2 top-2 text-gray-400 text-sm pointer-events-none">arrow_drop_down</mat-icon>
+      </div>
+      
+      <!-- Errores -->
+      <div *ngIf="categoria_id?.invalid && categoria_id?.touched" class="text-xs text-red-600 flex items-center">
+        <mat-icon class="text-xs mr-1">error</mat-icon>
+        {{ getErrorMessage('categoria_id') }}
+      </div>
+    </div>
+
+    <!-- Estado -->
+    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-300">
+      <div class="flex items-center space-x-2">
+        <mat-icon class="text-gray-600 text-sm">toggle_on</mat-icon>
+        <span class="text-sm font-medium text-gray-700">Estado</span>
+      </div>
+      <mat-slide-toggle 
+        formControlName="estado"
+        color="primary"
+        class="scale-90">
+      </mat-slide-toggle>
+    </div>
+
+    <!-- ID oculto -->
+    <input type="hidden" formControlName="id">
+
+  </form>
+
+  <!-- Mensaje de validación compacto -->
+  <div *ngIf="form.invalid && form.touched" class="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+    <div class="flex items-center">
+      <mat-icon class="text-red-500 mr-1 text-sm">warning</mat-icon>
+      <span class="text-xs text-red-700">
+        Completa los campos obligatorios
+      </span>
+    </div>
+  </div>
+
+  <!-- Botones de acción - SIEMPRE VISIBLES -->
+  <div class="mt-4 flex justify-end gap-2 pt-3 border-t border-gray-200">
+    
+    <!-- Botón Cancelar -->
+    <button 
+      (click)="cancel()"
+      type="button"
+      class="flex items-center space-x-1 px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition">
+      <mat-icon class="text-sm">close</mat-icon>
+      <span>Cancelar</span>
+    </button>
+
+    <!-- Botón Guardar -->
+    <button 
+      (click)="save()"
+      type="button"
+      [disabled]="form.invalid"
+      class="flex items-center space-x-1 px-4 py-2 text-sm rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+      [ngClass]="form.valid ? 
+        'bg-purple-600 hover:bg-purple-700 text-white' : 
+        'bg-gray-400 text-gray-200'">
+      <mat-icon class="text-sm">{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+      <span>{{ isEditMode ? 'Actualizar' : 'Crear' }}</span>
+    </button>
+
+  </div>
+
+</div>

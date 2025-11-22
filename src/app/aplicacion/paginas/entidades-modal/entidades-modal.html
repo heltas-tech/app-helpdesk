@@ -1,0 +1,153 @@
+<!-- entidades-modal/entidades-modal.html -->
+<div class="p-6 bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto">
+  <!-- Encabezado -->
+  <div class="text-center mb-6">
+    <div class="flex items-center justify-center mb-2">
+      <mat-icon class="text-blue-600 mr-2 text-3xl">
+        {{ isEditMode ? 'edit' : 'add_business' }}
+      </mat-icon>
+      <h2 class="text-2xl font-bold text-gray-800">
+        {{ isEditMode ? 'Editar Entidad' : 'Nueva Entidad' }}
+      </h2>
+    </div>
+    <p class="text-sm text-gray-600">
+      {{ isEditMode ? 'Modifica los datos de la entidad existente' : 'Completa la información para crear una nueva entidad' }}
+    </p>
+  </div>
+
+  <!-- Formulario -->
+  <form [formGroup]="form" class="space-y-4">
+    
+    <!-- Campo Denominación -->
+    <div class="space-y-2">
+      <label class="block text-sm font-medium text-gray-700">
+        Denominación <span class="text-red-500">*</span>
+      </label>
+      <div class="relative">
+        <mat-icon class="absolute left-3 top-3 text-gray-400">business</mat-icon>
+        <input 
+          type="text"
+          formControlName="denominacion"
+          placeholder="Ingrese la razón social de la empresa"
+          maxlength="100"
+          autocomplete="off"
+          class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+          [class.border-red-500]="denominacion?.invalid && denominacion?.touched"
+          [class.border-green-500]="denominacion?.valid && denominacion?.touched">
+      </div>
+      
+      <!-- Contador y errores -->
+      <div class="flex justify-between items-center">
+        <div class="text-xs text-gray-500">
+          {{ denominacion?.value?.length || 0 }}/100 caracteres
+        </div>
+        <div *ngIf="denominacion?.invalid && denominacion?.touched" class="text-xs text-red-600 flex items-center">
+          <mat-icon class="text-xs mr-1">error</mat-icon>
+          {{ getErrorMessage('denominacion') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Campo NIT -->
+    <div class="space-y-2">
+      <label class="block text-sm font-medium text-gray-700">
+        NIT <span class="text-red-500">*</span>
+      </label>
+      <div class="relative">
+        <mat-icon class="absolute left-3 top-3 text-gray-400">fingerprint</mat-icon>
+        <input 
+          type="text"
+          formControlName="nit"
+          placeholder="Ingrese el número de NIT"
+          maxlength="20"
+          autocomplete="off"
+          class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 font-mono"
+          [class.border-red-500]="nit?.invalid && nit?.touched"
+          [class.border-green-500]="nit?.valid && nit?.touched">
+      </div>
+      
+      <!-- Contador y errores -->
+      <div class="flex justify-between items-center">
+        <div class="text-xs text-gray-500">
+          {{ nit?.value?.length || 0 }}/20 caracteres
+        </div>
+        <div *ngIf="nit?.invalid && nit?.touched" class="text-xs text-red-600 flex items-center">
+          <mat-icon class="text-xs mr-1">error</mat-icon>
+          {{ getErrorMessage('nit') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <mat-icon class="text-blue-600">toggle_on</mat-icon>
+          <div>
+            <div class="font-medium text-blue-800">Estado de la entidad</div>
+            <div class="text-sm text-blue-600">
+              {{ form.get('estado')?.value ? 'Activa y disponible' : 'Inactiva y no disponible' }}
+            </div>
+          </div>
+        </div>
+        <mat-slide-toggle 
+          formControlName="estado"
+          color="primary"
+          class="scale-110">
+        </mat-slide-toggle>
+      </div>
+    </div>
+
+    <!-- ID oculto -->
+    <input type="hidden" formControlName="id">
+
+  </form>
+
+  <!-- Mensaje de validación general -->
+  <div *ngIf="form.invalid && form.touched" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+    <div class="flex items-center">
+      <mat-icon class="text-red-500 mr-2">warning</mat-icon>
+      <span class="text-sm text-red-700">
+        Completa todos los campos obligatorios antes de continuar
+      </span>
+    </div>
+  </div>
+
+  <!-- Botones de acción -->
+  <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
+    
+    <!-- Botón Cancelar -->
+    <button 
+      (click)="cancel()"
+      type="button"
+      class="flex items-center space-x-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition duration-200 hover:shadow-md">
+      <mat-icon>close</mat-icon>
+      <span>Cancelar</span>
+    </button>
+
+    <!-- Botón Guardar -->
+    <button 
+      (click)="save()"
+      type="button"
+      [disabled]="form.invalid"
+      class="flex items-center space-x-2 px-5 py-2.5 rounded-lg font-medium transition duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      [ngClass]="form.valid ? 
+        'bg-blue-600 hover:bg-blue-700 text-white' : 
+        'bg-gray-400 text-gray-200'">
+      <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+      <span>{{ isEditMode ? 'Actualizar' : 'Crear' }}</span>
+    </button>
+
+  </div>
+
+  <!-- Información adicional -->
+  <div class="mt-4 text-center">
+    <p class="text-xs text-gray-500">
+      Los campos marcados con <span class="text-red-500">*</span> son obligatorios
+    </p>
+    <p *ngIf="isEditMode" class="text-xs text-gray-400 mt-1">
+      Editando entidad ID: {{ form.get('id')?.value }}
+    </p>
+  </div>
+
+</div>

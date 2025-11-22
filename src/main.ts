@@ -1,12 +1,17 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-import { AppComponent } from './app/app';
-import { routes } from './app/app.routes';
+import { appConfig } from './app/app.config';
+import { App } from './app/app';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import 'zone.js';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
-bootstrapApplication(AppComponent, {
+// Extendemos el appConfig con el provider de charts
+bootstrapApplication(App, {
+  ...appConfig,
   providers: [
-    provideRouter(routes),   // Conecta las rutas definidas en app.routes.ts
-    provideHttpClient()      // Permite usar HttpClient para llamadas al backend
-  ]
-}).catch(err => console.error(err));
+    ...(appConfig.providers || []),
+    provideCharts(withDefaultRegisterables()),
+    provideHttpClient(),
+
+  ],
+}).catch((err) => console.error(err));
