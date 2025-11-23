@@ -28,8 +28,13 @@
               }
             ],
             "styles": [
+              "node_modules/summernote/dist/summernote-lite.min.css",
               "src/styles.scss"
-            ]
+            ],
+            "scripts": [ 
+        "node_modules/jquery/dist/jquery.min.js",
+        "node_modules/summernote/dist/summernote-lite.min.js"
+      ]
           },
           "configurations": {
             "production": {
@@ -88,8 +93,13 @@
               }
             ],
             "styles": [
+              "node_modules/summernote/dist/summernote-lite.min.css", 
               "src/styles.scss"
-            ]
+            ],
+            "scripts": [  
+        "node_modules/jquery/dist/jquery.min.js",
+        "node_modules/summernote/dist/summernote-lite.min.js"
+      ]
           }
         }
       }

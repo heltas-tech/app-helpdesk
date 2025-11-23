@@ -133,6 +133,7 @@ export class Paginas implements OnInit {
     if (currentRoute.includes('/admin/') && rol === 'ADMINISTRADOR') return;
     if (currentRoute.includes('/tecnico/') && rol === 'TECNICO') return;
     if (currentRoute.includes('/cliente/') && rol === 'CLIENTE') return;
+    if (currentRoute === '/inicio') return; 
     if (currentRoute !== '/') return
 
     switch (rol.toUpperCase()) {
