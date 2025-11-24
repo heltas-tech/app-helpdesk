@@ -139,8 +139,6 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
     this.subscriptions.push(sub);
   }
 
-  
-
   /** ================== MÉTODOS CORREGIDOS PARA CHAT ================== */
 
   /** Enviar mensaje de texto o archivo */
@@ -734,22 +732,20 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
     this.subscriptions.push(sub);
   }
 
-  /** Abrir logs en modal */
+  /** Abrir logs en modal - CORREGIDO: Solo logs del ticket actual */
   abrirLogs() {
     const logsData = this.getLogs();
     
-    const todosLosLogs = [
-      ...(logsData.activos || []),
-      ...(logsData.eliminados || [])
-    ];
+    // Filtrar logs solo del ticket actual
+    const logsFiltrados = this.filtrarLogsPorTicket(logsData);
     
     Swal.fire({
       title: 'Historial de Logs - Ticket #' + (this.getTicket()?.id || ''),
       html: `
         <div class="max-h-96 overflow-y-auto text-left">
-          ${todosLosLogs.length === 0 ? 
-            '<p class="text-gray-500 text-center py-8">No hay registros de logs</p>' : 
-            todosLosLogs.map((log: any) => `
+          ${logsFiltrados.length === 0 ? 
+            '<p class="text-gray-500 text-center py-8">No hay registros de logs para este ticket</p>' : 
+            logsFiltrados.map((log: any) => `
               <div class="border-b border-gray-200 py-3">
                 <div class="flex justify-between items-start mb-2">
                   <strong class="text-gray-900">${this.getUserName(log.usuario)}</strong>
@@ -785,52 +781,108 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Filtrar logs solo del ticket actual - NUEVO MÉTODO */
+  private filtrarLogsPorTicket(logsData: { activos: any[], eliminados: any[] }): any[] {
+    const todosLosLogs = [
+      ...(logsData.activos || []),
+      ...(logsData.eliminados || [])
+    ];
+    
+    // Filtrar logs que pertenezcan al ticket actual
+    return todosLosLogs.filter(log => {
+      // Si el log tiene ticket_id, comparar con el ticket actual
+      if (log.ticket_id) {
+        return log.ticket_id === this.ticketId;
+      }
+      
+      // Si no tiene ticket_id, asumir que pertenece al ticket actual
+      // (para compatibilidad con logs antiguos)
+      return true;
+    });
+  }
+
   /** ================== MÉTODOS NUEVOS PARA BASE DE CONOCIMIENTO ================== */
 
-  /** Cerrar ticket y preguntar si crear artículo en base de conocimiento */
+  /** Cerrar ticket - CORREGIDO: Ahora el cliente también puede cerrar */
   cerrarTicket() {
-    // Verificar si el usuario puede cerrar tickets
-    if (this.usuarioActual.rol === 'CLIENTE') {
-      Swal.fire('Error', 'Los clientes no pueden cerrar tickets', 'error');
+    // Verificar si el ticket ya está cerrado
+    if (this.isTicketResuelto()) {
+      Swal.fire('Información', 'Este ticket ya está cerrado', 'info');
       return;
     }
 
-    // Si es TÉCNICO o ADMIN, ofrecer opciones de base de conocimiento
+    // Diferentes opciones según el rol del usuario
     if (this.usuarioActual.rol === 'TECNICO' || this.usuarioActual.rol === 'ADMIN') {
-      Swal.fire({
-        title: '🎯 ¿Cerrar Ticket?',
-        html: `
-          <div class="text-left">
-            <p class="text-gray-700 mb-4">Estás a punto de marcar este ticket como <strong>resuelto</strong>.</p>
-            <p class="text-gray-600 mb-2">¿Qué deseas hacer con la solución?</p>
-          </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: '📝 Crear Artículo',
-        cancelButtonText: '✅ Solo Cerrar',
-        showDenyButton: true,
-        denyButtonText: '✏️ Describir Pasos',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#6b7280',
-        denyButtonColor: '#f59e0b',
-        width: '500px'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          // Opción 1: Cerrar y crear artículo automáticamente
-          this.cerrarYCrearArticuloAutomatico();
-        } else if (result.isDenied) {
-          // Opción 2: El técnico describe los pasos
-          this.cerrarYDescribirPasos();
-        } else {
-          // Opción 3: Solo cerrar el ticket
-          this.cerrarTicketSinArticulo();
-        }
-      });
+      // TÉCNICO o ADMIN: Ofrecer opciones de base de conocimiento
+      this.cerrarTicketTecnico();
     } else {
-      // Para otros roles (si los hay), solo cerrar sin opciones de base de conocimiento
-      this.cerrarTicketSinArticulo();
+      // CLIENTE: Solo cerrar sin opciones de base de conocimiento
+      this.cerrarTicketCliente();
     }
+  }
+
+  /** Cerrar ticket como TÉCNICO o ADMIN */
+  private cerrarTicketTecnico() {
+    Swal.fire({
+      title: '🎯 ¿Cerrar Ticket?',
+      html: `
+        <div class="text-left">
+          <p class="text-gray-700 mb-4">Estás a punto de marcar este ticket como <strong>resuelto</strong>.</p>
+          <p class="text-gray-600 mb-2">¿Qué deseas hacer con la solución?</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '📝 Crear Artículo',
+      cancelButtonText: '✅ Solo Cerrar',
+      showDenyButton: true,
+      denyButtonText: '✏️ Describir Pasos',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6b7280',
+      denyButtonColor: '#f59e0b',
+      width: '500px'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Opción 1: Cerrar y crear artículo automáticamente
+        this.cerrarYCrearArticuloAutomatico();
+      } else if (result.isDenied) {
+        // Opción 2: El técnico describe los pasos
+        this.cerrarYDescribirPasos();
+      } else {
+        // Opción 3: Solo cerrar el ticket
+        this.cerrarTicketSinArticulo();
+      }
+    });
+  }
+
+  /** Cerrar ticket como CLIENTE */
+  private cerrarTicketCliente() {
+    Swal.fire({
+      title: '¿Cerrar Ticket?',
+      html: `
+        <div class="text-left">
+          <p class="text-gray-700 mb-4">Estás a punto de marcar este ticket como <strong>resuelto</strong>.</p>
+          <p class="text-gray-600 mb-2">Al cerrar el ticket:</p>
+          <ul class="text-gray-600 text-sm space-y-1 mb-4">
+            <li>• ✅ Se considerará que tu problema ha sido solucionado</li>
+            <li>• 📁 El ticket se archivará en tu historial</li>
+            <li>• 🔒 No podrás enviar más mensajes en este ticket</li>
+          </ul>
+          <p class="text-gray-700 font-semibold">¿Confirmas que el problema ha sido resuelto?</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar ticket',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      width: '500px'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cerrarTicketSinArticulo();
+      }
+    });
   }
 
   /** Cerrar ticket y crear artículo automáticamente */
@@ -1229,7 +1281,8 @@ El problema fue resuelto satisfactoriamente.`;
   /** Obtener el total de logs */
   getTotalLogs(): number {
     const logsData = this.getLogs();
-    return (logsData.activos?.length || 0) + (logsData.eliminados?.length || 0);
+    const logsFiltrados = this.filtrarLogsPorTicket(logsData);
+    return logsFiltrados.length;
   }
 
   puedeEnviarMensajes(): boolean {

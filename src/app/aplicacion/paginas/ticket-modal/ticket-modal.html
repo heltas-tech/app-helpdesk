@@ -7,11 +7,11 @@
         {{ isEditMode ? 'edit' : 'add_circle' }}
       </mat-icon>
       <h2 class="text-xl font-bold text-gray-800">
-        {{ isEditMode ? 'Editar Ticket' : 'Detalles del Ticket' }}
+        {{ isEditMode ? 'Editar Ticket' : 'Nuevo Ticket' }}
       </h2>
     </div>
     <p class="text-sm text-gray-600">
-      {{ isEditMode ? 'Modifica la información del ticket' : 'Información completa del ticket' }}
+      {{ isEditMode ? 'Modifica la información del ticket' : 'Complete la información del nuevo ticket' }}
     </p>
   </div>
 
@@ -54,12 +54,36 @@
           <textarea
             formControlName="descripcion"
             placeholder="Descripción detallada del problema..."
-            maxlength="1000"
+            maxlength="5000"
             rows="3"
             class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"></textarea>
         </div>
         <div class="text-xs text-gray-500 text-right mt-1">
-          {{ form.get('descripcion')?.value?.length || 0 }}/1000 caracteres
+          {{ form.get('descripcion')?.value?.length || 0 }}/5000 caracteres
+        </div>
+      </div>
+
+      <!-- Campo Estado del Ticket -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Estado del Ticket <span class="text-red-500">*</span>
+        </label>
+        <div class="relative">
+          <mat-icon class="absolute left-2 top-2 text-gray-400 text-sm z-10">status</mat-icon>
+          <select 
+            formControlName="estado_ticket"
+            class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
+            [class.border-red-500]="estado_ticket?.invalid && estado_ticket?.touched">
+            <option value="">Selecciona estado</option>
+            <option *ngFor="let estado of estadosTicket" [value]="estado.value">
+              {{ estado.label }}
+            </option>
+          </select>
+          <mat-icon class="absolute right-2 top-2 text-gray-400 text-sm pointer-events-none">arrow_drop_down</mat-icon>
+        </div>
+        <div *ngIf="estado_ticket?.invalid && estado_ticket?.touched" class="text-xs text-red-600 flex items-center mt-1">
+          <mat-icon class="text-xs mr-1">error</mat-icon>
+          {{ getErrorMessage('estado_ticket') }}
         </div>
       </div>
 
@@ -132,24 +156,22 @@
 
       <!-- Campo Subcategoría -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Subcategoría <span class="text-red-500">*</span>
-        </label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Subcategoría</label>
         <div class="relative">
           <mat-icon class="absolute left-2 top-2 text-gray-400 text-sm z-10">subdirectory_arrow_right</mat-icon>
           <select 
             formControlName="subcategoria_id"
             class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
-            [class.border-red-500]="subcategoria_id?.invalid && subcategoria_id?.touched"
-            [disabled]="!categoria_id?.value || subcategoriasFiltradas.length === 0">
-            <option value="">
-              {{ !categoria_id?.value ? 'Primero selecciona categoría' : (subcategoriasFiltradas.length === 0 ? 'No hay subcategorías para esta categoría' : 'Selecciona subcategoría') }}
-            </option>
+            [class.border-red-500]="subcategoria_id?.invalid && subcategoria_id?.touched">
+            <option value="">Selecciona subcategoría</option>
             <option *ngFor="let sub of subcategoriasFiltradas" [value]="sub.id">
               {{ sub.nombre }}
             </option>
           </select>
           <mat-icon class="absolute right-2 top-2 text-gray-400 text-sm pointer-events-none">arrow_drop_down</mat-icon>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+          {{ subcategoriasFiltradas.length }} subcategorías disponibles
         </div>
         <div *ngIf="subcategoria_id?.invalid && subcategoria_id?.touched" class="text-xs text-red-600 flex items-center mt-1">
           <mat-icon class="text-xs mr-1">error</mat-icon>

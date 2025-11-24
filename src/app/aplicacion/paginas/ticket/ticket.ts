@@ -20,6 +20,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { TicketModalComponent } from '../ticket-modal/ticket-modal';
+import { DetalleTicketModalComponent } from '../detalle-ticket-modal/detalle-ticket-modal';
 import { TicketsService } from '../../services/ticket.service';
 import { UsuariosService } from '../../services/usuarios.service';
 import { CategoriasService } from '../../services/categorias.service';
@@ -50,6 +51,7 @@ import { GlobalFuntions } from '../../services/global-funtions';
 })
 export class TicketsComponent implements OnInit {
   displayedColumns: string[] = [
+    'id',
     'titulo', 
     'descripcion', 
     'entidad_usuario', 
@@ -65,16 +67,15 @@ export class TicketsComponent implements OnInit {
   dataSource = new MatTableDataSource<any>([]);
   private router = inject(Router);
 
-  // Filtros
-  filtroEstado: string = 'todos';
-  filtroPrioridad: string = 'todas';
-  filtroTecnico: string = 'todos';
+  // Filtros simplificados
+  filtroEstado: string = 'activos';
+  textoBusqueda: string = '';
 
   // Datos para filtros
   tecnicos: any[] = [];
   prioridades: any[] = [];
   categorias: any[] = [];
-  subcategorias: any[] = []; // Para el modal
+  subcategorias: any[] = [];
   slas: any[] = [];
   contratos: any[] = [];
   entidadesUsuarios: any[] = [];
@@ -102,15 +103,16 @@ export class TicketsComponent implements OnInit {
   }
 
   cargarDatosIniciales() {
-    // Cargar técnicos (usuarios con rol TECNICO) - SIGUIENDO TU PATRÓN
+    // Cargar técnicos activos
     this.cargarTecnicos();
 
-    // Cargar subcategorías para el modal
+    // Cargar subcategorías
     this.subcategoriasService.lista().subscribe({
       next: (res: any) => {
         if (res.isSuccess) {
           this.subcategorias = res.data || [];
-          console.log('Subcategorías cargadas:', this.subcategorias.length);
+          console.log('✅ Subcategorías cargadas en TicketsComponent:', this.subcategorias.length);
+        console.log('📋 Ejemplo de subcategoría:', this.subcategorias[0]);
         }
       },
       error: (err: any) => console.error('Error cargando subcategorías:', err)
@@ -167,14 +169,12 @@ export class TicketsComponent implements OnInit {
     });
   }
 
-  // NUEVO MÉTODO para cargar técnicos siguiendo tu patrón
   cargarTecnicos() {
     this.usuariosService.lista().subscribe({
       next: (res: any) => {
         if (res.isSuccess) {
           let dataArray: any[] = [];
           
-          // Manejar diferentes estructuras de respuesta (igual que tu ejemplo)
           if (Array.isArray(res.data)) {
             dataArray = res.data;
           } else if (res.data && typeof res.data === 'object') {
@@ -185,15 +185,12 @@ export class TicketsComponent implements OnInit {
             }
           }
           
-          // ✅ SOLO usuarios TECNICO y no eliminados (igual que tu filtro para CLIENTE)
+          // ✅ SOLO usuarios TECNICO activos y no eliminados
           this.tecnicos = dataArray.filter((u: any) => 
-            !u.eliminado && u.rol === 'TECNICO'
+            !u.eliminado && u.rol === 'TECNICO' && u.activo
           );
           
-          console.log('Técnicos cargados:', this.tecnicos.length);
-          this.tecnicos.forEach(tec => {
-            console.log(`Técnico: ${tec.nombre_usuario} - ${tec.correo_electronico} - Rol: ${tec.rol} - Activo: ${tec.activo}`);
-          });
+          console.log('Técnicos activos cargados:', this.tecnicos.length);
         } else {
           console.warn('No se pudieron cargar los técnicos:', res.message);
           this.tecnicos = [];
@@ -207,8 +204,10 @@ export class TicketsComponent implements OnInit {
     });
   }
 
-  cargarTickets(mostrarEliminados: boolean = false) {
+  cargarTickets() {
     this.cargando.show();
+    
+    const mostrarEliminados = this.filtroEstado === 'eliminados';
     
     this.ticketsService.lista(mostrarEliminados).subscribe({
       next: (res: any) => {
@@ -221,8 +220,10 @@ export class TicketsComponent implements OnInit {
         this.dataSource.data = res.data || [];
         this.dataSource.paginator = this.paginator;
         
-        // Aplicar filtros iniciales
-        this.aplicarFiltros();
+        // Aplicar filtro de búsqueda si existe
+        if (this.textoBusqueda) {
+          this.aplicarBusqueda();
+        }
       },
       error: (err: any) => {
         this.cargando.hide();
@@ -232,58 +233,20 @@ export class TicketsComponent implements OnInit {
     });
   }
 
-  aplicarFiltros() {
-    this.dataSource.filterPredicate = (data: any, filter: string) => {
-      const searchStr = filter.toLowerCase();
-      return (
-        data.titulo?.toLowerCase().includes(searchStr) ||
-        data.descripcion?.toLowerCase().includes(searchStr) ||
-        data.entidad_usuario?.entidad?.denominacion?.toLowerCase().includes(searchStr) ||
-        data.tecnico?.nombre_usuario?.toLowerCase().includes(searchStr) ||
-        data.categoria?.nombre?.toLowerCase().includes(searchStr) ||
-        data.prioridad?.nombre?.toLowerCase().includes(searchStr)
-      );
-    };
+  aplicarBusqueda() {
+    this.dataSource.filter = this.textoBusqueda.trim().toLowerCase();
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 
-  applyFilter(event: Event) {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.dataSource.filter = filterValue.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+  limpiarBusqueda() {
+    this.textoBusqueda = '';
+    this.aplicarBusqueda();
   }
 
-  onFiltroChange() {
-    let filteredData = this.dataSource.data;
-
-    // Filtrar por estado
-    if (this.filtroEstado !== 'todos') {
-      if (this.filtroEstado === 'activos') {
-        filteredData = filteredData.filter((ticket: any) => ticket.estado);
-      } else if (this.filtroEstado === 'eliminados') {
-        filteredData = filteredData.filter((ticket: any) => !ticket.estado);
-      } else if (this.filtroEstado === 'resueltos') {
-        filteredData = filteredData.filter((ticket: any) => ticket.fecha_resolucion);
-      } else if (this.filtroEstado === 'asignados') {
-        filteredData = filteredData.filter((ticket: any) => ticket.tecnico_id);
-      }
-    }
-
-    // Filtrar por prioridad
-    if (this.filtroPrioridad !== 'todas') {
-      filteredData = filteredData.filter((ticket: any) => 
-        ticket.prioridad?.nivel?.toString() === this.filtroPrioridad
-      );
-    }
-
-    // Filtrar por técnico
-    if (this.filtroTecnico !== 'todos') {
-      filteredData = filteredData.filter((ticket: any) => 
-        ticket.tecnico_id?.toString() === this.filtroTecnico
-      );
-    }
-
-    this.dataSource.data = filteredData;
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+  cambiarFiltroEstado() {
+    this.cargarTickets();
   }
 
   // Función helper para manejar errores
@@ -308,7 +271,7 @@ export class TicketsComponent implements OnInit {
         ticket: data ? { ...data } : null,
         tecnicos: this.tecnicos,
         categorias: this.categorias,
-        subcategorias: this.subcategorias, // PASAMOS LAS SUBCATEGORÍAS
+        subcategorias: this.subcategorias,
         prioridades: this.prioridades,
         slas: this.slas,
         contratos: this.contratos,
@@ -318,6 +281,88 @@ export class TicketsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        // ✅ NUEVO: Usar el método actualizarTicket en lugar de cargarTickets directamente
+        this.actualizarTicket(result);
+      }
+    });
+  }
+
+  // ✅ NUEVO MÉTODO: Insertar DESPUÉS de openModal
+  // En tu TicketsComponent, reemplaza el método actualizarTicket con este:
+
+private actualizarTicket(ticketData: any) {
+  this.cargando.show();
+  
+  console.log('🔍 Datos recibidos del modal:', ticketData);
+  
+  this.ticketsService.actualizar(ticketData.id, ticketData).subscribe({
+    next: (response) => {
+      this.cargando.hide();
+      if (response.isSuccess) {
+        Swal.fire({
+          title: '✅ Ticket Actualizado',
+          text: 'El ticket se ha actualizado correctamente',
+          icon: 'success',
+          confirmButtonText: 'Continuar'
+        });
+        this.cargarTickets(); // Recargar la lista
+      } else {
+        console.error('❌ Error del backend:', response);
+        Swal.fire('Error', response.message || 'Error al actualizar ticket', 'error');
+      }
+    },
+    error: (error) => {
+      this.cargando.hide();
+      console.error('❌ Error completo al actualizar:', error);
+      console.error('🔍 Detalles del error:', error.error);
+      
+      // Mostrar mensaje más específico
+      let errorMessage = 'Error al actualizar ticket';
+      
+      if (error.error?.message) {
+        if (Array.isArray(error.error.message)) {
+          errorMessage = error.error.message.join(', ');
+        } else {
+          errorMessage = error.error.message;
+        }
+      } else if (error.status === 400) {
+        errorMessage = 'Datos inválidos enviados al servidor';
+      }
+      
+      Swal.fire({
+        title: '❌ Error',
+        html: `
+          <div class="text-left">
+            <p class="mb-2">${errorMessage}</p>
+            <details class="text-xs text-gray-600 mt-2">
+              <summary>Ver detalles técnicos</summary>
+              <pre class="mt-1 p-2 bg-gray-100 rounded overflow-auto">${JSON.stringify(error.error, null, 2)}</pre>
+            </details>
+          </div>
+        `,
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  });
+}
+
+  // MÉTODO CORREGIDO: Abrir conversación del ticket usando el modal existente
+  abrirConversacion(ticket: any) {
+    console.log('Abriendo modal de detalle para ticket:', ticket.id);
+    
+    const dialogRef = this.dialog.open(DetalleTicketModalComponent, {
+      width: '95vw',
+      maxWidth: '1200px',
+      height: '90vh',
+      panelClass: 'full-screen-modal',
+      data: { ticketId: ticket.id }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('Modal de detalle cerrado con resultado:', result);
+      if (result === 'updated') {
+        console.log('Recargando lista de tickets...');
         this.cargarTickets();
       }
     });
@@ -329,62 +374,71 @@ export class TicketsComponent implements OnInit {
       return;
     }
 
+    // Filtrar técnicos activos
+    const tecnicosActivos = this.tecnicos.filter(tec => tec.activo && !tec.eliminado);
+
+    if (tecnicosActivos.length === 0) {
+      Swal.fire('Error', 'No hay técnicos activos disponibles', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Asignar Técnico',
-      input: 'select',
-      inputOptions: this.tecnicos.reduce((options, tecnico) => {
-        options[tecnico.id] = `${tecnico.nombre_usuario} - ${tecnico.correo_electronico}`;
-        return options;
-      }, {} as any),
-      inputPlaceholder: 'Selecciona un técnico',
+      html: `
+        <div class="text-left">
+          <p class="mb-3 text-gray-600">Selecciona un técnico para el ticket: <strong>${ticket.titulo}</strong></p>
+          <select id="tecnicoSelect" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            ${tecnicosActivos.map(tecnico => `
+              <option value="${tecnico.id}">
+                ${tecnico.nombre_usuario} - ${tecnico.correo_electronico} 
+                ${tecnico.activo ? '✅' : '❌'}
+              </option>
+            `).join('')}
+          </select>
+          <div class="mt-2 text-xs text-gray-500">
+            Total técnicos activos: ${tecnicosActivos.length}
+          </div>
+        </div>
+      `,
       showCancelButton: true,
       confirmButtonText: 'Asignar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const select = document.getElementById('tecnicoSelect') as HTMLSelectElement;
+        return select.value;
+      }
     }).then((result) => {
       if (result.isConfirmed) {
         const tecnicoId = Number(result.value);
+        const tecnicoSeleccionado = tecnicosActivos.find(t => t.id === tecnicoId);
+        
+        this.cargando.show();
         this.ticketsService.asignarTecnico(ticket.id, tecnicoId).subscribe({
           next: (res: any) => {
+            this.cargando.hide();
             if (res.isSuccess) {
-              Swal.fire('¡Asignado!', 'Técnico asignado correctamente', 'success');
+              Swal.fire({
+                title: '¡Técnico Asignado!',
+                html: `
+                  <div class="text-center">
+                    <div class="text-green-500 text-4xl mb-3">✅</div>
+                    <p class="text-gray-700 mb-2">Técnico asignado correctamente</p>
+                    <p class="text-sm text-gray-600">
+                      <strong>${tecnicoSeleccionado?.nombre_usuario}</strong> ha sido asignado al ticket
+                    </p>
+                  </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Continuar'
+              });
               this.cargarTickets();
             } else {
               Swal.fire('Error', res.message || 'Error al asignar técnico', 'error');
             }
           },
           error: (error: any) => {
+            this.cargando.hide();
             const errorMessage = this.handleError(error, 'Error al asignar técnico');
-            Swal.fire('Error', errorMessage, 'error');
-          }
-        });
-      }
-    });
-  }
-
-  cambiarEstado(ticket: any) {
-    const nuevoEstado = !ticket.estado;
-    const accion = nuevoEstado ? 'activar' : 'desactivar';
-    
-    Swal.fire({
-      title: `¿Deseas ${accion} el ticket?`,
-      text: `El ticket "${ticket.titulo}" cambiará de estado.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: `Sí, ${accion}`,
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.ticketsService.cambiarEstado(ticket.id, nuevoEstado).subscribe({
-          next: (res: any) => {
-            if (res.isSuccess) {
-              Swal.fire('Actualizado!', 'El estado ha sido cambiado.', 'success');
-              this.cargarTickets();
-            } else {
-              Swal.fire('Error', res.message || 'No se pudo cambiar el estado.', 'error');
-            }
-          },
-          error: (error: any) => {
-            const errorMessage = this.handleError(error, 'Error al cambiar el estado');
             Swal.fire('Error', errorMessage, 'error');
           }
         });
@@ -400,18 +454,42 @@ export class TicketsComponent implements OnInit {
 
     Swal.fire({
       title: '¿Marcar como resuelto?',
-      text: 'Esta acción no se puede deshacer',
+      html: `
+        <div class="text-left">
+          <p class="mb-3">¿Estás seguro de marcar este ticket como resuelto?</p>
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p class="text-sm text-yellow-800">
+              <strong>Ticket:</strong> ${ticket.titulo}<br>
+              <strong>Técnico:</strong> ${ticket.tecnico?.nombre_usuario || 'No asignado'}
+            </p>
+          </div>
+        </div>
+      `,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, marcar como resuelto',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981'
     }).then((result) => {
       if (result.isConfirmed) {
         const fechaResolucion = new Date().toISOString();
         this.ticketsService.marcarResuelto(ticket.id, fechaResolucion).subscribe({
           next: (res: any) => {
             if (res.isSuccess) {
-              Swal.fire('¡Resuelto!', 'Ticket marcado como resuelto', 'success');
+              Swal.fire({
+                title: '¡Ticket Resuelto!',
+                html: `
+                  <div class="text-center">
+                    <div class="text-green-500 text-4xl mb-3">🎉</div>
+                    <p class="text-gray-700 mb-2">Ticket marcado como resuelto</p>
+                    <p class="text-sm text-gray-600">
+                      El ticket ha sido cerrado satisfactoriamente
+                    </p>
+                  </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Continuar'
+              });
               this.cargarTickets();
             } else {
               Swal.fire('Error', res.message || 'Error al marcar como resuelto', 'error');
@@ -429,12 +507,12 @@ export class TicketsComponent implements OnInit {
   delete(id?: number) {
     if (!id) return;
     Swal.fire({
-      title: '¿Estás seguro?',
+      title: '¿Eliminar ticket?',
       text: 'El ticket se marcará como eliminado (soft delete)',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
@@ -461,11 +539,12 @@ export class TicketsComponent implements OnInit {
     if (!id) return;
     Swal.fire({
       title: '¿Restaurar ticket?',
-      text: 'El ticket volverá a estar activo',
+      text: 'El ticket volverá a estar activo en el sistema',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, restaurar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981'
     }).then((result) => {
       if (result.isConfirmed) {
         this.ticketsService.restaurar(id).subscribe({
@@ -489,6 +568,7 @@ export class TicketsComponent implements OnInit {
   exportExcel() {
     const worksheet = XLSX.utils.json_to_sheet(
       this.dataSource.data.map((t: any) => ({
+        'ID': t.id || '',
         'Título': t.titulo || '',
         'Descripción': t.descripcion || '',
         'Entidad': t.entidad_usuario?.entidad?.denominacion || '',
@@ -501,8 +581,8 @@ export class TicketsComponent implements OnInit {
         'Contrato': t.contrato?.numero_contrato || '',
         'Fecha Creación': new Date(t.fecha_creacion).toLocaleDateString(),
         'Fecha Resolución': t.fecha_resolucion ? new Date(t.fecha_resolucion).toLocaleDateString() : 'Pendiente',
-        'Estado': t.estado ? (t.fecha_resolucion ? 'Resuelto' : 'Activo') : 'Eliminado',
-        'Creado por': t.created_by || ''
+        'Estado': this.getEstadoCompleto(t),
+        'Reaperturas': t.veces_reabierto || 0
       }))
     );
     const workbook = XLSX.utils.book_new();
@@ -524,13 +604,14 @@ export class TicketsComponent implements OnInit {
     
     autoTable(doc, {
       startY: 35,
-      head: [['Título', 'Entidad', 'Técnico', 'Prioridad', 'Estado', 'Fecha Creación']],
+      head: [['ID', 'Título', 'Entidad', 'Técnico', 'Prioridad', 'Estado', 'Fecha']],
       body: this.dataSource.data.map((t: any) => [
-        t.titulo?.substring(0, 30) + (t.titulo?.length > 30 ? '...' : '') || '',
-        t.entidad_usuario?.entidad?.denominacion?.substring(0, 20) + (t.entidad_usuario?.entidad?.denominacion?.length > 20 ? '...' : '') || '',
-        t.tecnico?.nombre_usuario?.substring(0, 15) + (t.tecnico?.nombre_usuario?.length > 15 ? '...' : '') || 'No asignado',
+        t.id || '',
+        t.titulo?.substring(0, 25) + (t.titulo?.length > 25 ? '...' : '') || '',
+        t.entidad_usuario?.entidad?.denominacion?.substring(0, 15) + (t.entidad_usuario?.entidad?.denominacion?.length > 15 ? '...' : '') || '',
+        t.tecnico?.nombre_usuario?.substring(0, 12) + (t.tecnico?.nombre_usuario?.length > 12 ? '...' : '') || 'No asignado',
         t.prioridad?.nombre || '',
-        t.estado ? (t.fecha_resolucion ? 'Resuelto' : 'Activo') : 'Eliminado',
+        this.getEstadoCompleto(t),
         new Date(t.fecha_creacion).toLocaleDateString()
       ]),
       styles: { fontSize: 8 },
@@ -540,8 +621,47 @@ export class TicketsComponent implements OnInit {
     doc.save(`tickets_${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
-  // Utilidades
+  // ================== MÉTODOS NUEVOS PARA INFORMACIÓN DETALLADA ==================
+
+  /** Obtener información completa del estado */
+  getEstadoCompleto(ticket: any): string {
+    if (!ticket.estado) return 'Eliminado';
+    if (ticket.fecha_resolucion) return 'Resuelto';
+    if (ticket.estado_ticket === 'REABIERTO') return 'Reabierto';
+    if (ticket.tecnico_id) return 'Asignado';
+    return 'Nuevo';
+  }
+
+  /** Verificar si el ticket fue reabierto */
+  esReabierto(ticket: any): boolean {
+    return ticket.estado_ticket === 'REABIERTO' || ticket.veces_reabierto > 0;
+  }
+
+  /** Obtener información de reaperturas */
+  getInfoReaperturas(ticket: any): string {
+    if (!ticket.veces_reabierto || ticket.veces_reabierto === 0) {
+      return '';
+    }
+    
+    const veces = ticket.veces_reabierto;
+    const ultimaReapertura = ticket.ultima_reapertura ? 
+      new Date(ticket.ultima_reapertura).toLocaleDateString('es-ES') : 'No disponible';
+    
+    return `Reabierto ${veces} vez${veces > 1 ? 'es' : ''}. Última: ${ultimaReapertura}`;
+  }
+
+  /** Obtener información de cierre */
+  getInfoCierre(ticket: any): string {
+    if (!ticket.fecha_resolucion) return '';
+    
+    const fechaCierre = new Date(ticket.fecha_resolucion).toLocaleDateString('es-ES');
+    return `Cerrado el ${fechaCierre}`;
+  }
+
+  /** Obtener tiempo transcurrido desde creación */
   getTiempoTranscurrido(fecha: string): string {
+    if (!fecha) return 'Fecha no disponible';
+    
     const creado = new Date(fecha);
     const ahora = new Date();
     const diffMs = ahora.getTime() - creado.getTime();
@@ -557,6 +677,7 @@ export class TicketsComponent implements OnInit {
     }
   }
 
+  /** Obtener color según prioridad */
   getColorPrioridad(nivel: number): string {
     if (nivel >= 4) return 'bg-red-100 text-red-800 border-red-200';
     if (nivel >= 3) return 'bg-orange-100 text-orange-800 border-orange-200';
@@ -569,5 +690,37 @@ export class TicketsComponent implements OnInit {
     if (nivel >= 3) return 'Alta';
     if (nivel >= 2) return 'Media';
     return 'Baja';
+  }
+
+  /** Obtener información del técnico */
+  getInfoTecnico(ticket: any): string {
+    if (!ticket.tecnico) return 'No asignado';
+    
+    const tecnico = ticket.tecnico;
+    return `${tecnico.nombre_usuario}${tecnico.activo ? ' ✅' : ' ❌'}`;
+  }
+
+  /** Obtener información de subcategoría */
+  getInfoSubcategoria(ticket: any): string {
+    if (!ticket.subcategoria) return 'Sin subcategoría';
+    return ticket.subcategoria.nombre;
+  }
+
+  /** Obtener clase CSS para el estado */
+  getClaseEstado(ticket: any): string {
+    if (!ticket.estado) return 'bg-red-100 text-red-800';
+    if (ticket.fecha_resolucion) return 'bg-green-100 text-green-800';
+    if (this.esReabierto(ticket)) return 'bg-purple-100 text-purple-800';
+    if (ticket.tecnico_id) return 'bg-blue-100 text-blue-800';
+    return 'bg-yellow-100 text-yellow-800';
+  }
+
+  /** Obtener icono para el estado */
+  getIconoEstado(ticket: any): string {
+    if (!ticket.estado) return 'delete';
+    if (ticket.fecha_resolucion) return 'check_circle';
+    if (this.esReabierto(ticket)) return 'refresh';
+    if (ticket.tecnico_id) return 'assignment_ind';
+    return 'fiber_new';
   }
 }

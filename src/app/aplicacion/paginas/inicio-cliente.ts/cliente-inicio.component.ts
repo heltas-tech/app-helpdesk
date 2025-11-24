@@ -55,49 +55,43 @@ export class ClienteInicioComponent implements OnInit {
     ticketsUrgentes: 0,
     tiempoPromedio: '0 días',
     satisfaccion: 0,
-    tiempoRespuesta: '0h 0m',
-    slaCumplido: 0
+    slaCumplido: 0,
+    ticketsEsteMes: 0,
+    ticketsHoy: 0,
+    ticketsReabiertos: 0,
+    totalTickets: 0,
+    // NUEVAS MÉTRICAS SLA
+    ticketsSLAVencido: 0,
+    ticketsSLAProximoVencer: 0,
+    ticketsConSLA: 0
   };
 
-  // Tickets reales del cliente
+  // Datos REALES
   ticketsRecientes: any[] = [];
+  todosLosTickets: any[] = [];
   notificaciones: any[] = [];
+  
+  // Calendario
+  calendarDays: any[] = [];
+  currentMonth: Date = new Date();
+  monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
+  // Modal
+  showDayDetailModal = false;
+  selectedDayTickets: any[] = [];
+  selectedDayDate: Date = new Date();
 
-  // Opciones para gráficos ApexCharts
-  public donutChartOptions: any = {
+  // Gráficos
+  donutChartOptions: any = {
     series: [0, 0, 0, 0],
     chart: {
       type: 'donut',
-      height: 350,
-      animations: {
-        enabled: true,
-        speed: 800
-      }
+      height: 350
     },
     labels: ['Resueltos', 'En Proceso', 'Abiertos', 'Urgentes'],
     colors: ['#4CAF50', '#FF9800', '#F44336', '#9C27B0'],
-    responsive: [{
-      breakpoint: 480,
-      options: {
-        chart: {
-          width: 200
-        },
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }],
     legend: {
-      position: 'bottom',
-      fontSize: '14px'
-    },
-    title: {
-      text: 'Distribución de Mis Tickets',
-      align: 'center',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
+      position: 'bottom'
     },
     plotOptions: {
       pie: {
@@ -107,88 +101,29 @@ export class ClienteInicioComponent implements OnInit {
             show: true,
             total: {
               show: true,
-              label: 'Total',
-              fontSize: '16px',
-              fontWeight: 'bold'
+              label: 'Total'
             }
           }
         }
       }
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: function (val: any, opts: any) {
-        return opts.w.config.series[opts.seriesIndex] + ' tickets';
-      }
     }
   };
 
-  public barChartOptions: any = {
+  barChartOptions: any = {
     series: [{
       name: 'Mis Tickets',
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     }],
     chart: {
       type: 'bar',
-      height: 350,
-      toolbar: {
-        show: false
-      }
-    },
-    plotOptions: {
-      bar: {
-        borderRadius: 8,
-        columnWidth: '60%',
-        dataLabels: {
-          position: 'top'
-        }
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      offsetY: -20,
-      style: {
-        fontSize: '12px',
-        colors: ['#304758']
-      }
+      height: 350
     },
     xaxis: {
-      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-      axisBorder: {
-        show: false
-      },
-      axisTicks: {
-        show: false
-      }
-    },
-    yaxis: {
-      title: {
-        text: 'Cantidad de Tickets'
-      }
-    },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shade: 'light',
-        type: 'vertical',
-        shadeIntensity: 0.5,
-        gradientToColors: ['#2196F3'],
-        inverseColors: false,
-        opacityFrom: 0.8,
-        opacityTo: 0.2,
-      }
-    },
-    title: {
-      text: 'Mis Tickets por Mes',
-      align: 'center',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
+      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     }
   };
 
-  public radialChartOptions: any = {
+  radialChartOptions: any = {
     series: [0],
     chart: {
       height: 300,
@@ -198,37 +133,10 @@ export class ClienteInicioComponent implements OnInit {
       radialBar: {
         hollow: {
           size: '70%',
-        },
-        dataLabels: {
-          show: true,
-          name: {
-            show: true,
-            fontSize: '16px',
-            fontWeight: 'bold',
-            offsetY: -10
-          },
-          value: {
-            show: true,
-            fontSize: '24px',
-            fontWeight: 'bold',
-            offsetY: 5,
-            formatter: function (val: any) {
-              return val + '%';
-            }
-          }
         }
       }
     },
-    colors: ['#4CAF50'],
-    labels: ['Satisfacción'],
-    title: {
-      text: 'Mi Satisfacción',
-      align: 'center',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
-    }
+    labels: ['Satisfacción']
   };
 
   constructor(
@@ -245,232 +153,286 @@ export class ClienteInicioComponent implements OnInit {
     this.isLoading = true;
     
     try {
-      // ✅ CORRECCIÓN: Usar el método específico para tickets del cliente
       const ticketsResponse = await this.ticketsService.listaMisTicketsCliente().toPromise();
       
-      if (ticketsResponse?.isSuccess && ticketsResponse.data) {
-        const ticketsCliente = ticketsResponse.data;
+      if (ticketsResponse?.isSuccess) {
+        if (ticketsResponse.data && Array.isArray(ticketsResponse.data)) {
+          const ticketsReales = ticketsResponse.data;
+          
+          this.todosLosTickets = ticketsReales;
+          this.calcularMetricasReales(ticketsReales);
+          this.calcularMetricasSLA(ticketsReales);
+          this.cargarTicketsRecientesReales(ticketsReales);
+          this.cargarNotificacionesReales(ticketsReales);
+          this.actualizarGraficos();
+          this.generateCalendar();
+          
+        } else {
+          this.cargarDatosDeDemostracion();
+        }
         
-        console.log('✅ Tickets del cliente cargados:', ticketsCliente.length);
-        console.log('📋 Estructura de tickets:', ticketsCliente.map((t: any) => ({
-          id: t.id,
-          titulo: t.titulo,
-          estado: t.estado,
-          fecha_resolucion: t.fecha_resolucion,
-          tecnico_id: t.tecnico_id,
-          prioridad: t.prioridad
-        })));
-
-        this.calcularMetricas(ticketsCliente);
-        this.cargarTicketsRecientes(ticketsCliente);
-        this.cargarNotificaciones(ticketsCliente);
-        this.actualizarGraficos();
       } else {
-        console.log('⚠️ No se pudieron cargar los tickets:', ticketsResponse);
-        // Cargar datos de demostración si no hay tickets reales
         this.cargarDatosDeDemostracion();
       }
       
-    } catch (error) {
-      console.error('❌ Error cargando datos del dashboard:', error);
-      // Cargar datos de demostración en caso de error
+    } catch (error: any) {
       this.cargarDatosDeDemostracion();
     } finally {
       this.isLoading = false;
     }
   }
 
-  private calcularMetricas(tickets: any[]) {
-    console.log('📊 Calculando métricas para:', tickets.length, 'tickets');
-    
-    // Tickets resueltos (con fecha_resolucion)
-    this.metricas.ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion).length;
-    
-    // Tickets en proceso (sin fecha_resolucion PERO con técnico asignado)
-    this.metricas.ticketsEnProceso = tickets.filter((t: any) => 
-      !t.fecha_resolucion && t.tecnico_id
-    ).length;
-    
-    // Tickets abiertos (sin fecha_resolucion Y sin técnico asignado)
-    this.metricas.ticketsAbiertos = tickets.filter((t: any) => 
-      !t.fecha_resolucion && !t.tecnico_id
-    ).length;
-    
-    // Tickets urgentes (prioridad alta - nivel 3 o superior)
-    this.metricas.ticketsUrgentes = tickets.filter((t: any) => 
-      t.prioridad?.nivel && t.prioridad.nivel >= 3
-    ).length;
+  private calcularMetricasReales(tickets: any[]) {
+    // Cálculos con datos REALES
+    this.metricas.ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado).length;
+    this.metricas.ticketsEnProceso = tickets.filter((t: any) => !t.fecha_resolucion && t.tecnico_id && t.estado).length;
+    this.metricas.ticketsAbiertos = tickets.filter((t: any) => !t.fecha_resolucion && !t.tecnico_id && t.estado).length;
+    this.metricas.ticketsUrgentes = tickets.filter((t: any) => t.prioridad?.nivel >= 3 && t.estado).length;
+    this.metricas.ticketsReabiertos = tickets.filter((t: any) => t.veces_reabierto > 0 && t.estado).length;
+    this.metricas.totalTickets = tickets.filter((t: any) => t.estado).length;
 
-    console.log('🎯 Métricas calculadas:', {
-      resueltos: this.metricas.ticketsResueltos,
-      enProceso: this.metricas.ticketsEnProceso, 
-      abiertos: this.metricas.ticketsAbiertos,
-      urgentes: this.metricas.ticketsUrgentes
-    });
-
-    // Calcular tiempos promedios
-    this.calcularTiemposPromedio(tickets);
+    // Tiempo promedio REAL
+    this.calcularTiempoPromedioReal(tickets);
     
-    // Calcular satisfacción (basada en tickets resueltos vs totales)
-    const totalTickets = tickets.length;
-    this.metricas.satisfaccion = totalTickets > 0 ? 
-      Math.round((this.metricas.ticketsResueltos / totalTickets) * 100) : 0;
+    // Satisfacción REAL
+    this.metricas.satisfaccion = this.calcularSatisfaccionReal(tickets);
 
-    // SLA cumplido (basado en tickets resueltos en menos de 7 días)
-    this.metricas.slaCumplido = this.calcularSLACumplido(tickets);
+    // SLA REAL
+    this.metricas.slaCumplido = this.calcularSLAReal(tickets);
+
+    // Tickets este mes REAL
+    const esteMes = new Date().getMonth();
+    const esteAnio = new Date().getFullYear();
+    this.metricas.ticketsEsteMes = tickets.filter((t: any) => {
+      const fecha = new Date(t.fecha_creacion);
+      return fecha.getMonth() === esteMes && fecha.getFullYear() === esteAnio && t.estado;
+    }).length;
+
+    // Tickets hoy REAL
+    const hoy = new Date().toDateString();
+    this.metricas.ticketsHoy = tickets.filter((t: any) => 
+      new Date(t.fecha_creacion).toDateString() === hoy && t.estado
+    ).length;
   }
 
-  private calcularTiemposPromedio(tickets: any[]) {
+  private calcularMetricasSLA(tickets: any[]) {
+    let ticketsSLAVencido = 0;
+    let ticketsSLAProximoVencer = 0;
+    let ticketsConSLA = 0;
+
+    tickets.forEach((ticket: any) => {
+      if (ticket.estado && !ticket.fecha_resolucion) {
+        const estadoSLA = this.verificarEstadoSLA(ticket);
+        
+        if (estadoSLA === 'vencido') {
+          ticketsSLAVencido++;
+        } else if (estadoSLA === 'proximo_vencer') {
+          ticketsSLAProximoVencer++;
+        }
+        
+        if (ticket.sla) {
+          ticketsConSLA++;
+        }
+      }
+    });
+
+    this.metricas.ticketsSLAVencido = ticketsSLAVencido;
+    this.metricas.ticketsSLAProximoVencer = ticketsSLAProximoVencer;
+    this.metricas.ticketsConSLA = ticketsConSLA;
+  }
+
+  private verificarEstadoSLA(ticket: any): string {
+    if (!ticket.sla?.tiempo_resolucion || !ticket.fecha_creacion) {
+      return 'sin_sla';
+    }
+
+    const fechaCreacion = new Date(ticket.fecha_creacion);
+    const ahora = new Date();
     
-  const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion);
-  
-  if (ticketsResueltos.length > 0) {
+    const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
+    const horasSLA = ticket.sla.tiempo_resolucion;
+    const horasRestantes = horasSLA - horasTranscurridas;
+
+    if (horasRestantes <= 0) {
+      return 'vencido';
+    } else if (horasRestantes <= 24) {
+      return 'proximo_vencer';
+    } else {
+      return 'en_tiempo';
+    }
+  }
+
+  private calcularTiempoPromedioReal(tickets: any[]) {
+    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
+    
+    if (ticketsResueltos.length === 0) {
+      this.metricas.tiempoPromedio = '0 días';
+      return;
+    }
+
     let totalDias = 0;
-    let totalHoras = 0;
-    let ticketsConTiempoValido = 0;
-    
+    let ticketsValidos = 0;
+
     ticketsResueltos.forEach((ticket: any) => {
       const creado = new Date(ticket.fecha_creacion);
       const resuelto = new Date(ticket.fecha_resolucion);
       
-      // ✅ VERIFICAR que las fechas sean válidas y en orden correcto
-      if (creado instanceof Date && !isNaN(creado.getTime()) && 
-          resuelto instanceof Date && !isNaN(resuelto.getTime()) &&
-          resuelto > creado) {
-        
+      if (resuelto > creado) {
         const diffMs = resuelto.getTime() - creado.getTime();
-        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        const diffHoras = Math.ceil(diffMs / (1000 * 60 * 60));
-        
+        const diffDias = diffMs / (1000 * 60 * 60 * 24);
         totalDias += diffDias;
-        totalHoras += diffHoras;
-        ticketsConTiempoValido++;
-        
-        console.log(`📅 Ticket ${ticket.id}: ${diffDias} días (${creado.toISOString()} -> ${resuelto.toISOString()})`);
-      } else {
-        console.warn(`⚠️ Fechas inválidas en ticket ${ticket.id}:`, {
-          creado: ticket.fecha_creacion,
-          resuelto: ticket.fecha_resolucion
-        });
+        ticketsValidos++;
       }
     });
-    
-    if (ticketsConTiempoValido > 0) {
-      const promedioDias = Math.round(totalDias / ticketsConTiempoValido);
-      const promedioHoras = Math.round(totalHoras / ticketsConTiempoValido);
-      
-      this.metricas.tiempoPromedio = `${promedioDias} días`;
-      this.metricas.tiempoRespuesta = `${Math.floor(promedioHoras / 24)}d ${promedioHoras % 24}h`;
-      
-      console.log('⏱️ Tiempos calculados:', {
-        ticketsValidos: ticketsConTiempoValido,
-        promedioDias,
-        promedioHoras
-      });
-    } else {
-      this.metricas.tiempoPromedio = '0 días';
-      this.metricas.tiempoRespuesta = '0h 0m';
-    }
-  } else {
-    this.metricas.tiempoPromedio = '0 días';
-    this.metricas.tiempoRespuesta = '0h 0m';
-  }
-}
 
-  private calcularSLACumplido(tickets: any[]): number {
-    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion);
+    if (ticketsValidos > 0) {
+      const promedioDias = (totalDias / ticketsValidos).toFixed(1);
+      this.metricas.tiempoPromedio = `${promedioDias} días`;
+    }
+  }
+
+  private calcularSatisfaccionReal(tickets: any[]): number {
+    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
     
     if (ticketsResueltos.length === 0) return 0;
-    
-    const ticketsEnSLA = ticketsResueltos.filter((ticket: any) => {
+
+    let satisfaccionTotal = 0;
+    let ticketsConSatisfaccion = 0;
+
+    ticketsResueltos.forEach((ticket: any) => {
       const creado = new Date(ticket.fecha_creacion);
       const resuelto = new Date(ticket.fecha_resolucion);
-      const diffDias = Math.ceil((resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60 * 24));
-      return diffDias <= 7; // SLA de 7 días
+      
+      if (resuelto > creado) {
+        const diffDias = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60 * 24);
+        
+        let satisfaccionTicket = 100;
+        if (diffDias > 7) satisfaccionTicket = 60;
+        else if (diffDias > 3) satisfaccionTicket = 80;
+        else if (diffDias > 1) satisfaccionTicket = 90;
+        
+        satisfaccionTotal += satisfaccionTicket;
+        ticketsConSatisfaccion++;
+      }
     });
-    
-    return Math.round((ticketsEnSLA.length / ticketsResueltos.length) * 100);
+
+    return ticketsConSatisfaccion > 0 ? Math.round(satisfaccionTotal / ticketsConSatisfaccion) : 0;
   }
 
-  private cargarTicketsRecientes(tickets: any[]) {
+  private calcularSLAReal(tickets: any[]): number {
+    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
+    
+    if (ticketsResueltos.length === 0) return 0;
+
+    let ticketsEnSLA = 0;
+
+    ticketsResueltos.forEach((ticket: any) => {
+      const creado = new Date(ticket.fecha_creacion);
+      const resuelto = new Date(ticket.fecha_resolucion);
+      const diffDias = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60 * 24);
+      
+      if (diffDias <= 7) {
+        ticketsEnSLA++;
+      }
+    });
+
+    return Math.round((ticketsEnSLA / ticketsResueltos.length) * 100);
+  }
+
+  private cargarTicketsRecientesReales(tickets: any[]) {
     this.ticketsRecientes = tickets
+      .filter((t: any) => t.estado)
       .sort((a: any, b: any) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime())
       .slice(0, 5)
       .map((ticket: any) => ({
-        id: `TKT-${ticket.id.toString().padStart(3, '0')}`,
+        id: ticket.id,
         titulo: ticket.titulo,
-        estado: this.getEstadoTicket(ticket),
+        estado: this.getEstadoTicketReal(ticket),
         fecha: ticket.fecha_creacion,
         prioridad: this.getPrioridadTexto(ticket.prioridad?.nivel),
         categoria: ticket.categoria?.nombre || 'General',
         tiempoTranscurrido: this.getTiempoTranscurrido(ticket.fecha_creacion),
         ticketOriginal: ticket
       }));
-
-    console.log('📋 Tickets recientes cargados:', this.ticketsRecientes.length);
   }
 
-  private cargarNotificaciones(tickets: any[]) {
+  private cargarNotificacionesReales(tickets: any[]) {
     this.notificaciones = [];
     
-    // Notificación por tickets urgentes
-    if (this.metricas.ticketsUrgentes > 0) {
+    const ticketsActivos = tickets.filter((t: any) => t.estado);
+
+    // Notificación por tickets urgentes REALES
+    const ticketsUrgentesReales = ticketsActivos.filter((t: any) => t.prioridad?.nivel >= 3 && !t.fecha_resolucion);
+    if (ticketsUrgentesReales.length > 0) {
       this.notificaciones.push({
         tipo: 'warning',
-        mensaje: `Tienes ${this.metricas.ticketsUrgentes} ticket(s) urgente(s) pendientes`,
-        fecha: 'Ahora'
+        mensaje: `Tienes ${ticketsUrgentesReales.length} ticket(s) urgente(s) pendientes`,
+        fecha: 'Ahora',
+        icon: 'priority_high'
       });
     }
 
-    // Notificación por tickets recién asignados
-    const ticketsRecientesAsignados = tickets.filter((t: any) => 
-      t.tecnico_id && 
-      !t.fecha_resolucion &&
-      new Date(t.fecha_creacion).getTime() > Date.now() - 24 * 60 * 60 * 1000
-    );
+    // Notificación por SLA vencido
+    if (this.metricas.ticketsSLAVencido > 0) {
+      this.notificaciones.push({
+        tipo: 'error',
+        mensaje: `${this.metricas.ticketsSLAVencido} ticket(s) con SLA vencido - ¡Atención inmediata!`,
+        fecha: 'Urgente',
+        icon: 'warning'
+      });
+    }
 
-    if (ticketsRecientesAsignados.length > 0) {
+    // Notificación por SLA próximo a vencer
+    if (this.metricas.ticketsSLAProximoVencer > 0) {
+      this.notificaciones.push({
+        tipo: 'warning',
+        mensaje: `${this.metricas.ticketsSLAProximoVencer} ticket(s) con SLA próximo a vencer`,
+        fecha: 'Próximo',
+        icon: 'schedule'
+      });
+    }
+
+    // Notificación por tickets en proceso REALES
+    const ticketsEnProcesoReales = ticketsActivos.filter((t: any) => t.tecnico_id && !t.fecha_resolucion);
+    if (ticketsEnProcesoReales.length > 0) {
       this.notificaciones.push({
         tipo: 'info',
-        mensaje: `${ticketsRecientesAsignados.length} ticket(s) asignados recientemente a técnicos`,
-        fecha: 'Hoy'
+        mensaje: `${ticketsEnProcesoReales.length} ticket(s) en proceso con técnicos asignados`,
+        fecha: 'Activo',
+        icon: 'build'
       });
     }
 
-    // Notificación por tickets resueltos recientemente
-    const ticketsResueltosHoy = tickets.filter((t: any) => 
-      t.fecha_resolucion && 
-      new Date(t.fecha_resolucion).toDateString() === new Date().toDateString()
-    );
+    // Notificación por tickets resueltos recientemente REALES
+    const ticketsResueltosRecientes = ticketsActivos.filter((t: any) => {
+      if (!t.fecha_resolucion) return false;
+      const resuelto = new Date(t.fecha_resolucion);
+      const unaSemanaAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      return resuelto > unaSemanaAtras;
+    });
 
-    if (ticketsResueltosHoy.length > 0) {
+    if (ticketsResueltosRecientes.length > 0) {
       this.notificaciones.push({
         tipo: 'success',
-        mensaje: `${ticketsResueltosHoy.length} ticket(s) resuelto(s) hoy`,
-        fecha: 'Reciente'
+        mensaje: `${ticketsResueltosRecientes.length} ticket(s) resuelto(s) esta semana`,
+        fecha: 'Reciente',
+        icon: 'check_circle'
       });
     }
 
-    // Notificación por defecto si no hay otras
-    if (this.notificaciones.length === 0 && tickets.length === 0) {
+    // Notificación si no hay tickets
+    if (ticketsActivos.length === 0) {
       this.notificaciones.push({
         tipo: 'info',
-        mensaje: 'Bienvenido a tu centro de soporte. Crea tu primer ticket para comenzar.',
-        fecha: 'Ahora'
-      });
-    } else if (this.notificaciones.length === 0) {
-      this.notificaciones.push({
-        tipo: 'info',
-        mensaje: 'Todo está al día. No tienes notificaciones pendientes.',
-        fecha: 'Ahora'
+        mensaje: 'No tienes tickets activos. ¡Crea tu primer ticket!',
+        fecha: 'Bienvenido',
+        icon: 'add_circle'
       });
     }
-
-    console.log('🔔 Notificaciones cargadas:', this.notificaciones.length);
   }
 
   private actualizarGraficos() {
-    // Actualizar gráfico de donut
+    // Gráfico de donut con datos REALES
     this.donutChartOptions.series = [
       this.metricas.ticketsResueltos,
       this.metricas.ticketsEnProceso,
@@ -478,99 +440,130 @@ export class ClienteInicioComponent implements OnInit {
       this.metricas.ticketsUrgentes
     ];
 
-    // Actualizar gráfico radial
+    // Gráfico radial con satisfacción REAL
     this.radialChartOptions.series = [this.metricas.satisfaccion];
 
-    // Generar datos mensuales para gráfico de barras
-    this.generarDatosMensuales();
-
-    console.log('📈 Gráficos actualizados:', {
-      donut: this.donutChartOptions.series,
-      radial: this.radialChartOptions.series
-    });
+    // Gráfico de barras con datos mensuales REALES
+    this.generarDatosMensualesReales();
   }
 
-  private generarDatosMensuales() {
+  private generarDatosMensualesReales() {
     const datosMensuales = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    
-    // Contar tickets por mes del año actual
     const añoActual = new Date().getFullYear();
     
-    this.ticketsRecientes.forEach((ticket: any) => {
-      const fecha = new Date(ticket.fecha);
-      if (fecha.getFullYear() === añoActual) {
-        const mes = fecha.getMonth();
-        datosMensuales[mes] = (datosMensuales[mes] || 0) + 1;
+    this.todosLosTickets.forEach((ticket: any) => {
+      if (ticket.estado) {
+        const fecha = new Date(ticket.fecha_creacion);
+        if (fecha.getFullYear() === añoActual) {
+          const mes = fecha.getMonth();
+          datosMensuales[mes]++;
+        }
       }
     });
     
     this.barChartOptions.series = [{ name: 'Mis Tickets', data: datosMensuales }];
   }
 
-  // Datos de demostración para cuando no hay tickets reales
-  private cargarDatosDeDemostracion() {
-    console.log('🎭 Cargando datos de demostración...');
+  // CALENDARIO con datos REALES
+  generateCalendar(): void {
+    const year = this.currentMonth.getFullYear();
+    const month = this.currentMonth.getMonth();
     
-    this.metricas = {
-      ticketsAbiertos: 2,
-      ticketsResueltos: 5,
-      ticketsEnProceso: 1,
-      ticketsUrgentes: 1,
-      tiempoPromedio: '2 días',
-      satisfaccion: 83,
-      tiempoRespuesta: '1d 4h',
-      slaCumplido: 92
-    };
-
-    this.ticketsRecientes = [
-      {
-        id: 'TKT-001',
-        titulo: 'Problema con acceso al sistema',
-        estado: 'Resuelto',
-        fecha: new Date().toISOString(),
-        prioridad: 'Alta',
-        categoria: 'Acceso',
-        tiempoTranscurrido: 'Hace 2 días'
-      },
-      {
-        id: 'TKT-002', 
-        titulo: 'Consulta sobre facturación',
-        estado: 'En Proceso',
-        fecha: new Date().toISOString(),
-        prioridad: 'Media',
-        categoria: 'Facturación',
-        tiempoTranscurrido: 'Hoy'
-      },
-      {
-        id: 'TKT-003',
-        titulo: 'Error en reporte mensual',
-        estado: 'Abierto',
-        fecha: new Date().toISOString(),
-        prioridad: 'Baja',
-        categoria: 'Reportes',
-        tiempoTranscurrido: 'Hace 1 día'
-      }
-    ];
-
-    this.notificaciones = [
-      {
-        tipo: 'info',
-        mensaje: 'Estos son datos de demostración. Crea tickets reales para ver tu información.',
-        fecha: 'Demo'
-      }
-    ];
-
-    this.actualizarGraficos();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const endDate = new Date(lastDay);
+    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+    
+    this.calendarDays = [];
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const date = new Date(currentDate);
+      const isCurrentMonth = date.getMonth() === month;
+      const isToday = this.isToday(date);
+      
+      const ticketsCount = this.countTicketsForDateReal(date);
+      const tickets = this.getTicketsForDateReal(date);
+      
+      this.calendarDays.push({
+        date,
+        isCurrentMonth,
+        isToday,
+        ticketsCount,
+        tickets
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
   }
 
-  // Métodos auxiliares
-  private getEstadoTicket(ticket: any): string {
+  private isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  }
+
+  private countTicketsForDateReal(date: Date): number {
+    return this.todosLosTickets.filter((ticket: any) => {
+      if (!ticket.estado) return false;
+      const ticketDate = new Date(ticket.fecha_creacion);
+      return ticketDate.toDateString() === date.toDateString();
+    }).length;
+  }
+
+  private getTicketsForDateReal(date: Date): any[] {
+    return this.todosLosTickets.filter((ticket: any) => {
+      if (!ticket.estado) return false;
+      const ticketDate = new Date(ticket.fecha_creacion);
+      return ticketDate.toDateString() === date.toDateString();
+    });
+  }
+
+  // Datos de demostración SOLO si falla
+  private cargarDatosDeDemostracion() {
+    this.metricas = {
+      ticketsAbiertos: 0,
+      ticketsResueltos: 0,
+      ticketsEnProceso: 0,
+      ticketsUrgentes: 0,
+      tiempoPromedio: '0 días',
+      satisfaccion: 0,
+      slaCumplido: 0,
+      ticketsEsteMes: 0,
+      ticketsHoy: 0,
+      ticketsReabiertos: 0,
+      totalTickets: 0,
+      ticketsSLAVencido: 0,
+      ticketsSLAProximoVencer: 0,
+      ticketsConSLA: 0
+    };
+
+    this.ticketsRecientes = [];
+    this.notificaciones = [{
+      tipo: 'warning',
+      mensaje: 'No se pudieron cargar los datos reales. Verifica la conexión.',
+      fecha: 'Error',
+      icon: 'error'
+    }];
+
+    this.actualizarGraficos();
+    this.generateCalendar();
+  }
+
+  // Métodos públicos para el template
+  getEstadoTicketReal(ticket: any): string {
+    if (!ticket.estado) return 'Eliminado';
     if (ticket.fecha_resolucion) return 'Resuelto';
     if (ticket.tecnico_id) return 'En Proceso';
     return 'Abierto';
   }
 
-  private getPrioridadTexto(nivel?: number): string {
+  getPrioridadTexto(nivel?: number): string {
     if (!nivel) return 'Normal';
     if (nivel >= 4) return 'Crítica';
     if (nivel >= 3) return 'Alta';
@@ -578,7 +571,7 @@ export class ClienteInicioComponent implements OnInit {
     return 'Baja';
   }
 
-  private getTiempoTranscurrido(fecha: string): string {
+  getTiempoTranscurrido(fecha: string): string {
     const creado = new Date(fecha);
     const ahora = new Date();
     const diffMs = ahora.getTime() - creado.getTime();
@@ -591,11 +584,13 @@ export class ClienteInicioComponent implements OnInit {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   }
 
+  // Métodos de UI
   getEstadoColor(estado: string): string {
     switch (estado) {
       case 'Resuelto': return 'primary';
       case 'En Proceso': return 'accent';
       case 'Abierto': return 'warn';
+      case 'Eliminado': return 'warn';
       default: return '';
     }
   }
@@ -615,53 +610,39 @@ export class ClienteInicioComponent implements OnInit {
       case 'info': return 'primary';
       case 'warning': return 'accent';
       case 'success': return 'primary';
+      case 'error': return 'warn';
       default: return '';
     }
   }
 
-  getNotificacionIcon(tipo: string): string {
-    switch (tipo) {
-      case 'info': return 'info';
-      case 'warning': return 'warning';
-      case 'success': return 'check_circle';
-      default: return 'notifications';
-    }
+  // Navegación del calendario
+  previousMonth(): void {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    this.generateCalendar();
   }
 
-  // Método para recargar datos
+  nextMonth(): void {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+    this.generateCalendar();
+  }
+
+  getCurrentMonthYear(): string {
+    return `${this.monthNames[this.currentMonth.getMonth()]} ${this.currentMonth.getFullYear()}`;
+  }
+
+  // Modal de detalle de día
+  showDayDetail(day: any): void {
+    this.selectedDayTickets = day.tickets;
+    this.selectedDayDate = day.date;
+    this.showDayDetailModal = true;
+  }
+
+  closeDayDetailModal(): void {
+    this.showDayDetailModal = false;
+  }
+
+  // Refresh
   refreshData() {
     this.loadDashboardData();
-  }
-
-  // Método para debug MEJORADO
-  debugDashboard() {
-    console.log('🐛 DEBUG CLIENTE DETALLADO:');
-    console.log('👤 Usuario:', this.usuario);
-    console.log('📊 Métricas:', this.metricas);
-    console.log('📋 Tickets recientes:', this.ticketsRecientes);
-    console.log('🔔 Notificaciones:', this.notificaciones);
-    
-    // Debug adicional de tickets
-    this.ticketsService.listaMisTicketsCliente().subscribe({
-      next: (res: any) => {
-        if (res.isSuccess && res.data) {
-          console.log('🎯 TICKETS REALES DEL CLIENTE:');
-          console.log('Cantidad total:', res.data.length);
-          console.log('Ejemplos:', res.data.slice(0, 3).map((t: any) => ({
-            id: t.id,
-            titulo: t.titulo,
-            estado: t.estado,
-            fecha_resolucion: t.fecha_resolucion,
-            tecnico_id: t.tecnico_id,
-            prioridad: t.prioridad?.nivel
-          })));
-        } else {
-          console.log('❌ No se pudieron obtener tickets para debug');
-        }
-      },
-      error: (err) => {
-        console.error('❌ Error obteniendo tickets para debug:', err);
-      }
-    });
   }
 }

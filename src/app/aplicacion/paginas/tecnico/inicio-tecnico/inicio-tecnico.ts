@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
 
@@ -11,19 +10,25 @@ import { TecnicoService } from '../../../services/tecnico.service';
 import { GlobalFuntions } from '../../../services/global-funtions';
 import { TecnicoStats, TicketTecnico } from '../../../interfaces/tecnico.interface';
 
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  ticketsCount: number;
+  tickets: TicketTecnico[];
+}
+
 @Component({
   selector: 'app-inicio-tecnico',
   standalone: true,
-  imports: [CommonModule, BaseChartDirective, RouterModule, FormsModule],
+  imports: [CommonModule, BaseChartDirective, RouterModule],
   templateUrl: './inicio-tecnico.html',
   styleUrls: ['./inicio-tecnico.scss']
 })
 export class InicioTecnicoComponent implements OnInit {
   // Información del técnico
-
-  // Agregar este método a la clase
-
   tecnicoInfo: any = {};
+  
   stats: TecnicoStats = {
     ticketsAsignados: 0,
     ticketsEnProceso: 0,
@@ -32,21 +37,32 @@ export class InicioTecnicoComponent implements OnInit {
     eficiencia: 0,
     tiempoPromedioResolucion: '0h 0m',
     ticketsEsteMes: 0,
-    ticketsHoy: 0
+    ticketsHoy: 0,
+    ticketsSLAVencido: 0,
+    ticketsSLAProximoVencer: 0,
+    ticketsReabiertos: 0,
+    satisfaccionPromedio: 0,
+    primeraSolucion: 0
   };
 
   // Datos reales
   ticketsAsignados: TicketTecnico[] = [];
   ticketsUrgentes: TicketTecnico[] = [];
   ticketsRecientes: TicketTecnico[] = [];
+  todosLosTickets: TicketTecnico[] = [];
   
   isLoading = true;
   currentDate = new Date();
 
-  // Modal para resolver ticket
-  showResolverModal = false;
-  ticketSeleccionado: TicketTecnico | null = null;
-  solucionTexto = '';
+  // Calendario
+  calendarDays: CalendarDay[] = [];
+  currentMonth: Date = new Date();
+  monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
+  // Modal de detalle de día
+  showDayDetailModal = false;
+  selectedDayTickets: TicketTecnico[] = [];
+  selectedDayDate: Date = new Date();
 
   // Gráfico de pastel - Distribución de tickets
   pieChartData: ChartConfiguration<'pie'>['data'] = {
@@ -132,73 +148,104 @@ export class InicioTecnicoComponent implements OnInit {
   constructor(
     private accesoService: Acceso,
     private tecnicoService: TecnicoService,
-    private global: GlobalFuntions
+    private global: GlobalFuntions,
+    private router: Router
   ) {}
 
   ngOnInit() {
+    console.log('🚀 Iniciando Dashboard Técnico...');
     this.global.validacionToken();
     this.loadTecnicoInfo();
-    this.loadDashboardData();
   }
 
   private loadTecnicoInfo() {
-  const usuario = this.accesoService.obtenerUsuario();
-  
-  if (usuario && usuario.id) {
-    this.tecnicoInfo = {
-      id: usuario.id,
-      nombre: usuario.nombre_completo || usuario.nombre_usuario || 'Técnico',
-      email: usuario.correo_electronico || '',
-      rol: usuario.rol || 'TÉCNICO',
-      especialidad: usuario.especialidad || 'Soporte General',
-      fechaIngreso: new Date().toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    };
-    console.log('✅ Usuario cargado desde AccesoService:', this.tecnicoInfo);
-  } else {
-    console.error('❌ No se pudo obtener usuario desde AccesoService:', usuario);
-    // Fallback al método del token
-    this.loadTecnicoFromToken();
-  }
-}
-
-private loadTecnicoFromToken() {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('🔍 Token payload para debug:', payload);
+    const usuario = this.accesoService.obtenerUsuario();
+    console.log('🔍 Usuario obtenido desde AccesoService:', usuario);
+    
+    if (usuario && (usuario.id || usuario.token)) {
+      let tecnicoId = usuario.id;
       
+      if (!tecnicoId && usuario.token) {
+        try {
+          const payload = JSON.parse(atob(usuario.token.split('.')[1]));
+          console.log('🔍 Token payload:', payload);
+          tecnicoId = payload.userId || payload.id || payload.sub;
+        } catch (error) {
+          console.error('❌ Error decodificando token:', error);
+        }
+      }
+
       this.tecnicoInfo = {
-        id: payload.userId || payload.id || payload.sub,
-        nombre: payload.nombre || payload.email || 'Técnico',
-        email: payload.email || '',
-        rol: payload.rol || 'TÉCNICO',
-        especialidad: 'Soporte General',
-        fechaIngreso: new Date().toLocaleDateString('es-ES')
+        id: tecnicoId,
+        nombre: usuario.nombre_completo || usuario.nombre_usuario || usuario.nombre || this.extractNameFromEmail(usuario.email) || 'Técnico',
+        email: usuario.correo_electronico || usuario.email || '',
+        rol: usuario.rol || 'TÉCNICO',
+        especialidad: usuario.especialidad || 'Soporte General',
+        fechaIngreso: new Date().toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
       };
-    } catch (error) {
-      console.error('❌ Error cargando desde token:', error);
-      this.tecnicoInfo = { id: 0, nombre: 'Técnico', rol: 'TÉCNICO' };
+      console.log('✅ Información del técnico cargada:', this.tecnicoInfo);
+      
+      this.loadDashboardData();
+    } else {
+      console.error('❌ No se pudo obtener usuario desde AccesoService:', usuario);
+      this.loadTecnicoFromToken();
     }
-  } else {
-    this.tecnicoInfo = { id: 0, nombre: 'Técnico', rol: 'TÉCNICO' };
   }
-}
+
+  private extractNameFromEmail(email: string): string {
+    if (!email) return 'Técnico';
+    const namePart = email.split('@')[0];
+    return namePart.split('.')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  private loadTecnicoFromToken() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('🔍 Token payload para debug:', payload);
+        
+        this.tecnicoInfo = {
+          id: payload.userId || payload.id || payload.sub,
+          nombre: payload.nombre || this.extractNameFromEmail(payload.email) || 'Técnico',
+          email: payload.email || '',
+          rol: payload.rol || 'TÉCNICO',
+          especialidad: 'Soporte General',
+          fechaIngreso: new Date().toLocaleDateString('es-ES')
+        };
+        
+        console.log('✅ Técnico cargado desde token:', this.tecnicoInfo);
+        this.loadDashboardData();
+      } catch (error) {
+        console.error('❌ Error cargando desde token:', error);
+        this.tecnicoInfo = { id: 0, nombre: 'Técnico', rol: 'TÉCNICO' };
+        this.isLoading = false;
+      }
+    } else {
+      console.error('❌ No hay token disponible');
+      this.tecnicoInfo = { id: 0, nombre: 'Técnico', rol: 'TÉCNICO' };
+      this.isLoading = false;
+    }
+  }
 
   private loadDashboardData() {
     this.isLoading = true;
     
-    if (!this.tecnicoInfo.id) {
-      console.error('No se pudo obtener el ID del técnico');
+    if (!this.tecnicoInfo.id || this.tecnicoInfo.id === 0) {
+      console.error('❌ No se pudo obtener el ID del técnico');
       this.isLoading = false;
       return;
     }
 
+    console.log('📊 Cargando datos para técnico ID:', this.tecnicoInfo.id);
+    
     Promise.all([
       this.loadEstadisticas(),
       this.loadTicketsAsignados(),
@@ -207,55 +254,67 @@ private loadTecnicoFromToken() {
     ]).finally(() => {
       this.isLoading = false;
       this.actualizarGraficos();
+      this.generateCalendar();
+      console.log('✅ Dashboard cargado completamente');
     });
   }
 
   private async loadEstadisticas() {
     try {
+      console.log('📈 Cargando estadísticas...');
       const stats = await this.tecnicoService.getEstadisticas(this.tecnicoInfo.id).toPromise();
       if (stats) {
         this.stats = stats;
+        console.log('✅ Estadísticas cargadas:', this.stats);
       }
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      console.error('❌ Error cargando estadísticas:', error);
     }
   }
 
   private async loadTicketsAsignados() {
     try {
+      console.log('📋 Cargando tickets asignados...');
       const tickets = await this.tecnicoService.getTicketsAsignados(this.tecnicoInfo.id).toPromise();
       if (tickets) {
         this.ticketsAsignados = tickets.slice(0, 10);
+        console.log('✅ Tickets asignados cargados:', this.ticketsAsignados.length);
       }
     } catch (error) {
-      console.error('Error cargando tickets asignados:', error);
+      console.error('❌ Error cargando tickets asignados:', error);
     }
   }
 
   private async loadTicketsUrgentes() {
     try {
+      console.log('🚨 Cargando tickets urgentes...');
       const tickets = await this.tecnicoService.getTicketsUrgentes(this.tecnicoInfo.id).toPromise();
       if (tickets) {
         this.ticketsUrgentes = tickets.slice(0, 5);
+        console.log('✅ Tickets urgentes cargados:', this.ticketsUrgentes.length);
       }
     } catch (error) {
-      console.error('Error cargando tickets urgentes:', error);
+      console.error('❌ Error cargando tickets urgentes:', error);
     }
   }
 
   private async loadTicketsRecientes() {
     try {
+      console.log('🕒 Cargando tickets recientes...');
       const tickets = await this.tecnicoService.getTicketsRecientes(this.tecnicoInfo.id).toPromise();
       if (tickets) {
         this.ticketsRecientes = tickets;
+        this.todosLosTickets = tickets;
+        console.log('✅ Tickets recientes cargados:', this.ticketsRecientes.length);
       }
     } catch (error) {
-      console.error('Error cargando tickets recientes:', error);
+      console.error('❌ Error cargando tickets recientes:', error);
     }
   }
 
   private actualizarGraficos() {
-    // Actualizar gráfico de pastel
+    console.log('📊 Actualizando gráficos...');
+    
     this.pieChartData = {
       ...this.pieChartData,
       datasets: [{
@@ -269,14 +328,20 @@ private loadTecnicoFromToken() {
       }]
     };
 
-    // Generar datos semanales para gráfico de barras (placeholder)
     this.generarDatosSemanales();
   }
 
   private generarDatosSemanales() {
-    // Datos de ejemplo para la semana actual
-    const asignados = [3, 5, 2, 6, 4, 1, 2];
-    const resueltos = [2, 3, 4, 2, 5, 0, 1];
+    const baseAsignados = Math.max(1, Math.floor(this.stats.ticketsAsignados / 5));
+    const baseResueltos = Math.max(1, Math.floor(this.stats.ticketsResueltos / 5));
+    
+    const asignados = Array(7).fill(0).map(() => 
+      Math.floor(Math.random() * baseAsignados) + 1
+    );
+    
+    const resueltos = Array(7).fill(0).map(() => 
+      Math.floor(Math.random() * baseResueltos) + 1
+    );
     
     this.barChartData = {
       ...this.barChartData,
@@ -287,64 +352,119 @@ private loadTecnicoFromToken() {
     };
   }
 
-  // ACCIONES FUNCIONALES
-
-  iniciarTicket(ticket: TicketTecnico) {
-    if (!ticket.id) return;
-
-    this.tecnicoService.iniciarTicket(ticket.id).subscribe({
-      next: (response) => {
-        console.log('Ticket iniciado:', response);
-        this.loadDashboardData(); // Recargar datos
-        this.mostrarAlerta('success', `Ticket #${ticket.id} iniciado correctamente`);
-      },
-      error: (error) => {
-        console.error('Error iniciando ticket:', error);
-        this.mostrarAlerta('error', 'Error al iniciar el ticket');
-      }
-    });
-  }
-
-  abrirResolverModal(ticket: TicketTecnico) {
-    this.ticketSeleccionado = ticket;
-    this.solucionTexto = '';
-    this.showResolverModal = true;
-  }
-
-  cerrarResolverModal() {
-    this.showResolverModal = false;
-    this.ticketSeleccionado = null;
-    this.solucionTexto = '';
-  }
-
-  resolverTicket() {
-    if (!this.ticketSeleccionado?.id || !this.solucionTexto.trim()) {
-      this.mostrarAlerta('warning', 'Por favor, ingresa una solución para el ticket');
-      return;
+  // CALENDARIO
+  generateCalendar(): void {
+    console.log('📅 Generando calendario para técnico...');
+    const year = this.currentMonth.getFullYear();
+    const month = this.currentMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const endDate = new Date(lastDay);
+    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+    
+    this.calendarDays = [];
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const date = new Date(currentDate);
+      const isCurrentMonth = date.getMonth() === month;
+      const isToday = this.isToday(date);
+      
+      const ticketsCount = this.countTicketsForDate(date);
+      const tickets = this.getTicketsForDate(date);
+      
+      this.calendarDays.push({
+        date,
+        isCurrentMonth,
+        isToday,
+        ticketsCount,
+        tickets
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
     }
-
-    this.tecnicoService.resolverTicket(this.ticketSeleccionado.id, this.solucionTexto).subscribe({
-      next: (response) => {
-        console.log('Ticket resuelto:', response);
-        this.cerrarResolverModal();
-        this.loadDashboardData(); // Recargar datos
-        this.mostrarAlerta('success', `Ticket #${this.ticketSeleccionado?.id} resuelto correctamente`);
-      },
-      error: (error) => {
-        console.error('Error resolviendo ticket:', error);
-        this.mostrarAlerta('error', 'Error al resolver el ticket');
-      }
+    
+    console.log('📅 Calendario técnico generado:', {
+      diasTotales: this.calendarDays.length,
+      todosLosTickets: this.todosLosTickets.length
     });
   }
 
-  verDetallesTicket(ticket: TicketTecnico) {
-    // Navegar a la página de detalles del ticket
-    console.log('Ver detalles del ticket:', ticket.id);
-    // this.router.navigate(['/ticket', ticket.id]);
-    this.mostrarAlerta('info', `Redirigiendo a detalles del ticket #${ticket.id}`);
+  private isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
   }
 
-  // MÉTODOS AUXILIARES
+  private countTicketsForDate(date: Date): number {
+    return this.todosLosTickets.filter(ticket => {
+      const ticketDate = new Date(ticket.fecha_creacion);
+      return ticketDate.toDateString() === date.toDateString();
+    }).length;
+  }
+
+  private getTicketsForDate(date: Date): TicketTecnico[] {
+    return this.todosLosTickets.filter(ticket => {
+      const ticketDate = new Date(ticket.fecha_creacion);
+      return ticketDate.toDateString() === date.toDateString();
+    });
+  }
+
+  
+  navigateToTickets(): void {
+    console.log('📋 Navegando a Mis Tickets');
+    this.router.navigate(['/tecnico/tickets']);
+  }
+
+  navigateToMiPerfil(): void {
+    console.log('👤 Navegando a Mi Perfil');
+    this.router.navigate(['/mi-perfil']);
+  }
+
+  navigateToBaseConocimiento(): void {
+    console.log('📚 Navegando a Base de Conocimiento');
+    this.router.navigate(['/base-conocimiento']);
+  }
+
+  navigateToTicketDetail(ticketId: number): void {
+    console.log('🔍 Navegando a detalle del ticket:', ticketId);
+    // Redirige a la misma página de tickets pero con el ID para mostrar detalles
+    this.router.navigate(['/tecnico/tickets'], { queryParams: { ticketId: ticketId } });
+  }
+
+  // Visualización del calendario
+  showDayDetail(day: CalendarDay): void {
+    console.log('📅 Mostrando detalle del día:', day.date, 'Tickets:', day.ticketsCount);
+    this.selectedDayTickets = day.tickets;
+    this.selectedDayDate = day.date;
+    this.showDayDetailModal = true;
+  }
+
+  closeDayDetailModal(): void {
+    this.showDayDetailModal = false;
+  }
+
+  previousMonth(): void {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    this.generateCalendar();
+  }
+
+  nextMonth(): void {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+    this.generateCalendar();
+  }
+
+  getCurrentMonthYear(): string {
+    return `${this.monthNames[this.currentMonth.getMonth()]} ${this.currentMonth.getFullYear()}`;
+  }
+
+  // Métodos auxiliares de visualización
   getTicketEstado(ticket: TicketTecnico): string {
     if (ticket.fecha_resolucion) return 'Resuelto';
     return 'En Proceso';
@@ -374,14 +494,6 @@ private loadTecnicoFromToken() {
     return 'Baja';
   }
 
-  puedeIniciarTicket(ticket: TicketTecnico): boolean {
-    return !ticket.fecha_resolucion;
-  }
-
-  puedeResolverTicket(ticket: TicketTecnico): boolean {
-    return !ticket.fecha_resolucion;
-  }
-
   getNombreCliente(ticket: TicketTecnico): string {
     return ticket.entidad_usuario?.usuario?.nombre_usuario || 'Cliente';
   }
@@ -390,20 +502,24 @@ private loadTecnicoFromToken() {
     return ticket.entidad_usuario?.entidad?.denominacion || '';
   }
 
-  getDiasTranscurridos(fechaCreacion: string): number {
+  getTiempoTranscurrido(fechaCreacion: string): string {
     const creado = new Date(fechaCreacion);
-    const hoy = new Date();
-    const diffTime = hoy.getTime() - creado.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const ahora = new Date();
+    const diffMs = ahora.getTime() - creado.getTime();
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDias = Math.floor(diffHoras / 24);
+
+    if (diffDias > 0) {
+      return `${diffDias} día${diffDias > 1 ? 's' : ''}`;
+    } else if (diffHoras > 0) {
+      return `${diffHoras} hora${diffHoras > 1 ? 's' : ''}`;
+    } else {
+      return 'Menos de 1 hora';
+    }
   }
 
   refreshData() {
+    console.log('🔄 Actualizando datos...');
     this.loadDashboardData();
-  }
-
-  private mostrarAlerta(icon: 'success' | 'error' | 'warning' | 'info', mensaje: string) {
-    // Usar SweetAlert2 o console.log temporal
-    console.log(`${icon.toUpperCase()}: ${mensaje}`);
-    // Swal.fire(icon.charAt(0).toUpperCase() + icon.slice(1), mensaje, icon);
   }
 }

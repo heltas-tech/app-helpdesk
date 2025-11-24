@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,8 +8,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { NgxSpinnerService } from 'ngx-spinner';
 import Swal from 'sweetalert2';
 import { HttpEventType } from '@angular/common/http';
@@ -21,7 +19,6 @@ import { ContratosService } from '../../services/contratos.service';
 import { EntidadesUsuariosService } from '../../services/entidades-usuarios.service';
 import { GlobalFuntions } from '../../services/global-funtions';
 import { FileUploadService } from '../../services/file-upload.service';
-import { SummernoteEditorComponent } from '../../../components/summernote-editor/summernote-editor.component';
 
 @Component({
   selector: 'app-crear-ticket',
@@ -34,10 +31,7 @@ import { SummernoteEditorComponent } from '../../../components/summernote-editor
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule,
-    MatCardModule,
-    MatChipsModule,
-    SummernoteEditorComponent
+    MatProgressBarModule
   ],
   templateUrl: './crear-ticket.html'
 })
@@ -47,12 +41,12 @@ export class CrearTicketComponent implements OnInit {
   private subcategoriasService = inject(SubcategoriasService);
   private contratosService = inject(ContratosService);
   private entidadesUsuariosService = inject(EntidadesUsuariosService);
-  public fileUploadService = inject(FileUploadService);
+  public fileUploadService = inject(FileUploadService); // ← CAMBIADO A public
   private spinner = inject(NgxSpinnerService);
   private global = inject(GlobalFuntions);
   private router = inject(Router);
 
-  // Datos del formulario
+  // Datos del formulario - SOLO lo que el cliente completa
   ticketData: any = {
     titulo: '',
     descripcion: '',
@@ -67,54 +61,20 @@ export class CrearTicketComponent implements OnInit {
   // Datos automáticos del sistema
   contratoActivo: any = null;
   entidadUsuario: any = null;
+  usuarioLogueado: any = null;
 
-  // Archivos adjuntos
+  // Archivos - SISTEMA NUEVO
   archivos: File[] = [];
-  archivosSubiendo: any[] = [];
-  archivosSubidos: any[] = [];
+  archivosSubiendo: any[] = []; // Para progress bars
+  archivosSubidos: any[] = []; // Archivos ya subidos con URLs
   enviando: boolean = false;
-
-  @ViewChild(SummernoteEditorComponent) editor!: SummernoteEditorComponent;
 
   ngOnInit() {
     this.global.validacionToken();
     this.cargarDatosAutomaticos();
   }
 
-  onEditorContentChange(content: string) {
-    this.ticketData.descripcion = content;
-  }
-
-  // ✅ MÉTODO CORREGIDO: Manejar imágenes del editor como archivos adjuntos
-  onEditorImageUpload(file: File) {
-    console.log('🖼️ Imagen recibida del editor:', file.name, file.size);
-    
-    // Validar el archivo
-    if (!this.fileUploadService.isValidFileSize(file)) {
-      Swal.fire('Error', `La imagen ${file.name} es muy grande. Máximo 50MB`, 'error');
-      return;
-    }
-    
-    if (!this.fileUploadService.isValidFileType(file)) {
-      Swal.fire('Error', `Tipo de imagen no permitido: ${file.name}`, 'error');
-      return;
-    }
-
-    // Agregar a la lista de archivos por subir
-    this.archivos.push(file);
-    
-    // Mostrar mensaje de confirmación
-    Swal.fire({
-      title: '¡Imagen adjuntada!',
-      text: `La imagen "${file.name}" se ha guardado como archivo adjunto.`,
-      icon: 'success',
-      timer: 2000,
-      showConfirmButton: false
-    });
-
-    console.log('📁 Archivos adjuntos actuales:', this.archivos.length);
-  }
-
+  // Obtener usuario logueado del JWT
   private obtenerUsuarioLogueado(): number {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -125,6 +85,7 @@ export class CrearTicketComponent implements OnInit {
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('👤 Usuario logueado ID:', payload.userId);
       return payload.userId;
     } catch (error) {
       console.error('Error decodificando token:', error);
@@ -140,6 +101,7 @@ export class CrearTicketComponent implements OnInit {
 
     this.spinner.show();
 
+    // 1. Buscar entidad_usuario del logueado
     this.entidadesUsuariosService.lista().subscribe({
       next: (res: any) => {
         if (res.isSuccess) {
@@ -148,6 +110,7 @@ export class CrearTicketComponent implements OnInit {
           );
           
           if (this.entidadUsuario) {
+            console.log('🏢 Entidad usuario encontrada:', this.entidadUsuario);
             this.cargarContratoActivo(this.entidadUsuario.entidadId);
           } else {
             this.spinner.hide();
@@ -165,6 +128,7 @@ export class CrearTicketComponent implements OnInit {
       }
     });
 
+    // 2. Cargar categorías y subcategorías
     this.cargarCategorias();
   }
 
@@ -180,13 +144,20 @@ export class CrearTicketComponent implements OnInit {
           );
           
           if (this.contratoActivo) {
+            console.log('📄 Contrato activo encontrado:', this.contratoActivo);
+            
+            // VERIFICAR SI TIENE PRIORIDAD
             if (!this.contratoActivo.prioridad) {
+              console.warn('⚠️ CONTRATO SIN PRIORIDAD ASIGNADA');
               Swal.fire({
                 title: 'Advertencia',
                 text: 'Tu contrato activo no tiene una prioridad asignada. Los tickets no podrán crearse hasta que se solucione esto.',
                 icon: 'warning',
                 confirmButtonText: 'Entendido'
               });
+            } else {
+              console.log('🎯 Prioridad del contrato:', this.contratoActivo.prioridad);
+              console.log('🎯 Prioridad ID:', this.contratoActivo.prioridad.id);
             }
           } else {
             Swal.fire('Error', 'No tienes un contrato activo', 'error');
@@ -208,6 +179,7 @@ export class CrearTicketComponent implements OnInit {
           this.categorias = (res.data || []).filter((cat:any) =>
           cat.estado === true && cat.eliminado === false
           );
+          console.log(' Categorías activas cargadas:', this.categorias.length);
         }
       },
       error: (err: any) => {
@@ -221,6 +193,7 @@ export class CrearTicketComponent implements OnInit {
           this.subcategorias = (res.data || []).filter((sub: any) =>
           sub.estado ===true
           );
+          console.log('Subcategorías activas cargadas:', this.subcategorias.length);
         }
       },
       error: (err: any) => {
@@ -239,6 +212,7 @@ export class CrearTicketComponent implements OnInit {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
+        // Validar usando el nuevo servicio (50MB máximo)
         if (!this.fileUploadService.isValidFileSize(file)) {
           Swal.fire('Error', `El archivo ${file.name} es muy grande. Máximo 50MB`, 'error');
           continue;
@@ -249,6 +223,7 @@ export class CrearTicketComponent implements OnInit {
           continue;
         }
         
+        // Agregar a lista de archivos por subir
         this.archivos.push(file);
       }
       event.target.value = '';
@@ -273,13 +248,13 @@ export class CrearTicketComponent implements OnInit {
   }
 
   async crearTicket() {
+    // Validaciones básicas
     if (!this.ticketData.titulo?.trim()) {
       Swal.fire('Error', 'El asunto es obligatorio', 'error');
       return;
     }
 
-    const plainText = this.stripHtml(this.ticketData.descripcion).trim();
-    if (!plainText) {
+    if (!this.ticketData.descripcion?.trim()) {
       Swal.fire('Error', 'La descripción es obligatoria', 'error');
       return;
     }
@@ -299,7 +274,9 @@ export class CrearTicketComponent implements OnInit {
       return;
     }
 
+    // VALIDAR QUE EXISTA PRIORIDAD ANTES DE ACCEDER A .id
     if (!this.contratoActivo.prioridad || !this.contratoActivo.prioridad.id) {
+      console.error(' Error: Contrato no tiene prioridad asignada', this.contratoActivo);
       Swal.fire({
         title: 'Error',
         text: 'El contrato activo no tiene una prioridad asignada. Contacta al administrador.',
@@ -315,19 +292,23 @@ export class CrearTicketComponent implements OnInit {
     this.spinner.show();
 
     const ticketCompleto = {
+      // Datos del cliente
       titulo: this.ticketData.titulo.trim(),
       descripcion: this.ticketData.descripcion.trim(),
       categoria_id: Number(this.ticketData.categoria_id),
       subcategoria_id: this.ticketData.subcategoria_id ? Number(this.ticketData.subcategoria_id) : null,
+      
+      // Datos automáticos del sistema
       entidad_usuario_id: this.entidadUsuario.id,
       contrato_id: this.contratoActivo.id,
       sla_id: this.contratoActivo.sla_id,
-      prioridad_id: this.contratoActivo.prioridad.id,
+      prioridad_id: this.contratoActivo.prioridad.id, 
       tecnico_id: null,
       estado: true
     };
 
     console.log(' ENVIANDO TICKET:', ticketCompleto);
+    console.log(' Prioridad ID:', this.contratoActivo.prioridad.id);
 
     this.ticketsService.crear(ticketCompleto).subscribe({
       next: async (res: any) => {
@@ -335,8 +316,9 @@ export class CrearTicketComponent implements OnInit {
           const ticketId = res.data.id;
           console.log('✅ Ticket creado con ID:', ticketId);
           
+          // Subir archivos después de crear el ticket
           if (this.archivos.length > 0) {
-            console.log('📁 Subiendo archivos adjuntos...');
+            console.log('📁 Subiendo archivos...');
             const archivosSubidos = await this.subirArchivos(ticketId);
             
             if (!archivosSubidos) {
@@ -346,6 +328,8 @@ export class CrearTicketComponent implements OnInit {
                 icon: 'warning',
                 confirmButtonText: 'Entendido'
               });
+            } else {
+              console.log('✅ Todos los archivos subidos correctamente');
             }
           }
 
@@ -354,11 +338,11 @@ export class CrearTicketComponent implements OnInit {
           
           Swal.fire({
             title: '¡Ticket Creado!',
-            text: 'Tu ticket ha sido creado exitosamente con todos los archivos adjuntos.',
+            text: 'Tu ticket ha sido creado exitosamente. Un técnico se asignará pronto.',
             icon: 'success',
             confirmButtonText: 'Aceptar'
           }).then(() => {
-            this.router.navigate(['/cliente/inicio']);
+            this.router.navigate(['cliente/inicio']);
           });
           
         } else {
@@ -380,9 +364,23 @@ export class CrearTicketComponent implements OnInit {
         let errorMessage = 'Error al crear ticket';
         
         if (err.error?.message) {
-          errorMessage = err.error.message;
+          const backendMessage = err.error.message;
+          
+          if (backendMessage.includes('Error validando relaciones')) {
+            errorMessage = 'Error en los datos del ticket. Verifique que todos los campos sean válidos.';
+          } else if (backendMessage.includes('no existe')) {
+            errorMessage = 'Uno de los elementos seleccionados no existe.';
+          } else if (backendMessage.includes('no está vigente')) {
+            errorMessage = 'El contrato seleccionado no está vigente.';
+          } else if (backendMessage.includes('Error de validación')) {
+            errorMessage = 'Datos inválidos enviados al servidor.';
+          } else {
+            errorMessage = backendMessage;
+          }
         } else if (err.status === 0) {
           errorMessage = 'Error de conexión con el servidor';
+        } else if (err.status === 400) {
+          errorMessage = 'Datos inválidos enviados al servidor';
         } else if (err.status === 500) {
           errorMessage = 'Error interno del servidor';
         }
@@ -397,6 +395,7 @@ export class CrearTicketComponent implements OnInit {
     });
   }
 
+  // NUEVO MÉTODO: Subir archivos después de crear el ticket
   async subirArchivos(ticketId: number): Promise<boolean> {
     if (this.archivos.length === 0) return true;
 
@@ -415,8 +414,10 @@ export class CrearTicketComponent implements OnInit {
     return subidasExitosas.every(exito => exito);
   }
 
+  // NUEVO MÉTODO: Subir archivo individual con progress bar
   private subirArchivoIndividual(ticketId: number, archivo: File): Promise<boolean> {
     return new Promise((resolve) => {
+      // Agregar a lista de archivos subiendo
       const archivoSubiendo = {
         nombre: archivo.name,
         progreso: 0,
@@ -427,9 +428,11 @@ export class CrearTicketComponent implements OnInit {
       this.fileUploadService.uploadTicketFile(ticketId, archivo).subscribe({
         next: (event: any) => {
           if (event.type === HttpEventType.UploadProgress) {
+            // Actualizar progreso
             const progreso = Math.round(100 * event.loaded / event.total);
             archivoSubiendo.progreso = progreso;
           } else if (event.type === HttpEventType.Response) {
+            // Archivo subido exitosamente
             archivoSubiendo.subiendo = false;
             this.archivosSubidos.push(event.body.data);
             console.log('✅ Archivo subido:', event.body.data);
@@ -439,53 +442,16 @@ export class CrearTicketComponent implements OnInit {
         error: (error) => {
           console.error('Error subiendo archivo:', error);
           archivoSubiendo.subiendo = false;
+          Swal.fire('Error', `Error al subir ${archivo.name}`, 'error');
           resolve(false);
         }
       });
     });
   }
 
-  private stripHtml(html: string): string {
-    if (!html) return '';
-    const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  }
-
   cancelar() {
     if (!this.enviando) {
-      this.router.navigate(['/cliente/inicio']);
+      this.router.navigate(['cliente/inicio']);
     }
-  }
-
-  // Método para obtener el icono según el tipo de archivo
-  getFileIcon(fileName: string): string {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    switch (extension) {
-      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'bmp': case 'webp':
-        return 'image';
-      case 'pdf':
-        return 'picture_as_pdf';
-      case 'doc': case 'docx':
-        return 'description';
-      case 'xls': case 'xlsx':
-        return 'table_chart';
-      case 'zip': case 'rar': case '7z':
-        return 'folder_zip';
-      default:
-        return 'insert_drive_file';
-    }
-  }
-
-  // Método para formatear el tamaño del archivo
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

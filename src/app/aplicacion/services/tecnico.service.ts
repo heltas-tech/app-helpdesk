@@ -10,7 +10,7 @@ import { TecnicoStats } from '../interfaces/tecnico.interface';
 export class TecnicoService {
   private ticketsService = inject(TicketsService);
 
-  // Obtener estadísticas del técnico - CORREGIDO
+  // Obtener estadísticas del técnico - ACTUALIZADO
   getEstadisticas(tecnicoId: number): Observable<TecnicoStats> {
     return this.ticketsService.listaActivos().pipe(
       map((res: any) => {
@@ -117,7 +117,7 @@ export class TecnicoService {
     });
   }
 
-  // Métodos privados para cálculos
+  // Métodos privados para cálculos - ACTUALIZADO
   private calcularEstadisticas(tickets: any[]): TecnicoStats {
     const ticketsAsignados = tickets.length;
     const ticketsResueltos = tickets.filter(t => t.fecha_resolucion).length;
@@ -145,6 +145,13 @@ export class TecnicoService {
     // Tiempo promedio de resolución
     const tiempoPromedioResolucion = this.calcularTiempoPromedio(tickets);
 
+    // NUEVAS MÉTRICAS
+    const ticketsSLAVencido = this.calcularTicketsSLAVencido(tickets);
+    const ticketsSLAProximoVencer = this.calcularTicketsSLAProximoVencer(tickets);
+    const ticketsReabiertos = this.calcularTicketsReabiertos(tickets);
+    const satisfaccionPromedio = this.calcularSatisfaccionPromedio(tickets);
+    const primeraSolucion = this.calcularPrimeraSolucion(tickets);
+
     console.log('📊 Estadísticas calculadas:', {
       ticketsAsignados,
       ticketsResueltos,
@@ -152,7 +159,12 @@ export class TecnicoService {
       ticketsEnProceso,
       eficiencia,
       ticketsEsteMes,
-      ticketsHoy
+      ticketsHoy,
+      ticketsSLAVencido,
+      ticketsSLAProximoVencer,
+      ticketsReabiertos,
+      satisfaccionPromedio,
+      primeraSolucion
     });
 
     return {
@@ -163,7 +175,13 @@ export class TecnicoService {
       eficiencia,
       tiempoPromedioResolucion,
       ticketsEsteMes,
-      ticketsHoy
+      ticketsHoy,
+      // NUEVAS PROPIEDADES
+      ticketsSLAVencido,
+      ticketsSLAProximoVencer,
+      ticketsReabiertos,
+      satisfaccionPromedio,
+      primeraSolucion
     };
   }
 
@@ -186,6 +204,80 @@ export class TecnicoService {
     return `${horas}h ${minutos}m`;
   }
 
+  // NUEVOS MÉTODOS PARA LAS MÉTRICAS ADICIONALES
+  private calcularTicketsSLAVencido(tickets: any[]): number {
+    return tickets.filter(ticket => {
+      if (!ticket.sla?.tiempo_resolucion || ticket.fecha_resolucion) return false;
+      
+      const fechaCreacion = new Date(ticket.fecha_creacion);
+      const ahora = new Date();
+      const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
+      const horasRestantes = ticket.sla.tiempo_resolucion - horasTranscurridas;
+
+      return horasRestantes <= 0;
+    }).length;
+  }
+
+  private calcularTicketsSLAProximoVencer(tickets: any[]): number {
+    return tickets.filter(ticket => {
+      if (!ticket.sla?.tiempo_resolucion || ticket.fecha_resolucion) return false;
+      
+      const fechaCreacion = new Date(ticket.fecha_creacion);
+      const ahora = new Date();
+      const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
+      const horasRestantes = ticket.sla.tiempo_resolucion - horasTranscurridas;
+
+      return horasRestantes > 0 && horasRestantes <= 24;
+    }).length;
+  }
+
+  private calcularTicketsReabiertos(tickets: any[]): number {
+    return tickets.filter(ticket => 
+      ticket.estado_ticket === 'REABIERTO' || 
+      ticket.veces_reabierto > 0
+    ).length;
+  }
+
+  private calcularSatisfaccionPromedio(tickets: any[]): number {
+    // Simulación - en una implementación real esto vendría de encuestas de satisfacción
+    const ticketsResueltos = tickets.filter(t => t.fecha_resolucion);
+    if (ticketsResueltos.length === 0) return 0;
+    
+    // Simular puntuaciones de satisfacción basadas en tiempo de resolución
+    let totalSatisfaccion = 0;
+    ticketsResueltos.forEach(ticket => {
+      const creado = new Date(ticket.fecha_creacion);
+      const resuelto = new Date(ticket.fecha_resolucion);
+      const horasResolucion = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60);
+      
+      // Lógica de satisfacción: menos horas = mayor satisfacción
+      let satisfaccion = 100;
+      if (horasResolucion > 72) satisfaccion = 60;
+      else if (horasResolucion > 48) satisfaccion = 70;
+      else if (horasResolucion > 24) satisfaccion = 80;
+      else if (horasResolucion > 12) satisfaccion = 90;
+      
+      totalSatisfaccion += satisfaccion;
+    });
+
+    return Math.round(totalSatisfaccion / ticketsResueltos.length);
+  }
+
+  private calcularPrimeraSolucion(tickets: any[]): number {
+    const ticketsResueltos = tickets.filter(t => t.fecha_resolucion);
+    if (ticketsResueltos.length === 0) return 0;
+
+    let primeraSolucionCount = 0;
+    ticketsResueltos.forEach(ticket => {
+      // Considerar como "primera solución" si no fue reabierto
+      if (!ticket.veces_reabierto || ticket.veces_reabierto === 0) {
+        primeraSolucionCount++;
+      }
+    });
+
+    return Math.round((primeraSolucionCount / ticketsResueltos.length) * 100);
+  }
+
   private getStatsDefault(): TecnicoStats {
     return {
       ticketsAsignados: 0,
@@ -195,7 +287,13 @@ export class TecnicoService {
       eficiencia: 0,
       tiempoPromedioResolucion: '0h 0m',
       ticketsEsteMes: 0,
-      ticketsHoy: 0
+      ticketsHoy: 0,
+      // NUEVAS PROPIEDADES CON VALORES POR DEFECTO
+      ticketsSLAVencido: 0,
+      ticketsSLAProximoVencer: 0,
+      ticketsReabiertos: 0,
+      satisfaccionPromedio: 0,
+      primeraSolucion: 0
     };
   }
 }

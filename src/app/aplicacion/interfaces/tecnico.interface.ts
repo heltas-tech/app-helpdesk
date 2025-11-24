@@ -7,6 +7,12 @@ export interface TecnicoStats {
   tiempoPromedioResolucion: string;
   ticketsEsteMes: number;
   ticketsHoy: number;
+  // NUEVAS PROPIEDADES
+  ticketsSLAVencido: number;
+  ticketsSLAProximoVencer: number;
+  ticketsReabiertos: number;
+  satisfaccionPromedio: number;
+  primeraSolucion: number;
 }
 
 export interface TicketTecnico {
@@ -16,6 +22,7 @@ export interface TicketTecnico {
   estado: boolean;
   fecha_creacion: string;
   fecha_resolucion?: string;
+  estado_ticket?: string;
   prioridad?: {
     id: number;
     nombre: string;
@@ -42,4 +49,14 @@ export interface TicketTecnico {
     };
   };
   tecnico_id?: number;
+  sla?: {
+    id: number;
+    nombre: string;
+    tiempo_resolucion: number;
+  };
+  contrato?: {
+    id: number;
+    numero_contrato: string;
+    titulo: string;
+  };
 }

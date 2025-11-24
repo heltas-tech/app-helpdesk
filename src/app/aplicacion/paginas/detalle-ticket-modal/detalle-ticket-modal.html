@@ -48,10 +48,14 @@
           Reactivar
         </button>
         
-        <button *ngIf="getTicket() && !isTicketResuelto() && (usuarioActual.rol === 'TECNICO' || usuarioActual.rol === 'ADMIN')" 
+        <!-- BOTÓN CERRAR TICKET - AHORA DISPONIBLE PARA CLIENTES Y TÉCNICOS -->
+        <button *ngIf="getTicket() && !isTicketResuelto()" 
                 mat-raised-button 
                 (click)="cerrarTicket()"
-                class="bg-green-500 text-white hover:bg-green-600 flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
+                [class]="(usuarioActual.rol === 'TECNICO' || usuarioActual.rol === 'ADMIN') ? 
+                         'bg-green-500 text-white hover:bg-green-600' : 
+                         'bg-blue-500 text-white hover:bg-blue-600'"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
           <mat-icon class="text-lg">check_circle</mat-icon>
           Cerrar Ticket
         </button>
@@ -133,8 +137,8 @@
                 <div class="flex items-center gap-4 flex-1 min-w-0">
                   <!-- MINIATURA PARA IMÁGENES -->
                   <div *ngIf="isImageType(archivo.tipo)" 
-     class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-gray-300 hover:border-blue-400 transition-all duration-200"
-     (click)="verArchivo(archivo)">
+                       class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-gray-300 hover:border-blue-400 transition-all duration-200"
+                       (click)="verArchivo(archivo)">
                     <img 
                       [src]="getImageUrlForArchivo(archivo)" 
                       [alt]="archivo.nombre"
