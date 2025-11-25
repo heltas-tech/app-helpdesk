@@ -653,3 +653,112 @@
     }
   }
 }
+/* PAGINACIÓN - ESTILOS FORZADOS */
+.mat-paginator {
+  background: #f9fafb !important;
+  border-top: 1px solid #e5e7eb !important;
+  padding: 12px 16px !important;
+}
+
+.mat-paginator .mat-paginator-container {
+  background: #f9fafb !important;
+  min-height: 56px !important;
+}
+
+.mat-paginator .mat-paginator-page-size {
+  margin-right: 16px !important;
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+}
+
+.mat-paginator .mat-paginator-page-size-select {
+  background: transparent !important;
+}
+
+.mat-paginator .mat-form-field-wrapper {
+  padding-bottom: 0 !important;
+}
+
+.mat-paginator .mat-form-field-underline {
+  display: none !important;
+}
+
+.mat-paginator .mat-select-value {
+  color: #374151 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+/* DROPDOWN DEL SELECT */
+.mat-select-panel {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+  margin-top: 4px !important;
+}
+
+.mat-select-panel .mat-option {
+  background: white !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+  min-height: 36px !important;
+}
+
+.mat-select-panel .mat-option:hover {
+  background: #f3f4f6 !important;
+}
+
+.mat-select-panel .mat-option.mat-selected {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 500 !important;
+}
+
+/* BOTONES DE PAGINACIÓN */
+.mat-paginator .mat-paginator-range-actions {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  padding: 2px !important;
+  gap: 4px !important;
+}
+
+.mat-paginator .mat-paginator-range-actions .mat-button-base {
+  color: #374151 !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  border-radius: 6px !important;
+  margin: 0 2px !important;
+}
+
+.mat-paginator .mat-paginator-range-actions .mat-button-base:hover {
+  background: #f3f4f6 !important;
+}
+
+.mat-paginator .mat-paginator-range-actions .mat-button-base:disabled {
+  color: #9ca3af !important;
+  background: transparent !important;
+}
+
+.mat-paginator .mat-paginator-range-label {
+  color: #6b7280 !important;
+  margin: 0 12px !important;
+  font-size: 14px !important;
+}
+
+/* ICONOS */
+.mat-paginator .mat-button-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mat-paginator .mat-icon {
+  color: #6b7280 !important;
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 18px !important;
+}

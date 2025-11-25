@@ -18,7 +18,8 @@ import { PrioridadesInterface } from '../../interfaces/prioridades.interface';
     MatSlideToggleModule,
     MatIconModule
   ],
-  templateUrl: './prioridades-modal.html'
+  templateUrl: './prioridades-modal.html',
+  styleUrls: ['./prioridades-modal.scss']
 })
 export class PrioridadesModal {
   form: FormGroup;
@@ -45,17 +46,10 @@ export class PrioridadesModal {
         data?.nivel || 1, 
         [Validators.required, Validators.min(1), Validators.max(5)]
       ],
-      tiempo_respuesta: [
-        data?.tiempo_respuesta || 0,
-        [Validators.min(0)]
-      ],
-      tiempo_resolucion: [
-        data?.tiempo_resolucion || 0,
-        [Validators.min(0)]
-      ],
       activo: [data?.activo !== undefined ? data.activo : true]
     });
 
+    // Si estamos editando, marcamos como tocados para mostrar validaciones
     if (this.isEditMode) {
       this.form.markAllAsTouched();
     }
@@ -93,11 +87,11 @@ export class PrioridadesModal {
     }
     
     if (field?.hasError('maxlength')) {
-      return 'Has excedido el número máximo de caracteres';
+      return 'Máximo de caracteres excedido';
     }
     
     if (field?.hasError('min') || field?.hasError('max')) {
-      return 'El valor está fuera del rango permitido';
+      return 'El nivel debe estar entre 1 y 5';
     }
     
     return 'Campo inválido';

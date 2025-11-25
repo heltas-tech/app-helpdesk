@@ -1,0 +1,217 @@
+.modal-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 450px;
+  width: 350px;
+  flex-direction: column;
+  gap: 35px;
+  background: #e3e3e3;
+  box-shadow: 16px 16px 32px #c8c8c8,
+        -16px -16px 32px #fefefe;
+  border-radius: 8px;
+  padding: 40px 30px;
+}
+
+.login {
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  font-weight: bold;
+  font-size: x-large;
+  margin-bottom: 10px;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+}
+
+.inputBox {
+  position: relative;
+  width: 100%;
+}
+
+.inputBox input {
+  width: 100%;
+  padding: 12px 10px;
+  outline: none;
+  border: none;
+  color: #000;
+  font-size: 1em;
+  background: transparent;
+  border-left: 2px solid #000;
+  border-bottom: 2px solid #000;
+  transition: 0.2s;
+  border-bottom-left-radius: 8px;
+  
+  &.invalid {
+    border-left: 2px solid #ff0000;
+    border-bottom: 2px solid #ff0000;
+  }
+}
+
+.inputBox span {
+  position: absolute;
+  left: 0;
+  padding: 12px 10px;
+  pointer-events: none;
+  font-size: 12px;
+  color: #000;
+  text-transform: uppercase;
+  transition: 0.5s;
+  letter-spacing: 3px;
+  border-radius: 8px;
+}
+
+/* ANIMACIÓN QUE SÍ FUNCIONA */
+.inputBox input:focus ~ span,
+.inputBox input.has-value ~ span {
+  transform: translateX(113px) translateY(-15px);
+  font-size: 0.8em;
+  padding: 5px 10px;
+  background: #000;
+  letter-spacing: 0.2em;
+  color: #fff;
+  border: 2px;
+}
+
+.inputBox input:focus,
+.inputBox input.has-value {
+  border: 2px solid #000;
+  border-radius: 8px;
+}
+
+.error-message {
+  color: #ff0000;
+  font-size: 0.7em;
+  margin-top: 5px;
+  margin-left: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background: transparent;
+  border: 2px solid #000;
+  border-radius: 8px;
+}
+
+.toggle-label {
+  color: #000;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+::ng-deep .custom-toggle {
+  .mat-slide-toggle-thumb {
+    background-color: #000 !important;
+  }
+  
+  .mat-slide-toggle-bar {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  &.mat-checked {
+    .mat-slide-toggle-bar {
+      background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+  }
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.enter-btn {
+  height: 45px;
+  width: 120px;
+  border-radius: 5px;
+  border: 2px solid #000;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  
+  &:hover:not(.disabled) {
+    background-color: #000;
+    color: white;
+  }
+  
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #666;
+    color: #666;
+  }
+}
+
+.cancel-btn {
+  height: 45px;
+  width: 120px;
+  border-radius: 5px;
+  border: 2px solid #666;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  color: #666;
+  
+  &:hover {
+    background-color: #666;
+    color: white;
+  }
+}
+
+/* Asegurar que los inputs numéricos no muestren flechas - CORREGIDO */
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield; /* Propiedad estándar agregada */
+}
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .card {
+    width: 300px;
+    padding: 30px 20px;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span {
+    transform: translateX(100px) translateY(-15px);
+  }
+}

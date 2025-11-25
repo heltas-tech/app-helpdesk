@@ -33,7 +33,8 @@ import { GlobalFuntions as GlobalFunctionsService } from '../../services/global-
   templateUrl: './prioridades.html'
 })
 export class PrioridadesComponent {
-  displayedColumns: string[] = ['nombre', 'descripcion', 'nivel', 'tiempos', 'activo', 'acciones'];
+  // ❌ ELIMINADA columna 'tiempos'
+  displayedColumns: string[] = ['nombre', 'descripcion', 'nivel', 'activo', 'acciones'];
   dataSource = new MatTableDataSource<PrioridadesInterface>([]);
   private router = inject(Router);
 
@@ -88,8 +89,7 @@ export class PrioridadesComponent {
         nombre: '', 
         descripcion: '', 
         nivel: 1,
-        tiempo_respuesta: 0,
-        tiempo_resolucion: 0,
+        // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
         activo: true 
       }
     });
@@ -101,8 +101,7 @@ export class PrioridadesComponent {
         nombre: result.nombre,
         descripcion: result.descripcion,
         nivel: result.nivel,
-        tiempo_respuesta: result.tiempo_respuesta,
-        tiempo_resolucion: result.tiempo_resolucion,
+        // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
         activo: result.activo
       };
 
@@ -180,8 +179,7 @@ export class PrioridadesComponent {
           nombre: prioridad.nombre,
           descripcion: prioridad.descripcion,
           nivel: prioridad.nivel,
-          tiempo_respuesta: prioridad.tiempo_respuesta,
-          tiempo_resolucion: prioridad.tiempo_resolucion,
+          // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
           activo: nuevoEstado
         };
 
@@ -206,8 +204,7 @@ export class PrioridadesComponent {
         'Nombre': p.nombre || '',
         'Descripción': p.descripcion || '',
         'Nivel': p.nivel || '',
-        'Tiempo Respuesta (hrs)': p.tiempo_respuesta || 0,
-        'Tiempo Resolución (hrs)': p.tiempo_resolucion || 0,
+        // ❌ ELIMINADOS tiempos de respuesta y resolución
         'Estado': p.activo ? 'Activo' : 'Inactivo'
       }))
     );
@@ -229,13 +226,12 @@ export class PrioridadesComponent {
     
     autoTable(doc, {
       startY: 30,
-      head: [['Nombre', 'Descripción', 'Nivel', 'Respuesta (hrs)', 'Resolución (hrs)', 'Estado']],
+      head: [['Nombre', 'Descripción', 'Nivel', 'Estado']],
       body: this.dataSource.data.map(p => [
         p.nombre || '',
         p.descripcion || '',
         p.nivel?.toString() || '',
-        p.tiempo_respuesta?.toString() || '0',
-        p.tiempo_resolucion?.toString() || '0',
+        // ❌ ELIMINADOS tiempos de respuesta y resolución
         p.activo ? 'Activo' : 'Inactivo'
       ]),
       styles: { fontSize: 9 },

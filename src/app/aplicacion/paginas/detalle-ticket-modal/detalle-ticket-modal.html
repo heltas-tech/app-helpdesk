@@ -49,17 +49,14 @@
         </button>
         
         <!-- BOTÓN CERRAR TICKET - AHORA DISPONIBLE PARA CLIENTES Y TÉCNICOS -->
-        <button *ngIf="getTicket() && !isTicketResuelto()" 
-                mat-raised-button 
-                (click)="cerrarTicket()"
-                [class]="(usuarioActual.rol === 'TECNICO' || usuarioActual.rol === 'ADMIN') ? 
-                         'bg-green-500 text-white hover:bg-green-600' : 
-                         'bg-blue-500 text-white hover:bg-blue-600'"
-                class="flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
-          <mat-icon class="text-lg">check_circle</mat-icon>
-          Cerrar Ticket
-        </button>
-
+      <!-- BOTÓN VISIBLE PARA TODOS LOS ROLES -->
+<button *ngIf="getTicket() && !isTicketResuelto()" 
+        mat-raised-button 
+        (click)="cerrarTicket()"
+        class="bg-green-500 text-white hover:bg-green-600 flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
+  <mat-icon class="text-lg">check_circle</mat-icon>
+  Cerrar Ticket
+</button>
         <!-- BOTÓN ACTUALIZAR MANUAL -->
         <button 
           mat-raised-button 

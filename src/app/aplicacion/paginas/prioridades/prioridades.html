@@ -1,4 +1,3 @@
-<!-- prioridades/prioridades.html -->
 <div class="p-6 space-y-6 bg-gray-50 min-h-screen">
   <!-- Título -->
   <div class="flex justify-between items-center">
@@ -84,24 +83,7 @@
         </td>
       </ng-container>
 
-      <!-- Columna Tiempos -->
-      <ng-container matColumnDef="tiempos">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-center">
-          Tiempos (horas)
-        </th>
-        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
-          <div class="space-y-1">
-            <div class="text-sm">
-              <span class="font-medium">Respuesta:</span> 
-              <span class="text-blue-600 ml-1">{{ element.tiempo_respuesta || 0 }}h</span>
-            </div>
-            <div class="text-sm">
-              <span class="font-medium">Resolución:</span> 
-              <span class="text-green-600 ml-1">{{ element.tiempo_resolucion || 0 }}h</span>
-            </div>
-          </div>
-        </td>
-      </ng-container>
+      <!-- ❌ ELIMINADA Columna Tiempos -->
 
       <!-- Columna Activo -->
       <ng-container matColumnDef="activo">
@@ -191,9 +173,9 @@
         <h3 class="font-semibold text-indigo-800 mb-1">Información sobre prioridades</h3>
         <ul class="text-sm text-indigo-700 space-y-1">
           <li>• <span class="font-medium">Nivel:</span> Indica la urgencia (1 = Muy Alta, 5 = Muy Baja)</li>
-          <li>• <span class="font-medium">Tiempo Respuesta:</span> Horas máximas para dar primera respuesta</li>
-          <li>• <span class="font-medium">Tiempo Resolución:</span> Horas máximas para resolver completamente</li>
+          <li>• <span class="font-medium">Descripción:</span> Define el tipo de problema para esta prioridad</li>
           <li>• <span class="font-medium">Activo:</span> La prioridad está disponible para asignar a tickets</li>
+          <li>• <span class="font-medium">Nota:</span> Los tiempos de respuesta se definen en los SLAs</li>
         </ul>
       </div>
     </div>

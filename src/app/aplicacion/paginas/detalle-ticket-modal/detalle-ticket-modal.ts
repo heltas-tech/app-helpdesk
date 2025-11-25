@@ -141,7 +141,7 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
 
   /** ================== MÉTODOS CORREGIDOS PARA CHAT ================== */
 
-  /** Enviar mensaje de texto o archivo */
+  /** Enviar mensaje de texto o archivo - CORREGIDO */
   enviarMensaje() {
     if (!this.nuevoMensaje.trim() && !this.archivoChat) {
       Swal.fire('Advertencia', 'Escribe un mensaje o selecciona un archivo antes de enviar', 'warning');
@@ -157,7 +157,7 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
     if (this.archivoChat) {
       this.subirArchivoChat();
     } else {
-      // Solo enviar mensaje de texto
+      // Solo enviar mensaje de texto - CORREGIDO: se usa la firma correcta del servicio
       this.enviandoMensaje = true;
       
       const sub = this.ticketDetalleService.enviarMensaje(
@@ -217,7 +217,7 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
     if (fileInput) fileInput.value = '';
   }
 
-  /** Subir archivo al chat */
+  /** Subir archivo al chat - CORREGIDO */
   subirArchivoChat() {
     if (!this.archivoChat || !this.getUsuarioActual().id) return;
 
@@ -233,6 +233,7 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
       }
     }, 200);
 
+    // CORREGIDO: Se usa la firma correcta del servicio (sin ticketId adicional)
     const sub = this.ticketDetalleService.subirArchivoChat(
       this.archivoChat!,
       this.getUsuarioActual().id,
@@ -804,22 +805,98 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
   /** ================== MÉTODOS NUEVOS PARA BASE DE CONOCIMIENTO ================== */
 
   /** Cerrar ticket - CORREGIDO: Ahora el cliente también puede cerrar */
-  cerrarTicket() {
-    // Verificar si el ticket ya está cerrado
-    if (this.isTicketResuelto()) {
-      Swal.fire('Información', 'Este ticket ya está cerrado', 'info');
+  /** Cerrar ticket - AHORA PERMITIDO PARA CLIENTES */
+/** Cerrar ticket - CON PERMISOS ESPECÍFICOS */
+cerrarTicket() {
+  const usuario = this.getUsuarioActual();
+  const ticket = this.getTicket();
+  
+  if (!ticket) {
+    Swal.fire('Error', 'No se pudo cargar la información del ticket', 'error');
+    return;
+  }
+
+  // ✅ VALIDACIÓN DE PERMISOS MEJORADA
+  if (usuario.rol === 'CLIENTE') {
+    // Cliente solo puede cerrar SUS propios tickets
+    const esPropietario = ticket.entidad_usuario?.usuario?.id === usuario.id;
+    
+    if (!esPropietario) {
+      Swal.fire('Error', 'Solo puedes cerrar tus propios tickets', 'error');
       return;
     }
-
-    // Diferentes opciones según el rol del usuario
-    if (this.usuarioActual.rol === 'TECNICO' || this.usuarioActual.rol === 'ADMIN') {
-      // TÉCNICO o ADMIN: Ofrecer opciones de base de conocimiento
-      this.cerrarTicketTecnico();
-    } else {
-      // CLIENTE: Solo cerrar sin opciones de base de conocimiento
-      this.cerrarTicketCliente();
+  } else if (usuario.rol === 'TECNICO') {
+    // Técnico puede cerrar tickets ASIGNADOS a él + tickets de clientes
+    const esTecnicoAsignado = ticket.tecnico_id === usuario.id;
+    const esTicketDeCliente = ticket.entidad_usuario?.usuario?.rol === 'CLIENTE';
+    
+    if (!esTecnicoAsignado && !esTicketDeCliente) {
+      Swal.fire('Error', 'Solo puedes cerrar tickets asignados a ti o tickets de clientes', 'error');
+      return;
     }
   }
+  // ADMINISTRADOR: Sin restricciones (puede cerrar cualquier ticket)
+
+  Swal.fire({
+    title: '¿Cerrar definitivamente este ticket?',
+    html: `
+      <div class="text-left">
+        <p class="text-gray-700 mb-3">Estás a punto de <strong>cerrar definitivamente</strong> este ticket.</p>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p class="text-sm text-yellow-700 flex items-center gap-2">
+            <mat-icon class="text-sm">info</mat-icon>
+            <strong>Una vez cerrado:</strong>
+          </p>
+          <ul class="text-xs text-yellow-600 list-disc ml-5 mt-1 space-y-1">
+            <li>No podrás enviar más mensajes</li>
+            <li>El ticket aparecerá como "Cerrado"</li>
+            <li>Podrás reabrir si necesitas más ayuda</li>
+          </ul>
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          <strong>Usuario:</strong> ${usuario.nombre} (${usuario.rol})<br>
+          <strong>Ticket:</strong> #${ticket.id} - ${ticket.titulo}
+        </p>
+      </div>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cerrar ticket',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    width: '500px'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      this.cargando = true;
+
+      const sub = this.ticketsService.cerrarTicket(this.ticketId).subscribe({
+        next: (response: any) => {
+          this.cargando = false;
+          
+          if (response.isSuccess) {
+            Swal.fire({
+              title: '✅ Ticket Cerrado',
+              text: 'El ticket ha sido cerrado correctamente',
+              icon: 'success',
+              confirmButtonText: 'Aceptar'
+            }).then(() => {
+              this.dialogRef.close('updated');
+            });
+          } else {
+            Swal.fire('Error', response.message || 'Error al cerrar el ticket', 'error');
+          }
+        },
+        error: (error: any) => {
+          this.cargando = false;
+          console.error('❌ Error al cerrar ticket:', error);
+          Swal.fire('Error', 'No se pudo cerrar el ticket', 'error');
+        }
+      });
+      this.subscriptions.push(sub);
+    }
+  });
+}
 
   /** Cerrar ticket como TÉCNICO o ADMIN */
   private cerrarTicketTecnico() {
@@ -1209,7 +1286,7 @@ El problema fue resuelto satisfactoriamente.`;
     return palabras.join(',');
   }
 
-  /** Reactivar ticket */
+  /** Reactivar ticket - VERSIÓN CORREGIDA */
   reactivarTicket() {
     Swal.fire({
       title: '¿Reactivar ticket?',
@@ -1224,15 +1301,25 @@ El problema fue resuelto satisfactoriamente.`;
       if (result.isConfirmed) {
         this.cargando = true;
 
-        const sub = this.ticketDetalleService.reactivarTicket().subscribe({
+        // ✅ CORRECCIÓN: Usar el endpoint de reapertura en lugar de actualizar fecha_resolucion
+        const sub = this.ticketsService.reabrirTicket(
+          this.ticketId, 
+          'Ticket reactivado por el usuario'
+        ).subscribe({
           next: (response: any) => {
             this.cargando = false;
             
             if (response.isSuccess || response.data) {
               Swal.fire('¡Reactivado!', 'El ticket ha sido reactivado correctamente', 'success');
-              this.cargarDetalleTicket();
+              this.cargarDetalleTicket(); // Recargar para actualizar estado
+              
+              // DEBUG: Verificar el nuevo estado
               setTimeout(() => {
-                this.dialogRef.close('updated');
+                console.log('🔄 Estado después de reactivar:', {
+                  estadoTicket: this.detalleTicket?.ticket?.estado_ticket,
+                  fechaResolucion: this.detalleTicket?.ticket?.fecha_resolucion,
+                  puedeEnviarMensajes: this.puedeEnviarMensajes()
+                });
               }, 1000);
             } else {
               Swal.fire('Error', response.message || 'Error al reactivar el ticket', 'error');
@@ -1249,20 +1336,88 @@ El problema fue resuelto satisfactoriamente.`;
     });
   }
 
+  /** ================== MÉTODO NUEVO: CERRAR TICKET DEFINITIVAMENTE ================== */
+
+  /** Cerrar ticket definitivamente (para clientes, técnicos y administradores) */
+  cerrarTicketDefinitivamente() {
+    Swal.fire({
+      title: '¿Cerrar ticket definitivamente?',
+      html: `
+        <div class="text-left">
+          <p class="text-gray-700 mb-4">Estás a punto de <strong>cerrar definitivamente</strong> este ticket.</p>
+          <p class="text-gray-600 mb-2">Al cerrar el ticket:</p>
+          <ul class="text-gray-600 text-sm space-y-1 mb-4">
+            <li>• ✅ Se marcará como <strong>CERRADO</strong></li>
+            <li>• 🔒 No podrás enviar más mensajes</li>
+            <li>• 📁 El ticket se archivará en tu historial</li>
+            <li>• 🔄 Podrás reabrir el ticket si es necesario</li>
+          </ul>
+          <p class="text-gray-700 font-semibold">¿Confirmas que deseas cerrar este ticket?</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar definitivamente',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      width: '500px'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cargando = true;
+
+        const sub = this.ticketsService.cerrarTicket(this.ticketId).subscribe({
+          next: (response: any) => {
+            this.cargando = false;
+            
+            if (response.isSuccess || response.data) {
+              Swal.fire({
+                title: '✅ Ticket Cerrado',
+                text: 'El ticket ha sido cerrado definitivamente',
+                icon: 'success',
+                confirmButtonText: 'Aceptar'
+              }).then(() => {
+                this.dialogRef.close('updated');
+              });
+            } else {
+              Swal.fire('Error', response.message || 'Error al cerrar el ticket', 'error');
+            }
+          },
+          error: (error: any) => {
+            this.cargando = false;
+            console.error('❌ Error al cerrar ticket definitivamente:', error);
+            Swal.fire('Error', 'No se pudo cerrar el ticket', 'error');
+          }
+        });
+        this.subscriptions.push(sub);
+      }
+    });
+  }
+
   /** ================== UTILIDADES ================== */
 
-  /** Verificar si el ticket está resuelto */
+  /** Verificar si el ticket está resuelto - VERSIÓN CORREGIDA */
   isTicketResuelto(): boolean {
-    const fechaResolucion = this.detalleTicket?.ticket?.fecha_resolucion;
+    const ticket = this.detalleTicket?.ticket;
     
-    if (!fechaResolucion) return false;
+    if (!ticket) return false;
     
-    const fechaDefault = new Date('1970-01-01T00:00:00.000Z');
-    const fechaTicket = new Date(fechaResolucion);
+    // ✅ CORRECCIÓN: Verificar por estado_ticket en lugar de fecha_resolucion
+    const estadoTicket = ticket.estado_ticket;
     
-    const esFechaDefault = fechaTicket.getTime() === fechaDefault.getTime();
+    console.log('🔍 Estado del ticket:', {
+      estadoTicket,
+      fechaResolucion: ticket.fecha_resolucion,
+      ticketId: ticket.id
+    });
     
-    return !esFechaDefault;
+    // Si el estado es RESUELTO o CERRADO, el ticket está resuelto
+    if (estadoTicket === 'RESUELTO' || estadoTicket === 'CERRADO') {
+      return true;
+    }
+    
+    // Si el estado es REABIERTO, EN_PROCESO, NUEVO, etc., NO está resuelto
+    return false;
   }
 
   getLogs(): { activos: any[], eliminados: any[] } {
@@ -1292,7 +1447,18 @@ El problema fue resuelto satisfactoriamente.`;
       return false;
     }
     
-    return !this.isTicketResuelto();
+    const puedeEnviar = !this.isTicketResuelto();
+    
+    console.log('🔍 Verificando si puede enviar mensajes:', {
+      ticketId: ticket.id,
+      estadoTicket: ticket.estado_ticket,
+      fechaResolucion: ticket.fecha_resolucion,
+      isTicketResuelto: this.isTicketResuelto(),
+      puedeEnviar: puedeEnviar,
+      usuario: this.getUsuarioActual().nombre
+    });
+    
+    return puedeEnviar;
   }
 
   esUsuarioActual(usuarioId: number | undefined | null): boolean {
