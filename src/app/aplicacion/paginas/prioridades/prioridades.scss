@@ -1,0 +1,175 @@
+::ng-deep .custom-paginator {
+  background: #e3e3e3 !important;
+  border-radius: 8px !important;
+  box-shadow: 2px 2px 4px #c8c8c8, -2px -2px 4px #fefefe !important;
+  padding: 15px 20px !important;
+  margin-left: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 20px !important;
+  box-sizing: border-box !important;
+
+  /* CONTENEDOR PRINCIPAL */
+  .mat-mdc-paginator-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+  }
+
+  /* SELECT - CENTRAR EL NÚMERO 5 */
+  .mat-mdc-paginator-page-size-select {
+    .mat-mdc-form-field-flex {
+      background: white !important;
+      border: 2px solid #000 !important;
+      border-radius: 6px !important;
+      padding: 0 10px !important;
+      height: 32px !important;
+      min-width: 70px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    .mat-mdc-select-value {
+      color: #000 !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+      text-align: center !important;
+      width: 100% !important;
+      display: flex !important;
+      justify-content: center !important;
+    }
+    
+    .mat-mdc-select-arrow {
+      color: #000 !important;
+    }
+  }
+
+  /* BOTONES DE NÚMEROS - CENTRAR PERFECTO */
+  button.mat-mdc-paginator-navigation-button {
+    background: transparent !important;
+    border: 2px solid #000 !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    position: relative !important;
+    
+    .mdc-button__label {
+      color: #000 !important;
+      font-weight: 600 !important;
+      font-size: 11px !important;
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      line-height: 1 !important;
+    }
+    
+    &.mat-primary {
+      background: #000 !important;
+      
+      .mdc-button__label {
+        color: white !important;
+      }
+    }
+  }
+
+  /* BOTONES DE FLECHAS */
+  button.mat-mdc-icon-button {
+    background: transparent !important;
+    border: 2px solid #000 !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    .mat-mdc-paginator-icon {
+      fill: #000 !important;
+      width: 16px !important;
+      height: 16px !important;
+      margin: 0 !important;
+    }
+  }
+
+  /* El resto se mantiene igual */
+  .mat-mdc-paginator-page-size {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    
+    .mat-mdc-paginator-page-size-label {
+      color: #000 !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+  }
+
+  .mat-mdc-paginator-range-label {
+    color: #000 !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    margin: 0 !important;
+  }
+
+  .mat-mdc-paginator-navigation {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+}
+
+/* ✅ ESTO ES LO QUE FALTA - EL PANEL DEL SELECT ESTÁ FUERA DEL PAGINATOR */
+::ng-deep .mat-mdc-select-panel {
+  background: #e3e3e3 !important;
+  border: 2px solid #000 !important;
+  border-radius: 6px !important;
+  margin-top: 5px !important;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2) !important;
+  
+  .mat-mdc-option {
+    background: #e3e3e3 !important;
+    min-height: 36px !important;
+    
+    .mdc-list-item__primary-text {
+      color: #000 !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+      text-align: center !important;
+    }
+    
+    &.mdc-list-item--selected {
+      background: #000 !important;
+      
+      .mdc-list-item__primary-text {
+        color: white !important;
+      }
+    }
+    
+    &:hover:not(.mdc-list-item--selected) {
+      background: rgba(0, 0, 0, 0.1) !important;
+    }
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  ::ng-deep .custom-paginator {
+    padding: 12px 15px !important;
+    
+    .mat-mdc-paginator-container {
+      justify-content: center !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+    }
+  }
+}

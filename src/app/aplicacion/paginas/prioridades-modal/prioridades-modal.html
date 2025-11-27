@@ -13,7 +13,8 @@
           formControlName="nombre"
           required
           [class.has-value]="nombre?.value"
-          [class.invalid]="nombre?.invalid && nombre?.touched">
+          [class.invalid]="nombre?.invalid && nombre?.touched"
+          >
         <span>Nombre</span>
         @if (nombre?.invalid && nombre?.touched) {
           <div class="error-message">
@@ -27,7 +28,8 @@
         <input 
           type="text" 
           formControlName="descripcion"
-          [class.has-value]="descripcion?.value">
+          [class.has-value]="descripcion?.value"
+          >
         <span>Descripción</span>
       </div>
 
@@ -40,13 +42,74 @@
           max="5"
           required
           [class.has-value]="nivel?.value"
-          [class.invalid]="nivel?.invalid && nivel?.touched">
+          [class.invalid]="nivel?.invalid && nivel?.touched"
+          >
         <span>Nivel (1-5)</span>
         @if (nivel?.invalid && nivel?.touched) {
           <div class="error-message">
             {{ getErrorMessage('nivel') }}
           </div>
         }
+      </div>
+
+      <!-- Tiempo Respuesta -->
+      <div class="inputBox">
+        <input 
+          type="number" 
+          formControlName="tiempo_respuesta"
+          min="1"
+          required
+          [class.has-value]="tiempo_respuesta?.value"
+          [class.invalid]="tiempo_respuesta?.invalid && tiempo_respuesta?.touched"
+          (input)="actualizarConversionTiempos()">
+        <span>Tiempo Respuesta (minutos)</span>
+        @if (tiempo_respuesta?.invalid && tiempo_respuesta?.touched) {
+          <div class="error-message">
+            {{ getErrorMessage('tiempo_respuesta') }}
+          </div>
+        }
+      </div>
+
+      <!-- Tiempo Resolución -->
+      <div class="inputBox">
+        <input 
+          type="number" 
+          formControlName="tiempo_resolucion"
+          min="1"
+          required
+          [class.has-value]="tiempo_resolucion?.value"
+          [class.invalid]="tiempo_resolucion?.invalid && tiempo_resolucion?.touched"
+          (input)="actualizarConversionTiempos()">
+        <span>Tiempo Resolución (minutos)</span>
+        @if (tiempo_resolucion?.invalid && tiempo_resolucion?.touched) {
+          <div class="error-message">
+            {{ getErrorMessage('tiempo_resolucion') }}
+          </div>
+        }
+      </div>
+
+      <!-- Información de conversión de tiempos -->
+      <div class="tiempo-info">
+        <div class="tiempo-item">
+          <mat-icon class="tiempo-icon">schedule</mat-icon>
+          <div class="tiempo-details">
+            <strong>Tiempo Respuesta:</strong>
+            <div class="tiempo-values">
+              <span>{{ getTiempoRespuestaHoras() }} horas</span>
+              <span [hidden]="getTiempoRespuestaDias() <= 0">• {{ getTiempoRespuestaDias() }} días</span>
+            </div>
+          </div>
+        </div>
+        <div class="tiempo-item">
+          <mat-icon class="tiempo-icon">timer</mat-icon>
+          <div class="tiempo-details">
+            <strong>Tiempo Resolución:</strong>
+            <div class="tiempo-values">
+              <span>{{ getTiempoResolucionHoras() }} horas</span>
+              <span [hidden]="getTiempoResolucionDias() <= 0">• {{ getTiempoResolucionDias() }} días</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Estado -->

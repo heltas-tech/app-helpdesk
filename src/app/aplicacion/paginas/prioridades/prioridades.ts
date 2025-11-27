@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -30,11 +30,12 @@ import { GlobalFuntions as GlobalFunctionsService } from '../../services/global-
     MatSlideToggleModule,
     MatTooltipModule
   ],
-  templateUrl: './prioridades.html'
+  templateUrl: './prioridades.html',
+  styleUrls: ['./prioridades.scss']
 })
-export class PrioridadesComponent {
-  // ❌ ELIMINADA columna 'tiempos'
-  displayedColumns: string[] = ['nombre', 'descripcion', 'nivel', 'activo', 'acciones'];
+export class PrioridadesComponent implements AfterViewInit {
+  // AGREGAMOS COLUMNAS DE TIEMPO
+  displayedColumns: string[] = ['nombre', 'descripcion', 'nivel', 'tiempo_respuesta', 'tiempo_resolucion', 'activo', 'acciones'];
   dataSource = new MatTableDataSource<PrioridadesInterface>([]);
   private router = inject(Router);
 
@@ -52,6 +53,10 @@ export class PrioridadesComponent {
     this.cargarPrioridades();
   }
 
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+  }
+
   cargarPrioridades() {
     this.cargando.show();
     this.prioridadService.lista().subscribe({
@@ -65,8 +70,12 @@ export class PrioridadesComponent {
           Swal.fire('Error', res.message || 'Error al cargar prioridades', 'error');
           return;
         }
+        
         this.dataSource.data = res.data || [];
-        this.dataSource.paginator = this.paginator;
+        
+        if (this.paginator) {
+          this.dataSource.paginator = this.paginator;
+        }
       },
       error: (err) => {
         this.cargando.hide();
@@ -76,20 +85,34 @@ export class PrioridadesComponent {
     });
   }
 
+  actualizarPaginator() {
+    setTimeout(() => {
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+        this.paginator._changePageSize(this.paginator.pageSize);
+      }
+    }, 0);
+  }
+
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+    
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 
   openModal(data?: PrioridadesInterface) {
     const dialogRef = this.dialog.open(PrioridadesModal, {
-      width: '600px',
+      width: '500px', // Un poco más ancho para los nuevos campos
       data: data ? { ...data } : { 
         id: 0, 
         nombre: '', 
         descripcion: '', 
         nivel: 1,
-        // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
+        tiempo_respuesta: null,
+        tiempo_resolucion: null,
         activo: true 
       }
     });
@@ -101,7 +124,8 @@ export class PrioridadesComponent {
         nombre: result.nombre,
         descripcion: result.descripcion,
         nivel: result.nivel,
-        // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
+        tiempo_respuesta: result.tiempo_respuesta,
+        tiempo_resolucion: result.tiempo_resolucion,
         activo: result.activo
       };
 
@@ -111,6 +135,7 @@ export class PrioridadesComponent {
             if (res.isSuccess) {
               Swal.fire('¡Creado!', res.message || 'La prioridad ha sido creada.', 'success');
               this.cargarPrioridades();
+              this.actualizarPaginator();
             } else {
               Swal.fire('Error', res.message || 'No se pudo crear la prioridad', 'error');
             }
@@ -123,6 +148,7 @@ export class PrioridadesComponent {
             if (res.isSuccess) {
               Swal.fire('¡Actualizado!', res.message || 'La prioridad ha sido actualizada.', 'success');
               this.cargarPrioridades();
+              this.actualizarPaginator();
             } else {
               Swal.fire('Error', res.message || 'No se pudo actualizar la prioridad', 'error');
             }
@@ -152,6 +178,7 @@ export class PrioridadesComponent {
             if (res.isSuccess) {
               Swal.fire('Eliminado!', res.message || 'La prioridad ha sido eliminada.', 'success');
               this.cargarPrioridades();
+              this.actualizarPaginator();
             } else {
               Swal.fire('Error', res.message || 'No se pudo eliminar la prioridad', 'error');
             }
@@ -179,7 +206,8 @@ export class PrioridadesComponent {
           nombre: prioridad.nombre,
           descripcion: prioridad.descripcion,
           nivel: prioridad.nivel,
-          // ❌ ELIMINADOS tiempos_respuesta y tiempos_resolucion
+          tiempo_respuesta: prioridad.tiempo_respuesta,
+          tiempo_resolucion: prioridad.tiempo_resolucion,
           activo: nuevoEstado
         };
 
@@ -188,6 +216,7 @@ export class PrioridadesComponent {
             if (res.isSuccess) {
               Swal.fire('Actualizado!', res.message || 'El estado ha sido cambiado.', 'success');
               this.cargarPrioridades();
+              this.actualizarPaginator();
             } else {
               Swal.fire('Error', res.message || 'No se pudo cambiar el estado', 'error');
             }
@@ -198,13 +227,34 @@ export class PrioridadesComponent {
     });
   }
 
+  // Función para formatear minutos a texto legible
+  formatearTiempo(minutos: number): string {
+    if (!minutos) return 'No definido';
+    
+    if (minutos < 60) {
+      return `${minutos} min`;
+    } else if (minutos < 1440) {
+      const horas = Math.floor(minutos / 60);
+      const minsRestantes = minutos % 60;
+      return minsRestantes > 0 ? `${horas}h ${minsRestantes}min` : `${horas}h`;
+    } else {
+      const dias = Math.floor(minutos / 1440);
+      const horas = Math.floor((minutos % 1440) / 60);
+      if (horas > 0) {
+        return `${dias}d ${horas}h`;
+      }
+      return `${dias}d`;
+    }
+  }
+
   exportExcel() {
     const worksheet = XLSX.utils.json_to_sheet(
       this.dataSource.data.map(p => ({
         'Nombre': p.nombre || '',
         'Descripción': p.descripcion || '',
         'Nivel': p.nivel || '',
-        // ❌ ELIMINADOS tiempos de respuesta y resolución
+        'Tiempo Respuesta': p.tiempo_respuesta ? this.formatearTiempo(p.tiempo_respuesta) : '',
+        'Tiempo Resolución': p.tiempo_resolucion ? this.formatearTiempo(p.tiempo_resolucion) : '',
         'Estado': p.activo ? 'Activo' : 'Inactivo'
       }))
     );
@@ -226,15 +276,16 @@ export class PrioridadesComponent {
     
     autoTable(doc, {
       startY: 30,
-      head: [['Nombre', 'Descripción', 'Nivel', 'Estado']],
+      head: [['Nombre', 'Descripción', 'Nivel', 'T. Respuesta', 'T. Resolución', 'Estado']],
       body: this.dataSource.data.map(p => [
         p.nombre || '',
         p.descripcion || '',
         p.nivel?.toString() || '',
-        // ❌ ELIMINADOS tiempos de respuesta y resolución
+        p.tiempo_respuesta ? this.formatearTiempo(p.tiempo_respuesta) : '',
+        p.tiempo_resolucion ? this.formatearTiempo(p.tiempo_resolucion) : '',
         p.activo ? 'Activo' : 'Inactivo'
       ]),
-      styles: { fontSize: 9 },
+      styles: { fontSize: 8 },
       headStyles: { fillColor: [79, 70, 229] }
     });
     

@@ -47,6 +47,13 @@ export interface ContratoInterface {
   etiquetas?: string | null; 
   observaciones?: string | null;
   contrato_origen_id?: number | null;
+tipo_sla_id?: number; // ✅ NUEVO
+  tipo_sla?: { // ✅ NUEVA RELACIÓN
+    id: number;
+    nombre: string;
+    color?: string;
+    activo: boolean;
+  };
   
   entidad?: {
     id: number;

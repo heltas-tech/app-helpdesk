@@ -1,0 +1,449 @@
+// Variables de colores
+$primary-color: #3b82f6;
+$primary-hover: #2563eb;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$error-color: #ef4444;
+$gray-light: #f8fafc;
+$gray-border: #e2e8f0;
+$gray-text: #64748b;
+
+// Estilos generales
+.min-h-screen {
+  min-height: 100vh;
+}
+
+// Animaciones
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// Transiciones suaves
+.transition {
+  transition: all 0.3s ease-in-out;
+}
+
+// Estilos para los selects y inputs
+select, input, textarea {
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: $primary-color;
+    outline: none;
+  }
+  
+  &:disabled {
+    background-color: $gray-light;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+// Estilos para las cards
+.bg-white {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+// Estilos para los badges de estado
+.bg-green-100 { background-color: #dcfce7; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+
+.text-green-800 { color: #166534; }
+.text-blue-800 { color: #1e40af; }
+.text-yellow-800 { color: #92400e; }
+.text-red-800 { color: #991b1b; }
+
+.border-green-200 { border-color: #bbf7d0; }
+.border-blue-200 { border-color: #bfdbfe; }
+.border-yellow-200 { border-color: #fde68a; }
+.border-red-200 { border-color: #fecaca; }
+
+// Estilos para los botones
+button {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+// Estilos para la barra de progreso
+mat-progress-bar {
+  border-radius: 4px;
+  
+  ::ng-deep .mat-progress-bar-fill::after {
+    background-color: $primary-color;
+  }
+  
+  ::ng-deep .mat-progress-bar-buffer {
+    background-color: $gray-border;
+  }
+}
+
+// Estilos para los iconos
+mat-icon {
+  &.text-blue-500 {
+    color: $primary-color;
+  }
+  
+  &.text-green-500 {
+    color: $success-color;
+  }
+  
+  &.text-yellow-500 {
+    color: $warning-color;
+  }
+  
+  &.text-red-500 {
+    color: $error-color;
+  }
+}
+
+// Estilos para el área de dropzone
+.border-dashed {
+  border-style: dashed;
+  
+  &:hover:not(.opacity-50) {
+    border-color: $primary-color;
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+}
+
+// Estilos para los archivos
+.archivo-item {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateX(4px);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .grid-cols-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  .md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .flex.justify-end {
+    justify-content: stretch;
+  }
+  
+  .space-x-4 > * + * {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+  
+  .flex.justify-end {
+    flex-direction: column;
+  }
+}
+
+// Utilidades adicionales
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resize-vertical {
+  resize: vertical;
+}
+
+// Estados de carga
+.loading-state {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Scrollbar personalizado para textareas
+textarea {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $gray-light;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $gray-border;
+    border-radius: 3px;
+    
+    &:hover {
+      background: $gray-text;
+    }
+  }
+}
+
+// Efectos de hover para las cards informativas
+.bg-blue-50, .bg-green-50, .bg-yellow-50 {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Estilos para los placeholders
+.placeholder-gray-400::placeholder {
+  color: #9ca3af;
+}
+
+// Focus states mejorados - CORREGIDO
+.focus-ring:focus {
+  box-shadow: 0 0 0 2px $primary-color, 0 0 0 4px rgba(59, 130, 246, 0.2);
+  outline: none;
+}
+
+// Transiciones para opacidad
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.disabled-opacity-50:disabled {
+  opacity: 0.5;
+}
+
+.disabled-cursor-not-allowed:disabled {
+  cursor: not-allowed;
+}
+
+// Utilidades para bordes redondeados
+.rounded-xl {
+  border-radius: 0.75rem;
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+// Utilidades para espaciado
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-x-4 > * + * {
+  margin-left: 1rem;
+}
+
+// Utilidades para padding
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.p-5 { padding: 1.25rem; }
+.p-6 { padding: 1.5rem; }
+
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+
+// Utilidades para margin
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-6 { margin-top: 1.5rem; }
+
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+
+.mr-2 { margin-right: 0.5rem; }
+.mr-4 { margin-right: 1rem; }
+
+.ml-12 { margin-left: 3rem; }
+
+// Utilidades para texto
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-5xl { font-size: 3rem; line-height: 1; }
+
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+// Utilidades para colores de texto
+.text-gray-400 { color: #9ca3af; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-700 { color: #374151; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-900 { color: #111827; }
+
+.text-blue-500 { color: $primary-color; }
+.text-blue-600 { color: $primary-hover; }
+.text-blue-700 { color: #1d4ed8; }
+.text-blue-800 { color: #1e40af; }
+
+.text-green-600 { color: $success-color; }
+.text-green-700 { color: #047857; }
+.text-green-800 { color: #065f46; }
+
+.text-yellow-600 { color: $warning-color; }
+.text-yellow-700 { color: #b45309; }
+.text-yellow-800 { color: #92400e; }
+
+.text-red-400 { color: #f87171; }
+.text-red-600 { color: $error-color; }
+
+.text-white { color: #ffffff; }
+
+// Utilidades para fondos
+.bg-white { background-color: #ffffff; }
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-500 { background-color: $primary-color; }
+.bg-blue-600 { background-color: $primary-hover; }
+
+.bg-green-50 { background-color: #ecfdf5; }
+.bg-green-100 { background-color: #dcfce7; }
+
+.bg-yellow-50 { background-color: #fffbeb; }
+.bg-yellow-100 { background-color: #fef3c7; }
+
+.bg-red-50 { background-color: #fef2f2; }
+.bg-red-100 { background-color: #fee2e2; }
+
+.bg-indigo-100 { background-color: #e0e7ff; }
+
+// Utilidades para bordes
+.border { border-width: 1px; }
+.border-2 { border-width: 2px; }
+.border-l-4 { border-left-width: 4px; }
+
+.border-gray-200 { border-color: #e5e7eb; }
+.border-gray-300 { border-color: $gray-border; }
+
+.border-blue-300 { border-color: #93c5fd; }
+.border-blue-500 { border-color: $primary-color; }
+
+.border-green-200 { border-color: #bbf7d0; }
+.border-green-400 { border-color: #4ade80; }
+
+.border-yellow-200 { border-color: #fde68a; }
+
+.border-red-200 { border-color: #fecaca; }
+
+// Utilidades para sombras
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+
+// Utilidades para display y flexbox
+.flex { display: flex; }
+.hidden { display: none; }
+.block { display: block; }
+
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1 1 0%; }
+
+// Utilidades para grid
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+
+// Utilidades para tamaño
+.w-full { width: 100%; }
+.h-2 { height: 0.5rem; }
+.min-h-screen { min-height: 100vh; }
+.min-w-0 { min-width: 0; }
+
+// Utilidades para posición
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+
+// Utilidades para z-index
+.z-1000 { z-index: 1000; }
+
+// Media queries responsive
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}

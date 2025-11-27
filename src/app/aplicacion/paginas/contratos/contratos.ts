@@ -204,79 +204,80 @@ export class Contratos {
   }
 
   // Método para crear contrato - CORREGIDO
-  private crearContrato(contratoData: any, usuario: string) {
-    // Preparar datos con created_by usando la interfaz correcta
-    const datosParaCrear: CreateContratoInterface = {
-      titulo: contratoData.titulo,
-      tipo_contrato: contratoData.tipo_contrato,
-      entidad_id: contratoData.entidad_id,
-      sla_id: contratoData.sla_id,
-      prioridad_id: contratoData.prioridad_id, 
-      fecha_inicio: contratoData.fecha_inicio,
-      fecha_fin: contratoData.fecha_fin,
-      descripcion: contratoData.descripcion || undefined,
-      monto_total: contratoData.monto_total || undefined,
-      moneda: contratoData.moneda || undefined,
-      periodo_facturacion: contratoData.periodo_facturacion || undefined,
-      forma_pago: contratoData.forma_pago || undefined,
-      cuenta_bancaria: contratoData.cuenta_bancaria || undefined,
-      contacto_entidad: contratoData.contacto_entidad || undefined,
-      telefono_contacto: contratoData.telefono_contacto || undefined,
-      email_contacto: contratoData.email_contacto || undefined,
-      representante_entidad: contratoData.representante_entidad || undefined,
-      representante_heltas: contratoData.representante_heltas || undefined,
-      terminos_condiciones: contratoData.terminos_condiciones || undefined,
-      servicios_incluidos: contratoData.servicios_incluidos || undefined,
-      exclusiones: contratoData.exclusiones || undefined,
-      penalidades: contratoData.penalidades || undefined,
-      periodo_prueba: contratoData.periodo_prueba || undefined,
-      observaciones: contratoData.observaciones || undefined,
-      etiquetas: contratoData.etiquetas ? ContratoUtils.stringificarEtiquetas(contratoData.etiquetas) || undefined : undefined,
-      alerta_vencimiento: contratoData.alerta_vencimiento ?? true,
-      dias_alerta: contratoData.dias_alerta ?? 30,
-      created_by: usuario
-    };
+  // Método para crear contrato - ACTUALIZADO
+private crearContrato(contratoData: any, usuario: string) {
+  // Preparar datos con created_by usando la interfaz correcta
+  const datosParaCrear: CreateContratoInterface = {
+    titulo: contratoData.titulo,
+    tipo_contrato: contratoData.tipo_contrato,
+    entidad_id: contratoData.entidad_id,
+    sla_id: contratoData.sla_id,
+    // ❌ ELIMINADO: prioridad_id - El backend lo asigna automáticamente
+    fecha_inicio: contratoData.fecha_inicio,
+    fecha_fin: contratoData.fecha_fin,
+    descripcion: contratoData.descripcion || undefined,
+    monto_total: contratoData.monto_total || undefined,
+    moneda: contratoData.moneda || undefined,
+    periodo_facturacion: contratoData.periodo_facturacion || undefined,
+    forma_pago: contratoData.forma_pago || undefined,
+    cuenta_bancaria: contratoData.cuenta_bancaria || undefined,
+    contacto_entidad: contratoData.contacto_entidad || undefined,
+    telefono_contacto: contratoData.telefono_contacto || undefined,
+    email_contacto: contratoData.email_contacto || undefined,
+    representante_entidad: contratoData.representante_entidad || undefined,
+    representante_heltas: contratoData.representante_heltas || undefined,
+    terminos_condiciones: contratoData.terminos_condiciones || undefined,
+    servicios_incluidos: contratoData.servicios_incluidos || undefined,
+    exclusiones: contratoData.exclusiones || undefined,
+    penalidades: contratoData.penalidades || undefined,
+    periodo_prueba: contratoData.periodo_prueba || undefined,
+    observaciones: contratoData.observaciones || undefined,
+    etiquetas: contratoData.etiquetas ? ContratoUtils.stringificarEtiquetas(contratoData.etiquetas) || undefined : undefined,
+    alerta_vencimiento: contratoData.alerta_vencimiento ?? true,
+    dias_alerta: contratoData.dias_alerta ?? 30,
+    created_by: usuario,
+    prioridad_id: 0
+  };
 
-    console.log(' Datos a enviar al CREAR contrato:', datosParaCrear);
+  console.log('📤 Datos a enviar al CREAR contrato:', datosParaCrear);
 
-    this.cargando.show();
-    this.contratoService.crear(datosParaCrear).subscribe({
-      next: (res: any) => {
-        this.cargando.hide();
-        console.log(' Respuesta del servidor al CREAR:', res);
-        
-        if (res.isSuccess) {
-          Swal.fire({
-            title: '¡Éxito!',
-            text: 'Contrato creado correctamente',
-            icon: 'success',
-            confirmButtonText: 'Aceptar'
-          });
-          this.cargarContratos();
-        } else {
-          Swal.fire({
-            title: 'Error',
-            text: res.message || 'No se pudo crear el contrato',
-            icon: 'error',
-            confirmButtonText: 'Aceptar'
-          });
-        }
-      },
-      error: (error) => {
-        this.cargando.hide();
-        console.error('Error al CREAR contrato:', error);
-        
-        const errorMessage = this.handleError(error, 'Error al crear el contrato');
+  this.cargando.show();
+  this.contratoService.crear(datosParaCrear).subscribe({
+    next: (res: any) => {
+      this.cargando.hide();
+      console.log('📥 Respuesta del servidor al CREAR:', res);
+      
+      if (res.isSuccess) {
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Contrato creado correctamente',
+          icon: 'success',
+          confirmButtonText: 'Aceptar'
+        });
+        this.cargarContratos();
+      } else {
         Swal.fire({
           title: 'Error',
-          text: errorMessage,
+          text: res.message || 'No se pudo crear el contrato',
           icon: 'error',
           confirmButtonText: 'Aceptar'
         });
       }
-    });
-  }
-
+    },
+    error: (error) => {
+      this.cargando.hide();
+      console.error('Error al CREAR contrato:', error);
+      
+      const errorMessage = this.handleError(error, 'Error al crear el contrato');
+      Swal.fire({
+        title: 'Error',
+        text: errorMessage,
+        icon: 'error',
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  });
+}
   // Método para actualizar contrato 
   private actualizarContrato(id: number, contratoData: any, usuario: string) {
     // Para actualizar, usamos updated_by con la interfaz correcta

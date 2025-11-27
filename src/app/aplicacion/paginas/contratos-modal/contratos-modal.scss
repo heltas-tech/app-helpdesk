@@ -1,0 +1,395 @@
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  max-height: 90vh;
+  width: 900px;
+  background: #e3e3e3;
+  box-shadow: 
+    2px 2px 4px #c8c8c8,
+    -2px -2px 4px #fefefe,
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 30px 40px;
+  overflow: hidden;
+}
+
+.login {
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  font-weight: bold;
+  font-size: x-large;
+  margin-bottom: 25px;
+  text-align: center;
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+  
+  /* Scrollbar personalizado */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Secciones */
+.section-container {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.section-title {
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Inputs */
+.inputBox {
+  position: relative;
+  width: 100%;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+}
+
+.inputBox input, .inputBox textarea, .inputBox select {
+  width: 100%;
+  padding: 13px 12px;
+  outline: none;
+  border: none;
+  color: #000;
+  font-size: 1em;
+  background: transparent;
+  border-left: 2px solid #000;
+  border-bottom: 2px solid #000;
+  transition: 0.2s;
+  border-bottom-left-radius: 8px;
+  font-family: inherit;
+  
+  /* QUITAR PLACEHOLDER */
+  &::placeholder {
+    color: transparent;
+  }
+  
+  &.invalid {
+    border-left: 2px solid #ff0000;
+    border-bottom: 2px solid #ff0000;
+  }
+}
+
+.inputBox span {
+  position: absolute;
+  left: 0;
+  padding: 13px 12px;
+  pointer-events: none;
+  font-size: 12px;
+  color: #000;
+  text-transform: uppercase;
+  transition: 0.5s;
+  letter-spacing: 3px;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 24px);
+}
+
+/* ANIMACIÓN */
+.inputBox input:focus ~ span,
+.inputBox input.has-value ~ span,
+.inputBox textarea:focus ~ span,
+.inputBox textarea.has-value ~ span,
+.inputBox select:focus ~ span,
+.inputBox select.has-value ~ span {
+  transform: translateX(135px) translateY(1px);
+  font-size: 0.8em;
+  padding: 5px 12px;
+  background: #000;
+  letter-spacing: 0.2em;
+  color: #fff;
+  border: 2px;
+  z-index: 2;
+}
+
+.inputBox input:focus,
+.inputBox input.has-value,
+.inputBox textarea:focus,
+.inputBox textarea.has-value,
+.inputBox select:focus,
+.inputBox select.has-value {
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 12px 11px;
+  margin-top: 8px;
+}
+
+/* CAMPOS EN LÍNEA */
+.row-fields {
+  display: flex;
+  gap: 25px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.half-width {
+  width: calc(50% - 12.5px);
+}
+
+/* MENSAJES DE ERROR */
+.error-message {
+  color: #ff0000;
+  font-size: 0.75em;
+  margin-top: 5px;
+  margin-left: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 14px;
+  flex-shrink: 0;
+}
+
+/* TOGGLE */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background: transparent;
+  border: 2px solid #000;
+  border-radius: 8px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  color: #000;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+::ng-deep .custom-toggle {
+  .mat-slide-toggle-thumb {
+    background-color: #000 !important;
+  }
+  
+  .mat-slide-toggle-bar {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  &.mat-checked {
+    .mat-slide-toggle-bar {
+      background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+  }
+}
+
+/* CHIPS */
+.chips-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chips-label {
+  color: #000;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+::ng-deep .mat-mdc-chip-set {
+  .mdc-evolution-chip {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    
+    .mdc-evolution-chip__text-label {
+      color: #000 !important;
+      font-size: 12px !important;
+    }
+  }
+}
+
+/* BOTONES */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 20px;
+  margin-top: 20px;
+  flex-shrink: 0;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.enter-btn {
+  height: 45px;
+  width: 130px;
+  border-radius: 6px;
+  border: 2px solid #000;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  flex-shrink: 0;
+  
+  &:hover:not(.disabled) {
+    background-color: #000;
+    color: white;
+  }
+  
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #666;
+    color: #666;
+  }
+}
+
+.cancel-btn {
+  height: 45px;
+  width: 130px;
+  border-radius: 6px;
+  border: 2px solid #666;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  color: #666;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-color: #666;
+    color: white;
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 950px) {
+  .card {
+    width: 95vw;
+    max-width: 800px;
+    padding: 25px 20px;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span {
+    transform: translateX(100px) translateY(-20px);
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    width: 98vw;
+    max-width: 600px;
+    padding: 20px 15px;
+  }
+  
+  .row-fields {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .half-width {
+    width: 100%;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span {
+    transform: translateX(80px) translateY(-20px);
+  }
+  
+  .button-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .enter-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+}
+
+/* Para pantallas muy altas */
+@media (min-height: 900px) {
+  .card {
+    max-height: 85vh;
+  }
+}
+
+/* Para pantallas muy pequeñas en altura */
+@media (max-height: 700px) {
+  .card {
+    max-height: 95vh;
+  }
+  
+  .form-content {
+    gap: 15px;
+  }
+}

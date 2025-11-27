@@ -11,12 +11,13 @@ import { PrioridadesInterface } from '../../interfaces/prioridades.interface';
   selector: 'app-prioridades-modal',
   standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, // ✅ Ya incluye NgIf, no necesitas importarlo por separado
     ReactiveFormsModule,
     MatButtonModule,
     MatDialogModule,
     MatSlideToggleModule,
     MatIconModule
+    // ❌ ELIMINADO: NgIf (ya viene en CommonModule)
   ],
   templateUrl: './prioridades-modal.html',
   styleUrls: ['./prioridades-modal.scss']
@@ -24,6 +25,12 @@ import { PrioridadesInterface } from '../../interfaces/prioridades.interface';
 export class PrioridadesModal {
   form: FormGroup;
   isEditMode = false;
+
+  // Propiedades para conversión de tiempos
+  tiempoRespuestaHoras: string = '0';
+  tiempoRespuestaDias: number = 0;
+  tiempoResolucionHoras: string = '0';
+  tiempoResolucionDias: number = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -46,15 +53,62 @@ export class PrioridadesModal {
         data?.nivel || 1, 
         [Validators.required, Validators.min(1), Validators.max(5)]
       ],
+      tiempo_respuesta: [
+        data?.tiempo_respuesta || null, 
+        [Validators.required, Validators.min(1)]
+      ],
+      tiempo_resolucion: [
+        data?.tiempo_resolucion || null, 
+        [Validators.required, Validators.min(1)]
+      ],
       activo: [data?.activo !== undefined ? data.activo : true]
     });
 
     // Si estamos editando, marcamos como tocados para mostrar validaciones
     if (this.isEditMode) {
       this.form.markAllAsTouched();
+      this.actualizarConversionTiempos();
     }
+
+    // Escuchar cambios en los campos de tiempo
+    this.form.get('tiempo_respuesta')?.valueChanges.subscribe(() => {
+      this.actualizarConversionTiempos();
+    });
+
+    this.form.get('tiempo_resolucion')?.valueChanges.subscribe(() => {
+      this.actualizarConversionTiempos();
+    });
   }
 
+  // MÉTODOS PARA CONVERSIÓN DE TIEMPOS
+  actualizarConversionTiempos(): void {
+    const tiempoRespuesta = this.tiempo_respuesta?.value || 0;
+    const tiempoResolucion = this.tiempo_resolucion?.value || 0;
+
+    this.tiempoRespuestaHoras = (tiempoRespuesta / 60).toFixed(1);
+    this.tiempoRespuestaDias = Math.floor(tiempoRespuesta / 1440);
+    
+    this.tiempoResolucionHoras = (tiempoResolucion / 60).toFixed(1);
+    this.tiempoResolucionDias = Math.floor(tiempoResolucion / 1440);
+  }
+
+  getTiempoRespuestaHoras(): string {
+    return this.tiempoRespuestaHoras;
+  }
+
+  getTiempoRespuestaDias(): number {
+    return this.tiempoRespuestaDias;
+  }
+
+  getTiempoResolucionHoras(): string {
+    return this.tiempoResolucionHoras;
+  }
+
+  getTiempoResolucionDias(): number {
+    return this.tiempoResolucionDias;
+  }
+
+  // GETTERS
   get nombre() {
     return this.form.get('nombre');
   }
@@ -65,6 +119,14 @@ export class PrioridadesModal {
 
   get nivel() {
     return this.form.get('nivel');
+  }
+
+  get tiempo_respuesta() {
+    return this.form.get('tiempo_respuesta');
+  }
+
+  get tiempo_resolucion() {
+    return this.form.get('tiempo_resolucion');
   }
 
   save(): void {
@@ -91,7 +153,11 @@ export class PrioridadesModal {
     }
     
     if (field?.hasError('min') || field?.hasError('max')) {
-      return 'El nivel debe estar entre 1 y 5';
+      if (fieldName === 'nivel') {
+        return 'El nivel debe estar entre 1 y 5';
+      } else {
+        return 'El valor debe ser mayor a 0';
+      }
     }
     
     return 'Campo inválido';

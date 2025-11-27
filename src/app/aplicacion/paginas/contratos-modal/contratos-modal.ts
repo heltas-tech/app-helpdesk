@@ -46,7 +46,8 @@ import Swal from 'sweetalert2';
     MatCheckboxModule,
     MatChipsModule
   ],
-  templateUrl: './contratos-modal.html'
+  templateUrl: './contratos-modal.html',
+  styleUrls: ['./contratos-modal.scss']
 })
 export class ContratosModal implements OnInit {
   form!: FormGroup;
@@ -104,12 +105,6 @@ export class ContratosModal implements OnInit {
       ],
       sla_id: [
         this.data?.sla_id || null, 
-        [Validators.required]
-      ],
-      
-      // === PRIORIDAD ===
-      prioridad_id: [
-        this.data?.prioridad_id || null, 
         [Validators.required]
       ],
       
@@ -302,7 +297,6 @@ export class ContratosModal implements OnInit {
       // Cargar prioridades usando el método universal
       this.prioridades = this.extraerArrayDeRespuesta(resPrioridades);
       console.log('Prioridades cargadas:', this.prioridades.length);
-      console.log(' Lista de prioridades:', this.prioridades);
 
     }).catch(error => {
       this.cargando = false;
@@ -346,7 +340,6 @@ export class ContratosModal implements OnInit {
   get titulo() { return this.form.get('titulo'); }
   get entidad_id() { return this.form.get('entidad_id'); }
   get sla_id() { return this.form.get('sla_id'); }
-  get prioridad_id() { return this.form.get('prioridad_id'); }
   get fecha_inicio() { return this.form.get('fecha_inicio'); }
   get fecha_fin() { return this.form.get('fecha_fin'); }
   get monto_total() { return this.form.get('monto_total'); }
@@ -364,20 +357,6 @@ export class ContratosModal implements OnInit {
 
   save(): void {
     if (this.form.valid && this.validateDates()) {
-      
-      // Validar que tenemos prioridad_id
-      if (!this.form.get('prioridad_id')?.value) {
-        console.error(' No se ha seleccionado una prioridad');
-        Swal.fire({
-          title: 'Prioridad Requerida',
-          text: 'Debes seleccionar una prioridad para el contrato.',
-          icon: 'error',
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      }
-      
-
       const formValue = this.form.value;
       
       // === CONVERSIÓN SEGURA DE DATOS PARA EL BACKEND ===
@@ -386,7 +365,6 @@ export class ContratosModal implements OnInit {
         // === IDs COMO NÚMEROS ENTEROS ===
         entidad_id: this.convertToInteger(formValue.entidad_id),
         sla_id: this.convertToInteger(formValue.sla_id),
-        prioridad_id: this.convertToInteger(formValue.prioridad_id),
         // === FECHAS FORMATEADAS ===
         fecha_inicio: this.formatDateForBackend(formValue.fecha_inicio),
         fecha_fin: this.formatDateForBackend(formValue.fecha_fin),
@@ -398,31 +376,22 @@ export class ContratosModal implements OnInit {
         periodo_prueba: this.convertToInteger(formValue.periodo_prueba),
         dias_alerta: this.convertToInteger(formValue.dias_alerta) || 30
       };
-      
-console.log('🔍 VERIFICACIÓN DE TIPOS ANTES:');
-console.log('- prioridad_id valor:', datosParaGuardar.prioridad_id);
-console.log('- prioridad_id tipo:', typeof datosParaGuardar.prioridad_id);
-console.log('- Es número?:', typeof datosParaGuardar.prioridad_id === 'number');
-console.log('- Es entero?:', Number.isInteger(datosParaGuardar.prioridad_id));
-
-
-if (datosParaGuardar.prioridad_id !== null && datosParaGuardar.prioridad_id !== undefined) {
-  datosParaGuardar.prioridad_id = Number(datosParaGuardar.prioridad_id);
-  console.log('🔄 prioridad_id después de conversión forzada:', datosParaGuardar.prioridad_id, 'tipo:', typeof datosParaGuardar.prioridad_id);
-}
-
 
       console.log('✅ Datos del formulario válidos:', datosParaGuardar);
-      console.log('🔢 prioridad_id:', datosParaGuardar.prioridad_id, 'tipo:', typeof datosParaGuardar.prioridad_id);
       
       this.dialogRef.close(datosParaGuardar);
     } else {
-      console.log(' Formulario inválido:', this.form.errors);
+      console.log('❌ Formulario inválido:', this.form.errors);
       this.form.markAllAsTouched();
       
       // Mostrar errores específicos
       if (!this.validateDates()) {
-        console.error(' Fechas inválidas');
+        Swal.fire({
+          title: 'Fechas inválidas',
+          text: 'La fecha de fin debe ser posterior a la fecha de inicio',
+          icon: 'error',
+          confirmButtonText: 'Entendido'
+        });
       }
     }
   }
@@ -437,7 +406,7 @@ if (datosParaGuardar.prioridad_id !== null && datosParaGuardar.prioridad_id !== 
     if (!field) return 'Campo no encontrado';
     
     if (field.hasError('required')) {
-      return 'Campo obligatorio';
+      return 'Este campo es obligatorio';
     }
     
     if (field.hasError('maxlength')) {
@@ -475,11 +444,5 @@ if (datosParaGuardar.prioridad_id !== null && datosParaGuardar.prioridad_id !== 
     const fechaFin = new Date(fin);
     
     return fechaFin > fechaInicio;
-  }
-
-  // Helper para mostrar nombre de prioridad
-  getPrioridadNombre(prioridadId: number): string {
-    const prioridad = this.prioridades.find(p => p.id === prioridadId);
-    return prioridad ? `${prioridad.nombre} (Nivel ${prioridad.nivel})` : 'Prioridad no encontrada';
   }
 }

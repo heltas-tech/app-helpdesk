@@ -19,6 +19,7 @@ import { ContratosService } from '../../services/contratos.service';
 import { EntidadesUsuariosService } from '../../services/entidades-usuarios.service';
 import { GlobalFuntions } from '../../services/global-funtions';
 import { FileUploadService } from '../../services/file-upload.service';
+import { SlasService } from '../../services/slas.service'; // NUEVO SERVICIO
 
 @Component({
   selector: 'app-crear-ticket',
@@ -41,7 +42,8 @@ export class CrearTicketComponent implements OnInit {
   private subcategoriasService = inject(SubcategoriasService);
   private contratosService = inject(ContratosService);
   private entidadesUsuariosService = inject(EntidadesUsuariosService);
-  public fileUploadService = inject(FileUploadService); // ← CAMBIADO A public
+  private slasService = inject(SlasService); // NUEVO SERVICIO
+  public fileUploadService = inject(FileUploadService);
   private spinner = inject(NgxSpinnerService);
   private global = inject(GlobalFuntions);
   private router = inject(Router);
@@ -51,22 +53,27 @@ export class CrearTicketComponent implements OnInit {
     titulo: '',
     descripcion: '',
     categoria_id: null,
-    subcategoria_id: null
+    subcategoria_id: null,
+    prioridad_id: null // NUEVO CAMPO
   };
 
   // Listas para selects
   categorias: any[] = [];
   subcategorias: any[] = [];
+  prioridadesSLA: any[] = []; // NUEVA LISTA PARA PRIORIDADES
 
   // Datos automáticos del sistema
   contratoActivo: any = null;
   entidadUsuario: any = null;
   usuarioLogueado: any = null;
 
-  // Archivos - SISTEMA NUEVO
+  // Estados de carga
+  prioridadesCargando: boolean = false;
+
+  // Archivos
   archivos: File[] = [];
-  archivosSubiendo: any[] = []; // Para progress bars
-  archivosSubidos: any[] = []; // Archivos ya subidos con URLs
+  archivosSubiendo: any[] = [];
+  archivosSubidos: any[] = [];
   enviando: boolean = false;
 
   ngOnInit() {
@@ -146,19 +153,9 @@ export class CrearTicketComponent implements OnInit {
           if (this.contratoActivo) {
             console.log('📄 Contrato activo encontrado:', this.contratoActivo);
             
-            // VERIFICAR SI TIENE PRIORIDAD
-            if (!this.contratoActivo.prioridad) {
-              console.warn('⚠️ CONTRATO SIN PRIORIDAD ASIGNADA');
-              Swal.fire({
-                title: 'Advertencia',
-                text: 'Tu contrato activo no tiene una prioridad asignada. Los tickets no podrán crearse hasta que se solucione esto.',
-                icon: 'warning',
-                confirmButtonText: 'Entendido'
-              });
-            } else {
-              console.log('🎯 Prioridad del contrato:', this.contratoActivo.prioridad);
-              console.log('🎯 Prioridad ID:', this.contratoActivo.prioridad.id);
-            }
+            // ✅ NUEVO: Cargar prioridades del SLA
+            this.cargarPrioridadesSLA(this.contratoActivo.sla_id);
+            
           } else {
             Swal.fire('Error', 'No tienes un contrato activo', 'error');
           }
@@ -168,6 +165,39 @@ export class CrearTicketComponent implements OnInit {
         this.spinner.hide();
         console.error('Error:', err);
         Swal.fire('Error', 'Error al cargar contratos', 'error');
+      }
+    });
+  }
+
+  // ✅ NUEVO MÉTODO: Cargar prioridades del SLA
+  cargarPrioridadesSLA(slaId: number) {
+    this.prioridadesCargando = true;
+    
+    this.slasService.obtenerPrioridadesSLA(slaId).subscribe({
+      next: (res: any) => {
+        this.prioridadesCargando = false;
+        
+        if (res.isSuccess && res.data) {
+          this.prioridadesSLA = res.data;
+          console.log('🎯 Prioridades del SLA cargadas:', this.prioridadesSLA);
+          
+          if (this.prioridadesSLA.length === 0) {
+            Swal.fire({
+              title: 'Advertencia',
+              text: 'El SLA de tu contrato no tiene prioridades configuradas. Contacta al administrador.',
+              icon: 'warning',
+              confirmButtonText: 'Entendido'
+            });
+          }
+        } else {
+          console.error('Error al cargar prioridades del SLA:', res.message);
+          Swal.fire('Error', 'No se pudieron cargar las prioridades disponibles', 'error');
+        }
+      },
+      error: (err: any) => {
+        this.prioridadesCargando = false;
+        console.error('Error al cargar prioridades del SLA:', err);
+        Swal.fire('Error', 'Error al cargar las prioridades disponibles', 'error');
       }
     });
   }
@@ -206,13 +236,72 @@ export class CrearTicketComponent implements OnInit {
     this.ticketData.subcategoria_id = null;
   }
 
+  // ✅ NUEVO: Formatear tiempo para mostrar en las opciones
+  formatearTiempo(minutos: number): string {
+    if (!minutos) return 'No definido';
+    
+    if (minutos < 60) {
+      return `${minutos} min`;
+    } else if (minutos < 1440) {
+      const horas = Math.floor(minutos / 60);
+      const minsRestantes = minutos % 60;
+      return minsRestantes > 0 ? `${horas}h ${minsRestantes}min` : `${horas}h`;
+    } else {
+      const dias = Math.floor(minutos / 1440);
+      const horas = Math.floor((minutos % 1440) / 60);
+      if (horas > 0) {
+        return `${dias}d ${horas}h`;
+      }
+      return `${dias}d`;
+    }
+  }
+
+  // ✅ NUEVOS MÉTODOS PARA MANEJAR LA PRIORIDAD SELECCIONADA
+
+  // Obtener la prioridad seleccionada
+  getPrioridadSeleccionada(): any {
+    if (!this.ticketData.prioridad_id || !this.prioridadesSLA.length) {
+      return null;
+    }
+    return this.prioridadesSLA.find(p => p.id === this.ticketData.prioridad_id);
+  }
+
+  // Obtener nombre de la prioridad seleccionada
+  getPrioridadSeleccionadaNombre(): string {
+    const prioridad = this.getPrioridadSeleccionada();
+    return prioridad ? prioridad.nombre : '';
+  }
+
+  // Obtener tiempo de respuesta formateado
+  getTiempoRespuestaSeleccionada(): string {
+    const prioridad = this.getPrioridadSeleccionada();
+    return prioridad ? this.formatearTiempo(prioridad.tiempo_respuesta) : 'No definido';
+  }
+
+  // Obtener tiempo de resolución formateado
+  getTiempoResolucionSeleccionada(): string {
+    const prioridad = this.getPrioridadSeleccionada();
+    return prioridad ? this.formatearTiempo(prioridad.tiempo_resolucion) : 'No definido';
+  }
+
+  // ✅ NUEVO: Obtener color según nivel de prioridad
+  getPrioridadColor(nivel: number): string {
+    switch(nivel) {
+      case 1: return 'bg-red-100 text-red-800 border-red-200';
+      case 2: return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 3: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 4: return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 5: return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  }
+
   onFileSelected(event: any) {
     const files: FileList = event.target.files;
     if (files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validar usando el nuevo servicio (50MB máximo)
         if (!this.fileUploadService.isValidFileSize(file)) {
           Swal.fire('Error', `El archivo ${file.name} es muy grande. Máximo 50MB`, 'error');
           continue;
@@ -223,7 +312,6 @@ export class CrearTicketComponent implements OnInit {
           continue;
         }
         
-        // Agregar a lista de archivos por subir
         this.archivos.push(file);
       }
       event.target.value = '';
@@ -239,10 +327,12 @@ export class CrearTicketComponent implements OnInit {
     return this.subcategorias.filter(sub => sub.categoria_id == this.ticketData.categoria_id);
   }
 
+  // ✅ ACTUALIZADO: Incluir validación de prioridad
   isFormValid(): boolean {
     return !!this.ticketData.titulo?.trim() && 
            !!this.ticketData.descripcion?.trim() && 
            !!this.ticketData.categoria_id &&
+           !!this.ticketData.prioridad_id && // NUEVA VALIDACIÓN
            !!this.contratoActivo &&
            !this.enviando;
   }
@@ -264,6 +354,12 @@ export class CrearTicketComponent implements OnInit {
       return;
     }
 
+    // ✅ NUEVA VALIDACIÓN: Prioridad
+    if (!this.ticketData.prioridad_id) {
+      Swal.fire('Error', 'Debes seleccionar una prioridad', 'error');
+      return;
+    }
+
     if (!this.contratoActivo) {
       Swal.fire('Error', 'No tienes un contrato activo', 'error');
       return;
@@ -271,18 +367,6 @@ export class CrearTicketComponent implements OnInit {
 
     if (!this.entidadUsuario) {
       Swal.fire('Error', 'No tienes una empresa asignada', 'error');
-      return;
-    }
-
-    // VALIDAR QUE EXISTA PRIORIDAD ANTES DE ACCEDER A .id
-    if (!this.contratoActivo.prioridad || !this.contratoActivo.prioridad.id) {
-      console.error(' Error: Contrato no tiene prioridad asignada', this.contratoActivo);
-      Swal.fire({
-        title: 'Error',
-        text: 'El contrato activo no tiene una prioridad asignada. Contacta al administrador.',
-        icon: 'error',
-        confirmButtonText: 'Entendido'
-      });
       return;
     }
 
@@ -297,18 +381,18 @@ export class CrearTicketComponent implements OnInit {
       descripcion: this.ticketData.descripcion.trim(),
       categoria_id: Number(this.ticketData.categoria_id),
       subcategoria_id: this.ticketData.subcategoria_id ? Number(this.ticketData.subcategoria_id) : null,
+      prioridad_id: Number(this.ticketData.prioridad_id), // ✅ USAR LA PRIORIDAD SELECCIONADA
       
       // Datos automáticos del sistema
       entidad_usuario_id: this.entidadUsuario.id,
       contrato_id: this.contratoActivo.id,
       sla_id: this.contratoActivo.sla_id,
-      prioridad_id: this.contratoActivo.prioridad.id, 
       tecnico_id: null,
       estado: true
     };
 
     console.log(' ENVIANDO TICKET:', ticketCompleto);
-    console.log(' Prioridad ID:', this.contratoActivo.prioridad.id);
+    console.log(' Prioridad ID seleccionada:', this.ticketData.prioridad_id);
 
     this.ticketsService.crear(ticketCompleto).subscribe({
       next: async (res: any) => {
@@ -316,7 +400,6 @@ export class CrearTicketComponent implements OnInit {
           const ticketId = res.data.id;
           console.log('✅ Ticket creado con ID:', ticketId);
           
-          // Subir archivos después de crear el ticket
           if (this.archivos.length > 0) {
             console.log('📁 Subiendo archivos...');
             const archivosSubidos = await this.subirArchivos(ticketId);
@@ -395,7 +478,7 @@ export class CrearTicketComponent implements OnInit {
     });
   }
 
-  // NUEVO MÉTODO: Subir archivos después de crear el ticket
+  // Métodos existentes para subir archivos...
   async subirArchivos(ticketId: number): Promise<boolean> {
     if (this.archivos.length === 0) return true;
 
@@ -414,10 +497,8 @@ export class CrearTicketComponent implements OnInit {
     return subidasExitosas.every(exito => exito);
   }
 
-  // NUEVO MÉTODO: Subir archivo individual con progress bar
   private subirArchivoIndividual(ticketId: number, archivo: File): Promise<boolean> {
     return new Promise((resolve) => {
-      // Agregar a lista de archivos subiendo
       const archivoSubiendo = {
         nombre: archivo.name,
         progreso: 0,
@@ -428,11 +509,9 @@ export class CrearTicketComponent implements OnInit {
       this.fileUploadService.uploadTicketFile(ticketId, archivo).subscribe({
         next: (event: any) => {
           if (event.type === HttpEventType.UploadProgress) {
-            // Actualizar progreso
             const progreso = Math.round(100 * event.loaded / event.total);
             archivoSubiendo.progreso = progreso;
           } else if (event.type === HttpEventType.Response) {
-            // Archivo subido exitosamente
             archivoSubiendo.subiendo = false;
             this.archivosSubidos.push(event.body.data);
             console.log('✅ Archivo subido:', event.body.data);
