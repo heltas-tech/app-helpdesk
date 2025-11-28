@@ -1,0 +1,586 @@
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  max-height: 90vh;
+  width: 800px;
+  background: #e3e3e3;
+  box-shadow: 
+    2px 2px 4px #c8c8c8,
+    -2px -2px 4px #fefefe,
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 30px 40px;
+  overflow: hidden;
+}
+
+.login {
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  font-weight: bold;
+  font-size: x-large;
+  margin-bottom: 25px;
+  text-align: center;
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+  
+  /* Scrollbar personalizado */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.inputBox {
+  position: relative;
+  width: 100%;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+}
+
+.inputBox input, .inputBox textarea, .inputBox select {
+  width: 100%;
+  padding: 13px 12px;
+  outline: none;
+  border: none;
+  color: #000;
+  font-size: 1em;
+  background: transparent;
+  border-left: 2px solid #000;
+  border-bottom: 2px solid #000;
+  transition: 0.2s;
+  border-bottom-left-radius: 8px;
+  font-family: inherit;
+  
+  /* QUITAR PLACEHOLDER */
+  &::placeholder {
+    color: transparent;
+  }
+  
+  &.invalid {
+    border-left: 2px solid #ff0000;
+    border-bottom: 2px solid #ff0000;
+  }
+}
+
+.inputBox textarea {
+  resize: vertical;
+  min-height: 80px;
+  max-height: 120px;
+}
+
+.inputBox span {
+  position: absolute;
+  left: 0;
+  padding: 13px 12px;
+  pointer-events: none;
+  font-size: 12px;
+  color: #000;
+  text-transform: uppercase;
+  transition: 0.5s;
+  letter-spacing: 3px;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 24px);
+}
+
+/* ✅ CORRECCIÓN: La cajita negra se mueve menos hacia arriba */
+.inputBox input:focus ~ span,
+.inputBox input.has-value ~ span,
+.inputBox textarea:focus ~ span,
+.inputBox textarea.has-value ~ span,
+.inputBox select:focus ~ span,
+.inputBox select.has-value ~ span {
+  transform: translateX(135px) translateY(-8px);
+  font-size: 0.8em;
+  padding: 5px 12px;
+  background: #000;
+  letter-spacing: 0.2em;
+  color: #fff;
+  border: 2px;
+  z-index: 2;
+}
+
+.inputBox input:focus,
+.inputBox input.has-value,
+.inputBox textarea:focus,
+.inputBox textarea.has-value,
+.inputBox select:focus,
+.inputBox select.has-value {
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 12px 11px;
+  margin-top: 8px;
+}
+
+/* LOADING INDICATOR */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* INFO CARDS */
+.info-card {
+  background: transparent;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+  
+  &.inactive {
+    border-color: #666;
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.info-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #000;
+}
+
+.info-title {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #000;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-row {
+  font-size: 11px;
+  color: #000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.role-badge {
+  background: #000;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.status-active {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.status-inactive {
+  color: #666;
+  font-weight: bold;
+}
+
+/*  CORRECCIÓN: Botones de sugerencias con más espacio */
+.suggestions {
+  margin-top: 20px; /* ✅ Más espacio arriba */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px; /* ✅ Más espacio entre label y botones */
+  align-items: flex-start;
+}
+
+.suggestions-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap; /* ✅ Evita que el texto se divida */
+}
+
+.suggestions-buttons {
+  display: flex;
+  gap: 6px; /* ✅ Más espacio entre botones */
+  flex-wrap: wrap;
+}
+
+.suggestion-btn {
+  background: transparent;
+  border: 1px solid #000;
+  border-radius: 12px;
+  padding: 6px 12px; /* ✅ Un poco más de padding */
+  font-size: 10px;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap; /* ✅ Evita que el texto se divida */
+  min-width: 65px; /* ✅ Ancho mínimo para consistencia */
+  text-align: center;
+  
+  &:hover {
+    background: #000;
+    color: white;
+  }
+}
+
+/* TOGGLE */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background: transparent;
+  border: 2px solid #000;
+  border-radius: 8px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  color: #000;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+::ng-deep .custom-toggle {
+  .mat-slide-toggle-thumb {
+    background-color: #000 !important;
+  }
+  
+  .mat-slide-toggle-bar {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  &.mat-checked {
+    .mat-slide-toggle-bar {
+      background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+  }
+}
+
+/* MENSAJES */
+.error-message {
+  color: #ff0000;
+  font-size: 0.75em;
+  margin-top: 5px;
+  margin-left: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 14px;
+  flex-shrink: 0;
+}
+
+.warning-message {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.warning-icon {
+  color: #d97706;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.warning-text {
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+/* BOTONES - SIEMPRE VISIBLES */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 20px;
+  margin-top: 20px;
+  flex-shrink: 0;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.enter-btn {
+  height: 45px;
+  width: 130px;
+  border-radius: 6px;
+  border: 2px solid #000;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  flex-shrink: 0;
+  
+  &:hover:not(.disabled) {
+    background-color: #000;
+    color: white;
+  }
+  
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #666;
+    color: #666;
+  }
+}
+
+.cancel-btn {
+  height: 45px;
+  width: 130px;
+  border-radius: 6px;
+  border: 2px solid #666;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.5s;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  color: #666;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-color: #666;
+    color: white;
+  }
+}
+
+/* RESPONSIVE MEJORADO */
+@media (max-width: 900px) {
+  .card {
+    width: 95vw;
+    max-width: 700px;
+    padding: 25px 30px;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span,
+  .inputBox textarea:focus ~ span,
+  .inputBox textarea.has-value ~ span,
+  .inputBox select:focus ~ span,
+  .inputBox select.has-value ~ span {
+    transform: translateX(100px) translateY(-8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-container {
+    padding: 10px;
+  }
+  
+  .card {
+    width: 98vw;
+    max-width: 600px;
+    padding: 20px 25px;
+    max-height: 95vh;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span,
+  .inputBox textarea:focus ~ span,
+  .inputBox textarea.has-value ~ span,
+  .inputBox select:focus ~ span,
+  .inputBox select.has-value ~ span {
+    transform: translateX(80px) translateY(-8px);
+  }
+  
+  .form-content {
+    gap: 20px;
+  }
+  
+  /* ✅ Mejora para botones de sugerencia en móvil */
+  .suggestions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .suggestions-buttons {
+    gap: 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 15px 20px;
+    max-height: 98vh;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span,
+  .inputBox textarea:focus ~ span,
+  .inputBox textarea.has-value ~ span,
+  .inputBox select:focus ~ span,
+  .inputBox select.has-value ~ span {
+    transform: translateX(60px) translateY(-8px);
+  }
+  
+  .button-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .enter-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+  
+  .suggestions {
+    gap: 6px;
+  }
+  
+  .suggestion-btn {
+    min-width: 55px; /* ✅ Un poco más pequeño en móvil */
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 12px 15px;
+  }
+  
+  .login {
+    font-size: large;
+    margin-bottom: 20px;
+  }
+  
+  .inputBox input:focus ~ span,
+  .inputBox input.has-value ~ span,
+  .inputBox textarea:focus ~ span,
+  .inputBox textarea.has-value ~ span,
+  .inputBox select:focus ~ span,
+  .inputBox select.has-value ~ span {
+    transform: translateX(40px) translateY(-8px);
+    font-size: 0.7em;
+    padding: 4px 8px;
+  }
+  
+  .info-card {
+    padding: 12px;
+  }
+  
+  .toggle-container {
+    padding: 8px;
+  }
+  
+  .suggestions-buttons {
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .suggestion-btn {
+    flex: 1;
+    min-width: auto;
+    max-width: 80px;
+  }
+}
+
+/* Para pantallas muy altas */
+@media (min-height: 900px) {
+  .card {
+    max-height: 85vh;
+  }
+}
+
+/* Para pantallas muy pequeñas en altura */
+@media (max-height: 700px) {
+  .card {
+    max-height: 95vh;
+  }
+  
+  .form-content {
+    gap: 15px;
+  }
+}

@@ -47,7 +47,9 @@ import { DetalleTicketModalComponent } from '../detalle-ticket-modal/detalle-tic
     MatProgressBarModule,
     MatDialogModule,
   ],
-  templateUrl: './mis-tickets.html'
+  templateUrl: './mis-tickets.html',
+  styleUrls: ['./mis-tickets.scss']
+  
 })
 export class MisTicketsComponent implements OnInit {
   // ✅ EXPONER TicketUtils para usar en el template

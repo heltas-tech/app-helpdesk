@@ -19,7 +19,7 @@ import { ContratosService } from '../../services/contratos.service';
 import { EntidadesUsuariosService } from '../../services/entidades-usuarios.service';
 import { GlobalFuntions } from '../../services/global-funtions';
 import { FileUploadService } from '../../services/file-upload.service';
-import { SlasService } from '../../services/slas.service'; // NUEVO SERVICIO
+import { SlasService } from '../../services/slas.service';
 
 @Component({
   selector: 'app-crear-ticket',
@@ -34,7 +34,8 @@ import { SlasService } from '../../services/slas.service'; // NUEVO SERVICIO
     MatIconModule,
     MatProgressBarModule
   ],
-  templateUrl: './crear-ticket.html'
+  templateUrl: './crear-ticket.html',
+  styleUrls: ['./crear-ticket.scss']
 })
 export class CrearTicketComponent implements OnInit {
   private ticketsService = inject(TicketsService);
@@ -42,7 +43,7 @@ export class CrearTicketComponent implements OnInit {
   private subcategoriasService = inject(SubcategoriasService);
   private contratosService = inject(ContratosService);
   private entidadesUsuariosService = inject(EntidadesUsuariosService);
-  private slasService = inject(SlasService); // NUEVO SERVICIO
+  private slasService = inject(SlasService);
   public fileUploadService = inject(FileUploadService);
   private spinner = inject(NgxSpinnerService);
   private global = inject(GlobalFuntions);
@@ -54,13 +55,13 @@ export class CrearTicketComponent implements OnInit {
     descripcion: '',
     categoria_id: null,
     subcategoria_id: null,
-    prioridad_id: null // NUEVO CAMPO
+    prioridad_id: null
   };
 
   // Listas para selects
   categorias: any[] = [];
   subcategorias: any[] = [];
-  prioridadesSLA: any[] = []; // NUEVA LISTA PARA PRIORIDADES
+  prioridadesSLA: any[] = [];
 
   // Datos automáticos del sistema
   contratoActivo: any = null;
@@ -75,6 +76,9 @@ export class CrearTicketComponent implements OnInit {
   archivosSubiendo: any[] = [];
   archivosSubidos: any[] = [];
   enviando: boolean = false;
+
+  // NUEVA PROPIEDAD PARA VALIDACIÓN
+  formSubmitted: boolean = false;
 
   ngOnInit() {
     this.global.validacionToken();
@@ -153,7 +157,7 @@ export class CrearTicketComponent implements OnInit {
           if (this.contratoActivo) {
             console.log('📄 Contrato activo encontrado:', this.contratoActivo);
             
-            // ✅ NUEVO: Cargar prioridades del SLA
+            // Cargar prioridades del SLA
             this.cargarPrioridadesSLA(this.contratoActivo.sla_id);
             
           } else {
@@ -169,7 +173,7 @@ export class CrearTicketComponent implements OnInit {
     });
   }
 
-  // ✅ NUEVO MÉTODO: Cargar prioridades del SLA
+  // Cargar prioridades del SLA
   cargarPrioridadesSLA(slaId: number) {
     this.prioridadesCargando = true;
     
@@ -236,7 +240,7 @@ export class CrearTicketComponent implements OnInit {
     this.ticketData.subcategoria_id = null;
   }
 
-  // ✅ NUEVO: Formatear tiempo para mostrar en las opciones
+  // Formatear tiempo para mostrar en las opciones
   formatearTiempo(minutos: number): string {
     if (!minutos) return 'No definido';
     
@@ -256,7 +260,7 @@ export class CrearTicketComponent implements OnInit {
     }
   }
 
-  // ✅ NUEVOS MÉTODOS PARA MANEJAR LA PRIORIDAD SELECCIONADA
+  // MÉTODOS PARA MANEJAR LA PRIORIDAD SELECCIONADA
 
   // Obtener la prioridad seleccionada
   getPrioridadSeleccionada(): any {
@@ -284,7 +288,7 @@ export class CrearTicketComponent implements OnInit {
     return prioridad ? this.formatearTiempo(prioridad.tiempo_resolucion) : 'No definido';
   }
 
-  // ✅ NUEVO: Obtener color según nivel de prioridad
+  // Obtener color según nivel de prioridad
   getPrioridadColor(nivel: number): string {
     switch(nivel) {
       case 1: return 'bg-red-100 text-red-800 border-red-200';
@@ -327,17 +331,20 @@ export class CrearTicketComponent implements OnInit {
     return this.subcategorias.filter(sub => sub.categoria_id == this.ticketData.categoria_id);
   }
 
-  // ✅ ACTUALIZADO: Incluir validación de prioridad
+  // Validación del formulario
   isFormValid(): boolean {
     return !!this.ticketData.titulo?.trim() && 
            !!this.ticketData.descripcion?.trim() && 
            !!this.ticketData.categoria_id &&
-           !!this.ticketData.prioridad_id && // NUEVA VALIDACIÓN
+           !!this.ticketData.prioridad_id &&
            !!this.contratoActivo &&
            !this.enviando;
   }
 
   async crearTicket() {
+    // Marcar que el formulario fue enviado para mostrar errores
+    this.formSubmitted = true;
+
     // Validaciones básicas
     if (!this.ticketData.titulo?.trim()) {
       Swal.fire('Error', 'El asunto es obligatorio', 'error');
@@ -354,7 +361,7 @@ export class CrearTicketComponent implements OnInit {
       return;
     }
 
-    // ✅ NUEVA VALIDACIÓN: Prioridad
+    // Validación: Prioridad
     if (!this.ticketData.prioridad_id) {
       Swal.fire('Error', 'Debes seleccionar una prioridad', 'error');
       return;
@@ -381,7 +388,7 @@ export class CrearTicketComponent implements OnInit {
       descripcion: this.ticketData.descripcion.trim(),
       categoria_id: Number(this.ticketData.categoria_id),
       subcategoria_id: this.ticketData.subcategoria_id ? Number(this.ticketData.subcategoria_id) : null,
-      prioridad_id: Number(this.ticketData.prioridad_id), // ✅ USAR LA PRIORIDAD SELECCIONADA
+      prioridad_id: Number(this.ticketData.prioridad_id),
       
       // Datos automáticos del sistema
       entidad_usuario_id: this.entidadUsuario.id,
@@ -418,6 +425,7 @@ export class CrearTicketComponent implements OnInit {
 
           this.spinner.hide();
           this.enviando = false;
+          this.formSubmitted = false;
           
           Swal.fire({
             title: '¡Ticket Creado!',
@@ -431,6 +439,7 @@ export class CrearTicketComponent implements OnInit {
         } else {
           this.spinner.hide();
           this.enviando = false;
+          this.formSubmitted = false;
           Swal.fire({
             title: 'Error',
             text: res.message || 'Error al crear ticket',
@@ -442,6 +451,7 @@ export class CrearTicketComponent implements OnInit {
       error: (err: any) => {
         this.spinner.hide();
         this.enviando = false;
+        this.formSubmitted = false;
         console.error(' ERROR:', err);
         
         let errorMessage = 'Error al crear ticket';
@@ -478,7 +488,7 @@ export class CrearTicketComponent implements OnInit {
     });
   }
 
-  // Métodos existentes para subir archivos...
+  // Métodos para subir archivos
   async subirArchivos(ticketId: number): Promise<boolean> {
     if (this.archivos.length === 0) return true;
 

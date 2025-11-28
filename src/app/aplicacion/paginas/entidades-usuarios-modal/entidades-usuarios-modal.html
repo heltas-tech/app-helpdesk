@@ -1,224 +1,187 @@
-<div class="p-4 bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto" style="max-height: 90vh; display: flex; flex-direction: column;">
-  
-  <!-- Encabezado fijo -->
-  <div class="flex-shrink-0 text-center mb-4">
-    <div class="flex items-center justify-center mb-1">
-      <mat-icon class="text-purple-600 mr-2 text-2xl">
-        {{ isEditMode ? 'edit' : 'link' }}
-      </mat-icon>
-      <h2 class="text-xl font-bold text-gray-800">
-        {{ isEditMode ? 'Editar Asignación' : 'Nueva Asignación' }}
-      </h2>
-    </div>
-    <p class="text-xs text-gray-600">
-      {{ isEditMode ? 'Modifica la asignación entre usuario y entidad' : 'Vincula un usuario CLIENTE con una entidad' }}
-    </p>
-  </div>
+<div class="modal-container">
+  <div class="card">
+    
+    <!-- Título - SIEMPRE VISIBLE -->
+    <a class="login">{{ isEditMode ? 'EDITAR ASIGNACIÓN' : 'NUEVA ASIGNACIÓN' }}</a>
 
-  <!-- Formulario con scroll -->
-  <div class="flex-grow overflow-y-auto pr-2" style="max-height: calc(90vh - 180px);">
-    <form [formGroup]="form" class="space-y-4">
+    <form [formGroup]="form" class="form-content">
       
       <!-- Selección de Usuario -->
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">
-          Usuario CLIENTE <span class="text-red-500">*</span>
-        </label>
+      <div class="inputBox">
+        <select 
+          formControlName="usuarioId"
+          required
+          [class.has-value]="usuarioId?.value"
+          [class.invalid]="usuarioId?.invalid && usuarioId?.touched">
+          <option value=""></option>
+          <option *ngFor="let usuario of usuarios" [value]="usuario.id">
+            {{ usuario.nombre_usuario }} ({{ usuario.correo_electronico }})
+          </option>
+        </select>
+        <span>Usuario CLIENTE</span>
         
         <!-- Loading -->
-        <div *ngIf="cargandoUsuarios" class="text-center py-4">
-          <mat-icon class="animate-spin text-purple-600 text-lg">refresh</mat-icon>
-          <p class="text-xs text-gray-500 mt-2">Cargando usuarios CLIENTE...</p>
+        <div *ngIf="cargandoUsuarios" class="loading-indicator">
+          <mat-icon class="loading-icon">refresh</mat-icon>
+          <span>Cargando usuarios CLIENTE...</span>
         </div>
 
-        <div *ngIf="!cargandoUsuarios" class="relative">
-          <mat-icon class="absolute left-3 top-3 text-gray-400 text-sm">person</mat-icon>
-          <select 
-            formControlName="usuarioId"
-            class="w-full pl-10 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
-            [class.border-red-500]="usuarioId?.invalid && usuarioId?.touched">
-            <option value="">Selecciona un usuario CLIENTE</option>
-            <option *ngFor="let usuario of usuarios" [value]="usuario.id" [class.text-gray-400]="!usuario.activo">
-              {{ usuario.nombre_usuario }} ({{ usuario.correo_electronico }})
-              {{ !usuario.activo ? ' - INACTIVO' : '' }}
-            </option>
-          </select>
-          <mat-icon class="absolute right-2 top-3 text-gray-400 text-sm pointer-events-none">arrow_drop_down</mat-icon>
-        </div>
-
-        <!-- Información del usuario seleccionado -->
-        <div *ngIf="getUsuarioSeleccionado()" 
-             [class]="isUsuarioInactivo() ? 'bg-gray-100 border-gray-300' : 'bg-blue-50 border-blue-200'"
-             class="border rounded-lg p-3 mt-2">
-          <div class="flex items-center space-x-2 mb-2">
-            <mat-icon [class]="isUsuarioInactivo() ? 'text-gray-600' : 'text-blue-600'" class="text-sm">info</mat-icon>
-            <span [class]="isUsuarioInactivo() ? 'text-gray-700' : 'text-blue-800'" class="text-sm font-medium">
-              Información del usuario
-            </span>
+        @if (usuarioId?.invalid && usuarioId?.touched) {
+          <div class="error-message">
+            {{ getErrorMessage('usuarioId') }}
           </div>
-          <div [class]="isUsuarioInactivo() ? 'text-gray-600' : 'text-blue-700'" class="text-xs space-y-1">
-            <div><strong>Email:</strong> {{ getUsuarioSeleccionado()?.correo_electronico }}</div>
-            <div><strong>Teléfono:</strong> {{ getUsuarioSeleccionado()?.telefono || 'No especificado' }}</div>
-            <div><strong>Rol:</strong> 
-              <span class="px-2 py-0.5 rounded-full text-xs ml-1 bg-blue-100 text-blue-800">
-                {{ getUsuarioSeleccionado()?.rol }}
-              </span>
+        }
+      </div>
+
+      <!-- Información del usuario seleccionado -->
+      @if (getUsuarioSeleccionado()) {
+        <div class="info-card" [class.inactive]="isUsuarioInactivo()">
+          <div class="info-header">
+            <mat-icon class="info-icon">person</mat-icon>
+            <span class="info-title">Información del Usuario</span>
+          </div>
+          <div class="info-content">
+            <div class="info-row">
+              <strong>Email:</strong> {{ getUsuarioSeleccionado()?.correo_electronico }}
             </div>
-            <div><strong>Estado:</strong> 
-              <span [class]="getUsuarioSeleccionado()?.activo ? 'text-green-600' : 'text-gray-600'" class="font-medium">
+            <div class="info-row">
+              <strong>Teléfono:</strong> {{ getUsuarioSeleccionado()?.telefono || 'No especificado' }}
+            </div>
+            <div class="info-row">
+              <strong>Rol:</strong> 
+              <span class="role-badge">{{ getUsuarioSeleccionado()?.rol }}</span>
+            </div>
+            <div class="info-row">
+              <strong>Estado:</strong> 
+              <span [class]="getUsuarioSeleccionado()?.activo ? 'status-active' : 'status-inactive'">
                 {{ getUsuarioSeleccionado()?.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </div>
           </div>
         </div>
-
-        <div class="text-red-500 text-xs mt-1" *ngIf="usuarioId?.invalid && usuarioId?.touched">
-          {{ getErrorMessage('usuarioId') }}
-        </div>
-      </div>
+      }
 
       <!-- Selección de Entidad -->
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">
-          Entidad <span class="text-red-500">*</span>
-        </label>
+      <div class="inputBox">
+        <select 
+          formControlName="entidadId"
+          required
+          [class.has-value]="entidadId?.value"
+          [class.invalid]="entidadId?.invalid && entidadId?.touched">
+          <option value=""></option>
+          <option *ngFor="let entidad of entidades" [value]="entidad.id">
+            {{ entidad.denominacion }} ({{ entidad.nit }})
+          </option>
+        </select>
+        <span>Entidad</span>
         
         <!-- Loading -->
-        <div *ngIf="cargandoEntidades" class="text-center py-4">
-          <mat-icon class="animate-spin text-purple-600 text-lg">refresh</mat-icon>
-          <p class="text-xs text-gray-500 mt-2">Cargando entidades...</p>
+        <div *ngIf="cargandoEntidades" class="loading-indicator">
+          <mat-icon class="loading-icon">refresh</mat-icon>
+          <span>Cargando entidades...</span>
         </div>
 
-        <div *ngIf="!cargandoEntidades" class="relative">
-          <mat-icon class="absolute left-3 top-3 text-gray-400 text-sm">business</mat-icon>
-          <select 
-            formControlName="entidadId"
-            class="w-full pl-10 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
-            [class.border-red-500]="entidadId?.invalid && entidadId?.touched">
-            <option value="">Selecciona una entidad</option>
-            <option *ngFor="let entidad of entidades" [value]="entidad.id" [class.text-gray-400]="!entidad.estado">
-              {{ entidad.denominacion }} ({{ entidad.nit }})
-              {{ !entidad.estado ? ' - INACTIVA' : '' }}
-            </option>
-          </select>
-          <mat-icon class="absolute right-2 top-3 text-gray-400 text-sm pointer-events-none">arrow_drop_down</mat-icon>
-        </div>
-
-        <!-- Información de la entidad seleccionada -->
-        <div *ngIf="getEntidadSeleccionada()" 
-             [class]="isEntidadInactiva() ? 'bg-gray-100 border-gray-300' : 'bg-green-50 border-green-200'"
-             class="border rounded-lg p-3 mt-2">
-          <div class="flex items-center space-x-2 mb-2">
-            <mat-icon [class]="isEntidadInactiva() ? 'text-gray-600' : 'text-green-600'" class="text-sm">apartment</mat-icon>
-            <span [class]="isEntidadInactiva() ? 'text-gray-700' : 'text-green-800'" class="text-sm font-medium">
-              Información de la entidad
-            </span>
+        @if (entidadId?.invalid && entidadId?.touched) {
+          <div class="error-message">
+            {{ getErrorMessage('entidadId') }}
           </div>
-          <div [class]="isEntidadInactiva() ? 'text-gray-600' : 'text-green-700'" class="text-xs space-y-1">
-            <div><strong>NIT:</strong> {{ getEntidadSeleccionada()?.nit }}</div>
-            <div><strong>Estado:</strong> 
-              <span [class]="getEntidadSeleccionada()?.estado ? 'text-green-600' : 'text-gray-600'" class="font-medium">
+        }
+      </div>
+
+      <!-- Información de la entidad seleccionada -->
+      @if (getEntidadSeleccionada()) {
+        <div class="info-card" [class.inactive]="isEntidadInactiva()">
+          <div class="info-header">
+            <mat-icon class="info-icon">business</mat-icon>
+            <span class="info-title">Información de la Entidad</span>
+          </div>
+          <div class="info-content">
+            <div class="info-row">
+              <strong>NIT:</strong> {{ getEntidadSeleccionada()?.nit }}
+            </div>
+            <div class="info-row">
+              <strong>Estado:</strong> 
+              <span [class]="getEntidadSeleccionada()?.estado ? 'status-active' : 'status-inactive'">
                 {{ getEntidadSeleccionada()?.estado ? 'Activa' : 'Inactiva' }}
               </span>
             </div>
           </div>
         </div>
+      }
 
-        <div class="text-red-500 text-xs mt-1" *ngIf="entidadId?.invalid && entidadId?.touched">
-          {{ getErrorMessage('entidadId') }}
-        </div>
-      </div>
-
-      <!-- Cargo -->
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">
-          Cargo en la Entidad <span class="text-red-500">*</span>
-        </label>
-        <div class="relative">
-          <mat-icon class="absolute left-3 top-3 text-gray-400 text-sm">work</mat-icon>
-          <input 
-            type="text"
-            formControlName="cargo"
-            placeholder="Ej: Gerente TI, Analista, Supervisor, Consultor..."
-            maxlength="100"
-            autocomplete="off"
-            class="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            [class.border-red-500]="cargo?.invalid && cargo?.touched">
-        </div>
-        <div class="text-red-500 text-xs mt-1" *ngIf="cargo?.invalid && cargo?.touched">
-          {{ getErrorMessage('cargo') }}
-        </div>
+      <!-- Campo Cargo -->
+      <div class="inputBox">
+        <input 
+          type="text"
+          formControlName="cargo"
+          required
+          placeholder=" "
+          [class.has-value]="cargo?.value"
+          [class.invalid]="cargo?.invalid && cargo?.touched">
+        <span>Cargo en la Entidad</span>
+        
+        @if (cargo?.invalid && cargo?.touched) {
+          <div class="error-message">
+            {{ getErrorMessage('cargo') }}
+          </div>
+        }
 
         <!-- Sugerencias de cargo -->
-        <div class="flex flex-wrap gap-2 mt-2">
-          <span class="text-xs text-gray-500">Sugerencias:</span>
-          <button 
-            *ngFor="let sugerencia of ['Gerente', 'Coordinador', 'Analista', 'Supervisor']"
-            type="button"
-            (click)="form.patchValue({ cargo: sugerencia })"
-            class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition">
-            {{ sugerencia }}
-          </button>
+        <div class="suggestions">
+          <span class="suggestions-label"></span>
+          <div class="suggestions-buttons">
+            <button 
+              *ngFor="let sugerencia of ['Gerente', 'Coordinador', 'Analista', 'Supervisor']"
+              type="button"
+              (click)="form.patchValue({ cargo: sugerencia })"
+              class="suggestion-btn">
+              {{ sugerencia }}
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Estado -->
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-300">
-        <div class="flex items-center space-x-2">
-          <mat-icon class="text-gray-600 text-sm">toggle_on</mat-icon>
-          <div>
-            <span class="text-sm font-medium text-gray-700">Estado de la asignación</span>
-            <p class="text-xs text-gray-500">Activar/desactivar esta relación</p>
-          </div>
-        </div>
+      <div class="toggle-container">
+        <label class="toggle-label">Estado de la asignación:</label>
         <mat-slide-toggle 
           formControlName="activo"
           color="primary"
-          class="scale-90">
+          class="custom-toggle">
+          {{ form.get('activo')?.value ? 'Activa' : 'Inactiva' }}
         </mat-slide-toggle>
       </div>
 
-      <!-- ID oculto -->
       <input type="hidden" formControlName="id">
 
     </form>
 
-    <!-- Mensaje de validación -->
-    <div *ngIf="form.invalid && form.touched" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-      <div class="flex items-center">
-        <mat-icon class="text-red-500 mr-2 text-sm">warning</mat-icon>
-        <span class="text-xs text-red-700 font-medium">
-          Completa todos los campos obligatorios correctamente
-        </span>
+    <!-- Mensaje de validación general -->
+    @if (form.invalid && form.touched) {
+      <div class="warning-message">
+        <mat-icon class="warning-icon">warning</mat-icon>
+        <span class="warning-text">Completa todos los campos obligatorios correctamente</span>
       </div>
-    </div>
-  </div>
+    }
 
-  <!-- Botones de acción - FIJOS EN LA PARTE INFERIOR -->
-  <div class="flex-shrink-0 sticky bottom-0 bg-white pt-4 border-t border-gray-200 mt-4">
-    <div class="flex justify-end gap-2">
-      <!-- Botón Cancelar -->
+    <!-- Botones - SIEMPRE VISIBLES -->
+    <div class="button-container">
       <button 
+        type="button"
         (click)="cancel()"
-        type="button"
-        class="flex items-center space-x-2 px-4 py-2.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition">
-        <mat-icon class="text-sm">close</mat-icon>
-        <span>Cancelar</span>
+        class="cancel-btn">
+        Cancelar
       </button>
-
-      <!-- Botón Guardar -->
+      
       <button 
-        (click)="save()"
         type="button"
+        (click)="save()"
         [disabled]="form.invalid"
-        class="flex items-center space-x-2 px-4 py-2.5 text-sm rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-        [ngClass]="form.valid ? 
-          'bg-purple-600 hover:bg-purple-700 text-white' : 
-          'bg-gray-400 text-gray-200'">
-        <mat-icon class="text-sm">{{ isEditMode ? 'save' : 'add_link' }}</mat-icon>
-        <span>{{ isEditMode ? 'Actualizar' : 'Crear Asignación' }}</span>
+        class="enter-btn"
+        [class.disabled]="form.invalid">
+        {{ isEditMode ? 'ACTUALIZAR' : 'CREAR' }}
       </button>
     </div>
-  </div>
 
+  </div>
 </div>

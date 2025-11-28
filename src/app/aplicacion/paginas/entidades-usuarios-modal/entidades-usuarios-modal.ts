@@ -25,7 +25,8 @@ import { EntidadesService } from '../../services/entidades.service';
     MatIconModule,
     MatSelectModule
   ],
-  templateUrl: './entidades-usuarios-modal.html'
+  templateUrl: './entidades-usuarios-modal.html',
+  styleUrls: ['./entidades-usuarios-modal.scss']
 })
 export class EntidadUsuarioModal implements OnInit {
   form!: FormGroup;
@@ -58,9 +59,8 @@ export class EntidadUsuarioModal implements OnInit {
       activo: [this.data?.activo !== undefined ? this.data.activo : true]
     });
 
-    if (this.isEditMode) {
-      this.form.markAllAsTouched();
-    }
+    // ✅ ELIMINADO: No marcar como touched en modo edición
+    // Esto evita que se muestren errores al abrir el modal
   }
 
   ngOnInit() {
@@ -198,12 +198,13 @@ export class EntidadUsuarioModal implements OnInit {
       
       this.dialogRef.close(this.form.value);
     } else {
-      this.form.markAllAsTouched();
+      this.form.markAllAsTouched(); // ✅ Solo marca como touched al intentar guardar
     }
   }
 
+  // ✅✅✅ CORRECCIÓN: Botón cancelar NO marca el formulario como touched
   cancel(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(null); // ✅ Cierra sin datos y sin marcar touched
   }
 
   getErrorMessage(fieldName: string): string {

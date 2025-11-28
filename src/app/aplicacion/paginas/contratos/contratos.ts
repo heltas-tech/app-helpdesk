@@ -39,7 +39,8 @@ import {
     MatTooltipModule
   ],
   providers: [DatePipe],
-  templateUrl: './contratos.html'
+  templateUrl: './contratos.html',
+  styleUrls: ['./contratos.scss']
 })
 export class Contratos {
   displayedColumns: string[] = ['numero_contrato', 'titulo', 'entidad', 'estado', 'fechas', 'acciones'];

@@ -46,23 +46,15 @@ export class TicketsService {
 
   /** Crear ticket */
   crear(ticket: any): Observable<any> {
-    // ✅ CORRECCIÓN: Manejo correcto de valores nulos y conversión de tipos
     const dataToSend = this.prepararDatosTicket(ticket);
-    
     console.log('📤 Enviando datos de CREACIÓN:', dataToSend);
-    
     return this.http.post<any>(`${this.apiUrl}/tickets`, dataToSend);
   }
 
-  /** Actualizar ticket - VERSIÓN CORREGIDA */
+  /** Actualizar ticket */
   actualizar(id: number, ticket: any): Observable<any> {
-    // ✅ CORRECCIÓN: Enviar solo los campos que el backend espera
     const dataToSend = this.prepararDatosParaActualizacion(ticket);
-    
     console.log('📤 Enviando datos de ACTUALIZACIÓN:', dataToSend);
-    console.log('🔍 Campos enviados:', Object.keys(dataToSend));
-    console.log('🔍 Tipos de datos:', this.verificarTiposDatos(dataToSend));
-    
     return this.http.patch<any>(`${this.apiUrl}/tickets/${id}`, dataToSend);
   }
 
@@ -95,6 +87,48 @@ export class TicketsService {
     return this.http.patch<any>(`${this.apiUrl}/tickets/${id}/reabrir`, { 
       motivo_reapertura: motivoReapertura
     });
+  }
+
+  // ==================== NUEVOS ENDPOINTS PARA FILTROS ESPECIALIZADOS ====================
+
+  /** Obtener tickets sin asignar */
+  getTicketsSinAsignar(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/sin-asignar`);
+  }
+
+  /** Obtener tickets urgentes */
+  getTicketsUrgentes(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/urgentes`);
+  }
+
+  /** Obtener tickets próximos a vencer */
+  getTicketsProximosVencer(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/proximos-vencer`);
+  }
+
+  /** Obtener tickets vencidos */
+  getTicketsVencidos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/vencidos`);
+  }
+
+  /** Obtener tickets resueltos hoy */
+  getTicketsResueltosHoy(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/resueltos-hoy`);
+  }
+
+  /** Obtener tickets por entidad específica */
+  getTicketsPorEntidad(entidadId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/por-entidad/${entidadId}`);
+  }
+
+  /** Obtener tickets por técnico específico */
+  getTicketsPorTecnico(tecnicoId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/filtros/por-tecnico/${tecnicoId}`);
+  }
+
+  /** Obtener estadísticas del dashboard */
+  getEstadisticasDashboard(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/tickets/estadisticas/dashboard`);
   }
 
   // ==================== MÉTODOS PARA ASIGNACIÓN ====================
@@ -167,13 +201,11 @@ export class TicketsService {
 
   // ==================== MÉTODOS PRIVADOS ====================
 
-  /** ✅ MÉTODO CORREGIDO: Preparar datos del ticket para enviar al backend */
+  /** Preparar datos del ticket para enviar al backend */
   private prepararDatosTicket(ticket: any): any {
-    // Crear copia del objeto para no modificar el original
     const datosPreparados = { ...ticket };
 
-    // 🔥 CORRECCIÓN: Manejar campos que pueden ser null/undefined/string vacío
-    // Convertir a null explícitamente para campos opcionales
+    // Manejar campos que pueden ser null/undefined/string vacío
     if (datosPreparados.subcategoria_id === '' || datosPreparados.subcategoria_id === undefined) {
       datosPreparados.subcategoria_id = null;
     } else if (datosPreparados.subcategoria_id) {
@@ -186,7 +218,7 @@ export class TicketsService {
       datosPreparados.tecnico_id = Number(datosPreparados.tecnico_id);
     }
 
-    // 🔥 CORRECCIÓN: Convertir campos numéricos obligatorios
+    // Convertir campos numéricos obligatorios
     if (datosPreparados.entidad_usuario_id) {
       datosPreparados.entidad_usuario_id = Number(datosPreparados.entidad_usuario_id);
     }
@@ -207,42 +239,21 @@ export class TicketsService {
       datosPreparados.contrato_id = Number(datosPreparados.contrato_id);
     }
 
-    // 🔥 CORRECCIÓN: Manejar campos de solo lectura que no deben enviarse
-    // Eliminar campos que no deben enviarse en updates/creates
+    // Eliminar campos que no deben enviarse
     delete datosPreparados.veces_reabierto;
     delete datosPreparados.ultima_reapertura;
     delete datosPreparados.motivo_reapertura;
-    delete datosPreparados.fecha_creacion; // La fecha de creación no debe actualizarse
+    delete datosPreparados.fecha_creacion;
     delete datosPreparados.created_by;
     delete datosPreparados.created_at;
     delete datosPreparados.updated_by;
     delete datosPreparados.updated_at;
 
-    // 🔥 CORRECCIÓN: Si es una actualización, no enviar campos que no han cambiado
-    // o que no son modificables
-    if (datosPreparados.id && datosPreparados.id > 0) {
-      // En actualización, solo enviar campos modificables
-      const camposModificables = [
-        'titulo', 'descripcion', 'estado', 'estado_ticket', 
-        'entidad_usuario_id', 'tecnico_id', 'categoria_id', 
-        'subcategoria_id', 'prioridad_id', 'sla_id', 'contrato_id',
-        'fecha_resolucion'
-      ];
-
-      Object.keys(datosPreparados).forEach(key => {
-        if (!camposModificables.includes(key) && key !== 'id') {
-          delete datosPreparados[key];
-        }
-      });
-    }
-
-    console.log('🔧 Datos preparados para enviar:', datosPreparados);
     return datosPreparados;
   }
 
-  /** ✅ MÉTODO CORREGIDO: Preparar datos específicos para actualización */
+  /** Preparar datos específicos para actualización */
   private prepararDatosParaActualizacion(ticket: any): any {
-    // Crear objeto con solo los campos que el backend acepta en updates
     const datosParaEnviar: any = {};
 
     // Campos básicos editables
@@ -251,7 +262,7 @@ export class TicketsService {
     if (ticket.estado !== undefined) datosParaEnviar.estado = ticket.estado;
     if (ticket.estado_ticket !== undefined) datosParaEnviar.estado_ticket = ticket.estado_ticket;
 
-    // ✅ CORRECCIÓN: Campos de relaciones - convertir explícitamente a número
+    // Campos de relaciones - convertir explícitamente a número
     if (ticket.entidad_usuario_id !== undefined && ticket.entidad_usuario_id !== null) {
       datosParaEnviar.entidad_usuario_id = Number(ticket.entidad_usuario_id);
     } else if (ticket.entidad_usuario_id === null) {
@@ -270,18 +281,10 @@ export class TicketsService {
       datosParaEnviar.categoria_id = null;
     }
 
-    // ✅ CORRECCIÓN ESPECÍFICA: subcategoria_id como string a número
     if (ticket.subcategoria_id !== undefined && ticket.subcategoria_id !== null && ticket.subcategoria_id !== '') {
       datosParaEnviar.subcategoria_id = Number(ticket.subcategoria_id);
-      console.log('🔧 subcategoria_id convertido:', { 
-        original: ticket.subcategoria_id, 
-        tipo_original: typeof ticket.subcategoria_id,
-        convertido: datosParaEnviar.subcategoria_id,
-        tipo_convertido: typeof datosParaEnviar.subcategoria_id
-      });
     } else if (ticket.subcategoria_id === null || ticket.subcategoria_id === '') {
       datosParaEnviar.subcategoria_id = null;
-      console.log('🔧 subcategoria_id establecido como null');
     }
 
     if (ticket.prioridad_id !== undefined && ticket.prioridad_id !== null) {
@@ -302,11 +305,10 @@ export class TicketsService {
       datosParaEnviar.contrato_id = null;
     }
 
-    console.log('🔧 Datos preparados para actualización:', datosParaEnviar);
     return datosParaEnviar;
   }
 
-  /** ✅ NUEVO MÉTODO: Verificar tipos de datos */
+  /** Verificar tipos de datos */
   private verificarTiposDatos(data: any): any {
     const tipos: any = {};
     Object.keys(data).forEach(key => {
@@ -321,34 +323,5 @@ export class TicketsService {
       };
     });
     return tipos;
-  }
-
-  // ==================== MÉTODOS DE DEBUG ====================
-
-  /** 🐛 MÉTODO DEBUG: Para diagnóstico de problemas */
-  actualizarDebug(id: number, ticket: any): Observable<any> {
-    console.log('🐛 DEBUG COMPLETO - Datos recibidos:', ticket);
-    
-    // Enviar solo campos críticos para probar
-    const datosPrueba = {
-      titulo: String(ticket.titulo), // Forzar string
-      descripcion: String(ticket.descripcion), // Forzar string
-      estado: Boolean(ticket.estado), // Forzar boolean
-      estado_ticket: String(ticket.estado_ticket), // Forzar string
-      entidad_usuario_id: Number(ticket.entidad_usuario_id), // Forzar número
-      categoria_id: Number(ticket.categoria_id), // Forzar número
-      prioridad_id: Number(ticket.prioridad_id), // Forzar número
-      sla_id: Number(ticket.sla_id), // Forzar número
-      contrato_id: Number(ticket.contrato_id), // Forzar número
-      subcategoria_id: ticket.subcategoria_id && ticket.subcategoria_id !== '' ? 
-                      Number(ticket.subcategoria_id) : null, // Manejar específicamente
-      tecnico_id: ticket.tecnico_id && ticket.tecnico_id !== '' ? 
-                  Number(ticket.tecnico_id) : null // Manejar específicamente
-    };
-    
-    console.log('🐛 DEBUG - Datos de prueba enviados:', datosPrueba);
-    console.log('🐛 DEBUG - Tipos de prueba:', this.verificarTiposDatos(datosPrueba));
-    
-    return this.http.patch<any>(`${this.apiUrl}/tickets/${id}`, datosPrueba);
   }
 }
