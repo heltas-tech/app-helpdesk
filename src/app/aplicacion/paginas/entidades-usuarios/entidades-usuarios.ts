@@ -33,7 +33,8 @@ import { EntidadUsuarioInterface } from '../../interfaces/entidad-usuario.interf
     MatSlideToggleModule,
     MatTooltipModule
   ],
-  templateUrl: './entidades-usuarios.html'
+  templateUrl: './entidades-usuarios.html',
+  styleUrls: ['./entidades-usuarios.scss']
 })
 export class EntidadesUsuariosComponent {
   displayedColumns: string[] = ['usuario', 'entidad', 'cargo', 'rol_sistema', 'estado', 'acciones'];

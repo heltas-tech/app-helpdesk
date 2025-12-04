@@ -1,22 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Acceso } from '../../services/acceso';
+import { DashboardService } from '../../services/dashboard.service';
 import { TicketsService } from '../../services/ticket.service';
-import { UsuariosService } from '../../services/usuarios.service';
-import { ContratosService } from '../../services/contratos.service';
-import { EntidadesService } from '../../services/entidades.service';
-import { CategoriasService } from '../../services/categorias.service';
 import { SlasService } from '../../services/slas.service';
-import { EntidadesUsuariosService } from '../../services/entidades-usuarios.service';
+import { SlaCalculatorService } from '../../services/sla-calculator.service';
+import { 
+  DashboardStatsResponse, 
+  RecentTicketResponse, 
+  CalendarMonthResponse,
+  CalendarDay,
+  CalendarTicket,
+  TopTecnicoResponse,
+  CategoriaMetricaResponse,
+  EstadoTicket,
+  EstadoSLA,
+  PrioridadTicket
+} from '../../interfaces/dashboard.interface';
 import { TicketInterface } from '../../interfaces/ticket.interface';
-import { UsuarioInterface } from '../../interfaces/usuarios.interface';
 import { ContratoInterface } from '../../interfaces/contratos.interface';
-import { EntidadInterface } from '../../interfaces/entidades.interface';
-
-// Chart.js
-import { ChartConfiguration, ChartType } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
 
 // ApexCharts
 import { NgApexchartsModule } from 'ng-apexcharts';
@@ -27,65 +30,59 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FormsModule } from '@angular/forms';
 
-interface DashboardStats {
-  totalTickets: number;
-  ticketsAbiertos: number;
-  ticketsResueltos: number;
-  ticketsPendientes: number;
-  slaCumplido: number;
-  usuariosActivos: number;
-  entidadesActivas: number;
-  ticketsEsteMes: number;
-  contratosProximosVencer: number;
-  ticketsHoy: number;
-  ticketsSinAsignar: number;
-  ticketsReabiertos: number;
-  tiempoPromedioResolucion: number;
-  ticketsSLAVencido: number;
-  ticketsSLAProximoVencer: number;
-}
+// Material
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
-interface CalendarDay {
+// Servicios adicionales
+import { UsuariosService } from '../../services/usuarios.service';
+import { ContratosService } from '../../services/contratos.service';
+
+interface CalendarDayItem {
+  day: number;
   date: Date;
   isCurrentMonth: boolean;
-  isToday: boolean;
-  ticketsCount: number;
-  tickets: TicketInterface[];
-}
-
-interface TecnicoPerformance {
-  id: number;
-  nombre: string;
-  ticketsResueltos: number;
-  ticketsAsignados: number;
-  eficiencia: number;
-  tiempoPromedio: string;
-}
-
-interface EntidadStats {
-  id: number;
-  nombre: string;
-  ticketsTotal: number;
-  ticketsAbiertos: number;
-  ticketsResueltos: number;
-  porcentajeResueltos: number;
+  tickets: CalendarTicket[];
+  ticketCount: number;
+  hasTickets: boolean;
 }
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     RouterModule,
-    BaseChartDirective,
     NgApexchartsModule,
-    FormsModule
+    FormsModule,
+    MatIconModule,
+    MatCardModule,
+    MatButtonModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
 })
-export class AdminDashboardComponent implements OnInit {
-  stats: DashboardStats = {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
+  // Datos principales del dashboard
+  stats: DashboardStatsResponse = {
     totalTickets: 0,
     ticketsAbiertos: 0,
     ticketsResueltos: 0,
@@ -98,31 +95,47 @@ export class AdminDashboardComponent implements OnInit {
     ticketsHoy: 0,
     ticketsSinAsignar: 0,
     ticketsReabiertos: 0,
-    tiempoPromedioResolucion: 0,
+    tiempoPromedioResolucion: '0h 0m',
     ticketsSLAVencido: 0,
-    ticketsSLAProximoVencer: 0
+    ticketsSLAProximoVencer: 0,
+    ticketsUrgentes: 0,
+    ticketsResueltosHoy: 0,
+    eficienciaGeneral: 0,
+    satisfaccionPromedio: 0,
+    ticketsAsignados: 0,
+    ticketsEnProceso: 0,
+    ticketsConSLA: 0
   };
 
   adminInfo: any = {};
-  ticketsRecientes: TicketInterface[] = [];
-  ticketsSinAsignar: TicketInterface[] = [];
+  ticketsRecientes: RecentTicketResponse[] = [];
+  ticketsSinAsignarList: TicketInterface[] = [];
   contratosProximos: ContratoInterface[] = [];
+  
+  // Datos para reportes especiales (admin)
+  topTecnicos: TopTecnicoResponse[] = [];
+  metricasCategorias: CategoriaMetricaResponse[] = [];
+  
+  // Datos de calendario
+  calendario: CalendarMonthResponse = {
+    mes: new Date().getMonth(),
+    anio: new Date().getFullYear(),
+    dias: []
+  };
+  
+  // Estados de carga
   isLoading = true;
-  currentDate = new Date();
+  loadingSections = {
+    stats: true,
+    tickets: true,
+    tecnicos: true,
+    categorias: true,
+    calendario: true
+  };
   
-  // ✅ NUEVA PROPIEDAD: Todos los tickets para el calendario
-  private todosLosTickets: TicketInterface[] = [];
-  
-  // Nuevas propiedades para información enriquecida
-  tecnicosPerformance: TecnicoPerformance[] = [];
-  entidadesStats: EntidadStats[] = [];
-  ticketsPorCategoria: any[] = [];
-  ticketsSLAVencidos: TicketInterface[] = [];
-  ticketsSLAProximosVencer: TicketInterface[] = [];
-  
-  // Calendario
-  calendarDays: CalendarDay[] = [];
+  // Variables del calendario
   currentMonth: Date = new Date();
+  currentDate = new Date();
   monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   
   // Modal de reportes
@@ -135,821 +148,543 @@ export class AdminDashboardComponent implements OnInit {
 
   // Modal de detalle de día
   showDayDetailModal = false;
-  selectedDayTickets: TicketInterface[] = [];
+  selectedDayTickets: CalendarTicket[] = [];
   selectedDayDate: Date = new Date();
 
-  // Chart.js - Tickets por Estado
-  public barChartOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Distribución de Tickets por Estado',
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff'
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1
-        }
-      }
-    }
-  };
+  // Datos de SLA
+  ticketsSLAVencidos: RecentTicketResponse[] = [];
+  ticketsSLAPorVencer: RecentTicketResponse[] = [];
 
-  public barChartData: ChartConfiguration<'bar'>['data'] = {
-    labels: ['Nuevos', 'Asignados', 'En Proceso', 'Resueltos', 'Cerrados'],
-    datasets: [
-      {
-        data: [0, 0, 0, 0, 0],
-        label: 'Cantidad de Tickets',
-        backgroundColor: [
-          '#3b82f6', '#f59e0b', '#f97316', '#10b981', '#6b7280'
-        ],
-        borderColor: [
-          '#2563eb', '#d97706', '#ea580c', '#059669', '#4b5563'
-        ],
-        borderWidth: 2,
-        borderRadius: 8,
-        borderSkipped: false,
-      }
-    ]
-  };
+  // Gráficas
+  public efficiencyChartOptions: ApexOptions;
+  public statusChartOptions: ApexOptions;
+  public pieChartOptions: ApexOptions;
+  public categoriaChartOptions: ApexOptions;
+  public tecnicosChartOptions: ApexOptions;
 
-  public barChartType: ChartType = 'bar';
-
-  // ApexCharts - Tickets por Mes
-  public chartOptions: ApexOptions = {
-    series: [{
-      name: 'Tickets',
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    }],
-    chart: {
-      height: 350,
-      type: 'area',
-      toolbar: {
-        show: true
-      }
-    },
-    dataLabels: {
-      enabled: false
-    },
-    stroke: {
-      curve: 'smooth',
-      width: 3
-    },
-    xaxis: {
-      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-      axisBorder: {
-        show: true
-      },
-      axisTicks: {
-        show: true
-      }
-    },
-    yaxis: {
-      title: {
-        text: 'Cantidad de Tickets'
-      }
-    },
-    colors: ['#3b82f6'],
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shadeIntensity: 1,
-        opacityFrom: 0.7,
-        opacityTo: 0.3,
-        stops: [0, 90, 100]
-      }
-    },
-    title: {
-      text: 'Tickets Creados por Mes',
-      align: 'left',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
-    }
-  };
-
-  // ApexCharts - Distribución por Prioridad
-  public pieChartOptions: ApexOptions = {
-    series: [0, 0, 0, 0],
-    chart: {
-      type: 'donut',
-      height: 350
-    },
-    labels: ['Crítica', 'Alta', 'Media', 'Baja'],
-    colors: ['#ef4444', '#f97316', '#eab308', '#22c55e'],
-    legend: {
-      position: 'bottom'
-    },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '45%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Total',
-              fontSize: '16px'
-            }
-          }
-        }
-      }
-    },
-    title: {
-      text: 'Distribución por Prioridad',
-      align: 'center',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: function (val: number, opts) {
-        return opts.w.config.series[opts.seriesIndex] + ' tickets';
-      }
-    }
-  };
-
-  // Nuevo gráfico - Tickets por Categoría
-  public categoriaChartOptions: ApexOptions = {
-    series: [],
-    chart: {
-      type: 'pie',
-      height: 350
-    },
-    labels: [],
-    colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'],
-    legend: {
-      position: 'bottom'
-    },
-    title: {
-      text: 'Tickets por Categoría',
-      align: 'center',
-      style: {
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: function (val: number, opts) {
-        return opts.w.config.series[opts.seriesIndex] + ' tickets';
-      }
-    }
-  };
+  // Configuración de calendario - CORREGIDO
+  calendarDays: CalendarDayItem[] = [];
+  calendarHeaders = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  weeks: CalendarDayItem[][] = [];
 
   constructor(
     private accesoService: Acceso,
-    private ticketsService: TicketsService,
+    private dashboardService: DashboardService,
+    private ticketService: TicketsService,
     private usuariosService: UsuariosService,
     private contratosService: ContratosService,
-    private entidadesService: EntidadesService,
-    private categoriasService: CategoriasService,
     private slasService: SlasService,
-    private entidadesUsuariosService: EntidadesUsuariosService,
+    private slaCalculator: SlaCalculatorService,
+    private snackBar: MatSnackBar,
     private router: Router
-  ) {}
+  ) {
+    // Inicializar gráficas con opciones base
+    this.efficiencyChartOptions = this.getEfficiencyChartOptions();
+    this.statusChartOptions = this.getStatusChartOptions();
+    this.pieChartOptions = this.getPieChartOptions();
+    this.categoriaChartOptions = this.getCategoriaChartOptions();
+    this.tecnicosChartOptions = this.getTecnicosChartOptions();
+  }
 
   ngOnInit() {
-    console.log('🚀 Iniciando Dashboard Administrativo...');
     this.loadAdminInfo();
     this.loadDashboardData();
-    this.generateCalendar();
+  }
+
+  ngOnDestroy() {
+    // Limpiar recursos si es necesario
   }
 
   private loadAdminInfo() {
     const usuario = this.accesoService.obtenerUsuario();
-    console.log('👤 Información del usuario logueado:', usuario);
     
     this.adminInfo = {
       nombre: usuario?.nombre_usuario || 'Administrador',
       email: usuario?.correo_electronico || '',
-      rol: usuario?.rol || 'ADMINISTRADOR',
-      estado: usuario?.activo ? 'Activo' : 'Inactivo',
-      fechaIngreso: new Date().toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
+      rol: usuario?.rol || 'ADMINISTRADOR'
     };
   }
 
   private loadDashboardData() {
     this.isLoading = true;
-    console.log('📊 Cargando datos del dashboard...');
     
-    Promise.all([
-      this.loadTicketsData(),
-      this.loadUsuariosData(),
-      this.loadContratosData(),
-      this.loadEntidadesData(),
-      this.loadCategoriasData()
-    ]).finally(() => {
-      this.isLoading = false;
-      this.updateCharts();
-      this.generateCalendar();
-      this.calculatePerformanceMetrics();
-      console.log('✅ Dashboard cargado completamente');
-    });
+    // Cargar todas las secciones del dashboard
+    this.loadDashboardStats();
+    this.loadTicketsRecientes();
+    this.loadTopTecnicos();
+    this.loadMetricasCategorias();
+    this.loadCalendario();
+    this.loadContratosProximos();
+    this.loadTicketsSinAsignar();
+    this.loadTicketsSLA();
+    this.loadTicketsPorMes();
   }
 
-  private async loadTicketsData() {
-    try {
-      console.log('🔄 Cargando datos de tickets...');
-      const ticketsResponse = await this.ticketsService.lista().toPromise();
-      console.log('📊 Respuesta de tickets:', ticketsResponse);
-      
-      if (ticketsResponse?.isSuccess && ticketsResponse.data) {
-        // CORRECCIÓN: Manejar diferentes estructuras de respuesta
-        let tickets: TicketInterface[] = [];
-        
-        if (Array.isArray(ticketsResponse.data)) {
-          tickets = ticketsResponse.data;
-        } else if (ticketsResponse.data.activos) {
-          tickets = ticketsResponse.data.activos;
+  private loadDashboardStats() {
+    this.loadingSections.stats = true;
+    this.dashboardService.getDashboardAdmin().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.stats = response.data;
+          this.updateChartsWithStats();
         } else {
-          console.warn('⚠️ Estructura de tickets no reconocida:', ticketsResponse.data);
-          tickets = Object.values(ticketsResponse.data).flat() as TicketInterface[];
+          this.showError('Error al cargar estadísticas del dashboard');
         }
-        
-        // ✅ CORRECCIÓN: Guardar TODOS los tickets para el calendario
-        this.todosLosTickets = tickets;
-        
-        console.log('🎯 Tickets procesados:', tickets.length);
-        console.log('📅 Tickets guardados para calendario:', this.todosLosTickets.length);
-        
-        // Estadísticas básicas
-        this.stats.totalTickets = tickets.length;
-        this.stats.ticketsAbiertos = tickets.filter(t => t.estado && !t.fecha_resolucion).length;
-        this.stats.ticketsResueltos = tickets.filter(t => t.fecha_resolucion).length;
-        this.stats.ticketsPendientes = tickets.filter(t => t.estado && !t.tecnico_id).length;
-        this.stats.ticketsSinAsignar = tickets.filter(t => !t.tecnico_id && t.estado).length;
-        this.stats.ticketsReabiertos = tickets.filter(t => t.veces_reabierto && t.veces_reabierto > 0).length;
-        
-        // Análisis de SLA
-        this.analyzeSLAStatus(tickets);
-        
-        // Tickets este mes
-        const esteMes = new Date().getMonth();
-        const esteAnio = new Date().getFullYear();
-        this.stats.ticketsEsteMes = tickets.filter(t => {
-          const fechaTicket = new Date(t.fecha_creacion);
-          return fechaTicket.getMonth() === esteMes && fechaTicket.getFullYear() === esteAnio;
-        }).length;
-
-        // Tickets hoy
-        const hoy = new Date().toDateString();
-        this.stats.ticketsHoy = tickets.filter(t => 
-          new Date(t.fecha_creacion).toDateString() === hoy
-        ).length;
-
-        // Tickets recientes (últimos 10) - solo para la sección de "recientes"
-        this.ticketsRecientes = tickets
-          .sort((a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime())
-          .slice(0, 10);
-
-        // Tickets sin asignar con información completa
-        this.ticketsSinAsignar = tickets
-          .filter(t => !t.tecnico_id && t.estado)
-          .sort((a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime());
-
-        // Calcular distribución para gráficos
-        this.calculateChartData(tickets);
-        
-        console.log('📈 Estadísticas calculadas:', {
-          total: this.stats.totalTickets,
-          abiertos: this.stats.ticketsAbiertos,
-          resueltos: this.stats.ticketsResueltos,
-          sinAsignar: this.stats.ticketsSinAsignar,
-          slaVencidos: this.stats.ticketsSLAVencido,
-          slaProximos: this.stats.ticketsSLAProximoVencer,
-          todosLosTickets: this.todosLosTickets.length // ✅ Nuevo log
-        });
-      } else {
-        console.error('❌ Error en respuesta de tickets:', ticketsResponse?.message);
-      }
-    } catch (error) {
-      console.error('❌ Error cargando tickets:', error);
-    }
-  }
-
-  private analyzeSLAStatus(tickets: TicketInterface[]) {
-    console.log('⏰ Analizando estado de SLA...');
-    
-    this.ticketsSLAVencidos = [];
-    this.ticketsSLAProximosVencer = [];
-    
-    tickets.forEach(ticket => {
-      const slaEstado = this.getSLAEstado(ticket);
-      
-      if (slaEstado === 'Vencido') {
-        this.ticketsSLAVencidos.push(ticket);
-      } else if (slaEstado === 'Por vencer') {
-        this.ticketsSLAProximosVencer.push(ticket);
+        this.loadingSections.stats = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando estadísticas:', error);
+        this.showError('Error de conexión con el servidor');
+        this.loadingSections.stats = false;
+        this.checkAllLoaded();
       }
     });
-    
-    this.stats.ticketsSLAVencido = this.ticketsSLAVencidos.length;
-    this.stats.ticketsSLAProximoVencer = this.ticketsSLAProximosVencer.length;
-    
-    console.log('🔍 Resultados SLA:', {
-      vencidos: this.stats.ticketsSLAVencido,
-      proximos: this.stats.ticketsSLAProximoVencer,
-      ejemplosVencidos: this.ticketsSLAVencidos.slice(0, 3).map(t => ({id: t.id, titulo: t.titulo})),
-      ejemplosProximos: this.ticketsSLAProximosVencer.slice(0, 3).map(t => ({id: t.id, titulo: t.titulo}))
+  }
+
+  private loadTicketsRecientes() {
+    this.loadingSections.tickets = true;
+    this.dashboardService.getTicketsRecientes(10).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.ticketsRecientes = response.data;
+        }
+        this.loadingSections.tickets = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando tickets recientes:', error);
+        this.loadingSections.tickets = false;
+        this.checkAllLoaded();
+      }
     });
   }
 
-  private calculateChartData(tickets: TicketInterface[]) {
-    console.log('📊 Calculando datos para gráficos...');
-    
-    // Distribución por estado para Chart.js
-    const nuevos = tickets.filter(t => !t.tecnico_id && t.estado && !t.fecha_resolucion).length;
-    const asignados = tickets.filter(t => t.tecnico_id && !t.fecha_resolucion && t.estado).length;
-    const enProceso = tickets.filter(t => t.estado_ticket === 'EN_PROCESO' && t.estado).length;
-    const resueltos = tickets.filter(t => t.fecha_resolucion && t.estado).length;
-    const cerrados = tickets.filter(t => !t.estado).length;
-
-    this.barChartData = {
-      ...this.barChartData,
-      datasets: [{
-        ...this.barChartData.datasets[0],
-        data: [nuevos, asignados, enProceso, resueltos, cerrados]
-      }]
-    };
-
-    // Distribución por prioridad para ApexCharts
-    const critica = tickets.filter(t => t.prioridad?.nivel && t.prioridad.nivel >= 4).length;
-    const alta = tickets.filter(t => t.prioridad?.nivel && t.prioridad.nivel === 3).length;
-    const media = tickets.filter(t => t.prioridad?.nivel && t.prioridad.nivel === 2).length;
-    const baja = tickets.filter(t => !t.prioridad?.nivel || t.prioridad.nivel <= 1).length;
-
-    this.pieChartOptions.series = [critica, alta, media, baja];
-    
-    console.log('📈 Datos de gráficos calculados:', {
-      estados: [nuevos, asignados, enProceso, resueltos, cerrados],
-      prioridades: [critica, alta, media, baja]
+  private loadTopTecnicos() {
+    this.loadingSections.tecnicos = true;
+    this.dashboardService.getTopTecnicos(5).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.topTecnicos = response.data;
+          this.updateTecnicosChart();
+        }
+        this.loadingSections.tecnicos = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando top técnicos:', error);
+        this.loadingSections.tecnicos = false;
+        this.checkAllLoaded();
+      }
     });
   }
 
-  private async loadUsuariosData() {
-    try {
-      console.log('🔄 Cargando datos de usuarios...');
-      const usuariosResponse = await this.usuariosService.lista().toPromise();
-      console.log('👥 Respuesta de usuarios:', usuariosResponse);
-      
-      if (usuariosResponse?.isSuccess && usuariosResponse.data) {
-        // CORRECCIÓN: La respuesta tiene estructura {activos: [], eliminados: []}
-        const data = usuariosResponse.data;
-        
-        // Extraer todos los usuarios (activos + eliminados)
-        let todosUsuarios: UsuarioInterface[] = [];
-        
-        if (data.activos && Array.isArray(data.activos)) {
-          todosUsuarios = todosUsuarios.concat(data.activos);
+  private loadMetricasCategorias() {
+    this.loadingSections.categorias = true;
+    this.dashboardService.getMetricasCategorias().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.metricasCategorias = response.data;
+          this.updateCategoriaChart();
         }
-        
-        if (data.eliminados && Array.isArray(data.eliminados)) {
-          todosUsuarios = todosUsuarios.concat(data.eliminados);
+        this.loadingSections.categorias = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando métricas por categoría:', error);
+        this.loadingSections.categorias = false;
+        this.checkAllLoaded();
+      }
+    });
+  }
+
+  private loadCalendario() {
+    this.loadingSections.calendario = true;
+    const hoy = new Date();
+    this.dashboardService.getCalendario(hoy.getMonth(), hoy.getFullYear()).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.calendario = response.data;
+          this.generateCalendar();
         }
-        
-        console.log('👥 Total usuarios encontrados:', todosUsuarios.length);
-        
-        // CORRECCIÓN: Usar todosUsuarios en lugar de usuariosResponse.data
-        this.stats.usuariosActivos = todosUsuarios.filter(u => u.activo && !u.eliminado).length;
-        
-        // Calcular SLA cumplido basado en tickets resueltos a tiempo
-        const ticketsResponse = await this.ticketsService.lista().toPromise();
-        if (ticketsResponse?.isSuccess && ticketsResponse.data) {
-          const tickets: TicketInterface[] = Array.isArray(ticketsResponse.data) 
-            ? ticketsResponse.data 
-            : ticketsResponse.data.activos || [];
+        this.loadingSections.calendario = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando calendario:', error);
+        this.loadingSections.calendario = false;
+        this.checkAllLoaded();
+      }
+    });
+  }
+
+  private loadContratosProximos() {
+    this.contratosService.lista().subscribe({
+      next: (response: any) => {
+        if (response?.isSuccess && response.data) {
+          const hoy = new Date();
+          const en30Dias = new Date();
+          en30Dias.setDate(hoy.getDate() + 30);
           
-          const ticketsResueltosATiempo = tickets.filter(t => 
-            t.fecha_resolucion && this.verificarSLACumplido(t)
-          ).length;
-          
-          this.stats.slaCumplido = this.stats.ticketsResueltos > 0 ? 
-            Math.round((ticketsResueltosATiempo / this.stats.ticketsResueltos) * 100) : 0;
+          this.contratosProximos = response.data
+            .filter((contrato: ContratoInterface) => {
+              const fechaFin = new Date(contrato.fecha_fin);
+              const esVigente = contrato.estado_contrato === 'VIGENTE' || contrato.estado_contrato === 'RENOVADO';
+              return esVigente && fechaFin > hoy && fechaFin <= en30Dias;
+            })
+            .sort((a: ContratoInterface, b: ContratoInterface) => 
+              new Date(a.fecha_fin).getTime() - new Date(b.fecha_fin).getTime()
+            )
+            .slice(0, 5);
         }
+      },
+      error: (error: any) => {
+        console.error('Error cargando contratos:', error);
       }
-    } catch (error) {
-      console.error('❌ Error cargando usuarios:', error);
-    }
+    });
   }
 
-  private verificarSLACumplido(ticket: TicketInterface): boolean {
-    if (!ticket.fecha_resolucion || !ticket.sla?.tiempo_resolucion) return false;
-    
-    const fechaCreacion = new Date(ticket.fecha_creacion);
-    const fechaResolucion = new Date(ticket.fecha_resolucion);
-    const horasTranscurridas = (fechaResolucion.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
-    
-    return horasTranscurridas <= ticket.sla.tiempo_resolucion;
+  private loadTicketsSinAsignar() {
+    this.ticketService.lista().subscribe({
+      next: (response: any) => {
+        if (response?.isSuccess && response.data) {
+          if (Array.isArray(response.data)) {
+            this.ticketsSinAsignarList = response.data
+              .filter((ticket: TicketInterface) => 
+                ticket.estado && !ticket.tecnico_id && !ticket.fecha_resolucion
+              )
+              .slice(0, 5);
+          }
+        }
+      },
+      error: (error: any) => {
+        console.error('Error cargando tickets sin asignar:', error);
+      }
+    });
   }
 
-  private async loadContratosData() {
-    try {
-      console.log('🔄 Cargando datos de contratos...');
-      const contratosResponse = await this.contratosService.lista().toPromise();
-      console.log('📑 Respuesta de contratos:', contratosResponse);
-      
-      if (contratosResponse?.isSuccess && contratosResponse.data) {
-        const contratos: ContratoInterface[] = contratosResponse.data;
-        
-        // Contratos próximos a vencer (próximos 30 días)
-        const hoy = new Date();
-        const en30Dias = new Date();
-        en30Dias.setDate(hoy.getDate() + 30);
-        
-        this.contratosProximos = contratos
-          .filter(contrato => {
-            const fechaFin = new Date(contrato.fecha_fin);
-            return fechaFin > hoy && fechaFin <= en30Dias && 
-                  (contrato.estado_contrato === 'VIGENTE' || contrato.estado_contrato === 'RENOVADO');
-          })
-          .sort((a, b) => new Date(a.fecha_fin).getTime() - new Date(b.fecha_fin).getTime())
+  private loadTicketsSLA(): void {
+  this.dashboardService.getTicketsRecientes(50).subscribe({
+    next: (response) => {
+      if (response.isSuccess && response.data) {
+        // Filtrar tickets con SLA vencido (excluyendo cerrados y resueltos)
+        this.ticketsSLAVencidos = response.data
+          .filter(ticket => 
+            ticket.sla_estado === 'VENCIDO' && 
+            ticket.estado !== 'CERRADO' && 
+            ticket.estado !== 'RESUELTO'
+          )
           .slice(0, 5);
         
-        this.stats.contratosProximosVencer = this.contratosProximos.length;
-        
-        console.log('📅 Contratos próximos a vencer:', this.contratosProximos.length);
+        // Filtrar tickets con SLA por vencer (excluyendo cerrados y resueltos)
+        this.ticketsSLAPorVencer = response.data
+          .filter(ticket => 
+            ticket.sla_estado === 'POR_VENCER' && 
+            ticket.estado !== 'CERRADO' && 
+            ticket.estado !== 'RESUELTO'
+          )
+          .slice(0, 5);
       }
-    } catch (error) {
-      console.error('❌ Error cargando contratos:', error);
+    },
+    error: (error) => {
+      console.error('Error cargando tickets SLA:', error);
     }
-  }
+  });
+}
 
-  private async loadEntidadesData() {
+  private async loadTicketsPorMes(): Promise<void> {
     try {
-      console.log('🔄 Cargando datos de entidades...');
-      const entidadesResponse = await this.entidadesService.lista().toPromise();
-      console.log('🏢 Respuesta de entidades:', entidadesResponse);
+      const hoy = new Date();
+      const mesesAnteriores = 6;
       
-      if (entidadesResponse?.isSuccess && entidadesResponse.data) {
-        const entidades: EntidadInterface[] = entidadesResponse.data;
-        this.stats.entidadesActivas = entidades.filter(e => e.estado && !e.eliminado).length;
-        console.log('🏢 Entidades activas:', this.stats.entidadesActivas);
-      }
-    } catch (error) {
-      console.error('❌ Error cargando entidades:', error);
-    }
-  }
-
-  private async loadCategoriasData() {
-    try {
-      console.log('🔄 Cargando datos de categorías...');
-      const categoriasResponse = await this.categoriasService.lista().toPromise();
-      if (categoriasResponse) {
-        // Calcular tickets por categoría
-        const ticketsResponse = await this.ticketsService.lista().toPromise();
-        if (ticketsResponse?.isSuccess && ticketsResponse.data) {
-          const tickets: TicketInterface[] = Array.isArray(ticketsResponse.data)
-            ? ticketsResponse.data
-            : ticketsResponse.data.activos || [];
-          this.calculateTicketsPorCategoria(tickets);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error cargando categorías:', error);
-    }
-  }
-
-  private calculateTicketsPorCategoria(tickets: TicketInterface[]) {
-    const categoriasMap = new Map();
-    
-    tickets.forEach(ticket => {
-      if (ticket.categoria) {
-        const categoriaNombre = ticket.categoria.nombre;
-        if (categoriasMap.has(categoriaNombre)) {
-          categoriasMap.set(categoriaNombre, categoriasMap.get(categoriaNombre) + 1);
-        } else {
-          categoriasMap.set(categoriaNombre, 1);
-        }
-      }
-    });
-
-    this.ticketsPorCategoria = Array.from(categoriasMap, ([nombre, cantidad]) => ({ nombre, cantidad }));
-    
-    // Actualizar gráfico de categorías
-    this.categoriaChartOptions.series = this.ticketsPorCategoria.map(item => item.cantidad);
-    this.categoriaChartOptions.labels = this.ticketsPorCategoria.map(item => item.nombre);
-    
-    console.log('📋 Tickets por categoría:', this.ticketsPorCategoria);
-  }
-
-  private calculatePerformanceMetrics() {
-    try {
-      console.log('📈 Calculando métricas de rendimiento...');
-      // Calcular estadísticas por entidad
-      this.calculateEntidadesStats();
+      const mesesData: number[] = [];
+      const mesesLabels: string[] = [];
       
-      // Intentar calcular rendimiento de técnicos si tenemos datos
-      if (this.ticketsRecientes.length > 0) {
-        this.calculateTecnicosPerformance();
+      for (let i = 5; i >= 0; i--) {
+        const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+        const mes = fecha.getMonth();
+        const anio = fecha.getFullYear();
+        
+        try {
+          const response = await this.dashboardService.getCalendario(mes, anio).toPromise();
+          
+          let totalTicketsMes = 0;
+          if (response?.isSuccess && response.data) {
+            totalTicketsMes = response.data.dias.reduce((sum: number, dia: CalendarDay) => sum + dia.cantidad_tickets, 0);
+          }
+          
+          mesesData.push(totalTicketsMes);
+          mesesLabels.push(this.monthNames[mes].substring(0, 3));
+        } catch (error) {
+          mesesData.push(0);
+          mesesLabels.push(this.monthNames[mes].substring(0, 3));
+        }
       }
+      
+      // Actualizar gráfica con datos reales
+      this.efficiencyChartOptions = {
+        ...this.efficiencyChartOptions,
+        series: [{
+          name: 'Tickets',
+          data: mesesData
+        }],
+        xaxis: {
+          categories: mesesLabels
+        }
+      };
+      
     } catch (error) {
-      console.error('❌ Error calculando métricas de rendimiento:', error);
+      console.error('Error cargando tickets por mes:', error);
     }
   }
 
-  private calculateTecnicosPerformance() {
-    const tecnicosMap = new Map();
-    
-    this.ticketsRecientes.forEach(ticket => {
-      if (ticket.tecnico) {
-        const tecnicoId = ticket.tecnico.id;
-        const tecnicoNombre = ticket.tecnico.nombre_usuario;
-        
-        if (!tecnicosMap.has(tecnicoId)) {
-          tecnicosMap.set(tecnicoId, {
-            id: tecnicoId,
-            nombre: tecnicoNombre,
-            ticketsResueltos: 0,
-            ticketsAsignados: 0
-          });
-        }
-        
-        const stats = tecnicosMap.get(tecnicoId);
-        stats.ticketsAsignados++;
-        
-        if (ticket.fecha_resolucion) {
-          stats.ticketsResueltos++;
-        }
-      }
-    });
-
-    this.tecnicosPerformance = Array.from(tecnicosMap.values()).map(tecnico => ({
-      ...tecnico,
-      eficiencia: tecnico.ticketsAsignados > 0 ? 
-        Math.round((tecnico.ticketsResueltos / tecnico.ticketsAsignados) * 100) : 0,
-      tiempoPromedio: '2.5 días' // Esto sería calculado basado en datos reales
-    }));
-    
-    console.log('👨‍💼 Rendimiento de técnicos:', this.tecnicosPerformance);
+  private checkAllLoaded() {
+    const allLoaded = Object.values(this.loadingSections).every(loaded => !loaded);
+    if (allLoaded) {
+      this.isLoading = false;
+    }
   }
 
-  private calculateEntidadesStats() {
-    const entidadesMap = new Map();
-    
-    this.ticketsRecientes.forEach(ticket => {
-      if (ticket.entidad_usuario?.entidad) {
-        const entidadId = ticket.entidad_usuario.entidad.id;
-        const entidadNombre = ticket.entidad_usuario.entidad.denominacion;
-        
-        if (!entidadesMap.has(entidadId)) {
-          entidadesMap.set(entidadId, {
-            id: entidadId,
-            nombre: entidadNombre,
-            ticketsTotal: 0,
-            ticketsAbiertos: 0,
-            ticketsResueltos: 0
-          });
-        }
-        
-        const stats = entidadesMap.get(entidadId);
-        stats.ticketsTotal++;
-        
-        if (ticket.fecha_resolucion) {
-          stats.ticketsResueltos++;
-        } else {
-          stats.ticketsAbiertos++;
-        }
-      }
-    });
+  // ==================== MÉTODOS DEL CALENDARIO ====================
 
-    this.entidadesStats = Array.from(entidadesMap.values()).map(entidad => ({
-      ...entidad,
-      porcentajeResueltos: Math.round((entidad.ticketsResueltos / entidad.ticketsTotal) * 100)
-    })).sort((a, b) => b.ticketsTotal - a.ticketsTotal).slice(0, 5); // Top 5 entidades
+  private generateCalendar(): void {
+    this.calendarDays = [];
+    this.weeks = [];
     
-    console.log('🏢 Estadísticas por entidad:', this.entidadesStats);
-  }
-
-  private updateCharts() {
-    console.log('📊 Actualizando gráficos...');
-    // Actualizar datos mensuales basados en tickets reales
-    const datosMensuales = this.calcularTicketsPorMes();
-    this.chartOptions.series = [{
-      name: 'Tickets',
-      data: datosMensuales
-    }];
-  }
-
-  private calcularTicketsPorMes(): number[] {
-    const meses = Array(12).fill(0);
-    const anioActual = new Date().getFullYear();
-    
-    this.todosLosTickets.forEach(ticket => {
-      const fecha = new Date(ticket.fecha_creacion);
-      if (fecha.getFullYear() === anioActual) {
-        meses[fecha.getMonth()]++;
-      }
-    });
-    
-    return meses;
-  }
-
-  // CALENDARIO MEJORADO - ✅ CORREGIDO: Usa todosLosTickets
-  generateCalendar(): void {
-    console.log('📅 Generando calendario...');
     const year = this.currentMonth.getFullYear();
     const month = this.currentMonth.getMonth();
     
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    // Obtener el primer día del mes y el último día
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
     
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    // Obtener el día de la semana del primer día (0 = Domingo, 1 = Lunes, etc.)
+    const firstDayOfWeek = firstDayOfMonth.getDay();
     
-    const endDate = new Date(lastDay);
-    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+    // Obtener el último día del mes anterior
+    const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
     
-    this.calendarDays = [];
-    const currentDate = new Date(startDate);
-    
-    let totalTicketsEnCalendario = 0;
-    let diasConTickets = 0;
-    
-    while (currentDate <= endDate) {
-      const date = new Date(currentDate);
-      const isCurrentMonth = date.getMonth() === month;
-      const isToday = this.isToday(date);
-      
-      // ✅ CORRECCIÓN: Usar todosLosTickets en lugar de ticketsRecientes
-      const ticketsCount = this.countTicketsForDate(date);
-      const tickets = this.getTicketsForDate(date);
-      
-      totalTicketsEnCalendario += ticketsCount;
-      if (ticketsCount > 0) diasConTickets++;
-      
-      this.calendarDays.push({
-        date,
-        isCurrentMonth,
-        isToday,
-        ticketsCount,
-        tickets
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
+    // Generar días del mes anterior que aparecen en el calendario
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = lastDayOfPrevMonth - i;
+      const date = new Date(year, month - 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
     }
     
-    console.log('📅 Calendario generado:', {
-      diasTotales: this.calendarDays.length,
-      diasConTickets: diasConTickets,
-      ticketsEnCalendario: totalTicketsEnCalendario,
-      todosLosTickets: this.todosLosTickets.length
-    });
+    // Generar días del mes actual
+    const daysInMonth = lastDayOfMonth.getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, true));
+    }
+    
+    // Generar días del siguiente mes para completar la última semana
+    const totalDays = this.calendarDays.length;
+    const remainingDays = 42 - totalDays; // 6 semanas * 7 días = 42
+    
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
+    }
+    
+    // Dividir en semanas (7 días por semana)
+    for (let i = 0; i < this.calendarDays.length; i += 7) {
+      this.weeks.push(this.calendarDays.slice(i, i + 7));
+    }
   }
 
-  private isToday(date: Date): boolean {
+  private createCalendarDay(day: number, date: Date, isCurrentMonth: boolean): CalendarDayItem {
+    const dateString = date.toISOString().split('T')[0];
+    
+    // Buscar si hay tickets para este día
+    let dayTickets: CalendarTicket[] = [];
+    let ticketCount = 0;
+    
+    if (this.calendario.dias) {
+      const dayData = this.calendario.dias.find(d => d.fecha === dateString);
+      if (dayData) {
+        dayTickets = dayData.tickets || [];
+        ticketCount = dayData.cantidad_tickets || 0;
+      }
+    }
+    
+    return {
+      day,
+      date,
+      isCurrentMonth,
+      tickets: dayTickets,
+      ticketCount,
+      hasTickets: ticketCount > 0
+    };
+  }
+
+  isToday(day: CalendarDayItem): boolean {
     const today = new Date();
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+    return day.date.getDate() === today.getDate() &&
+           day.date.getMonth() === today.getMonth() &&
+           day.date.getFullYear() === today.getFullYear();
   }
 
-  // ✅ CORRECCIÓN: Usar todosLosTickets para contar tickets por fecha
-  private countTicketsForDate(date: Date): number {
-    return this.todosLosTickets.filter(ticket => {
-      const ticketDate = new Date(ticket.fecha_creacion);
-      return ticketDate.toDateString() === date.toDateString();
-    }).length;
-  }
-
-  // ✅ CORRECCIÓN: Usar todosLosTickets para obtener tickets por fecha
-  private getTicketsForDate(date: Date): TicketInterface[] {
-    return this.todosLosTickets.filter(ticket => {
-      const ticketDate = new Date(ticket.fecha_creacion);
-      return ticketDate.toDateString() === date.toDateString();
-    });
-  }
-
-  // NUEVO MÉTODO: Mostrar detalle de día
-  showDayDetail(day: CalendarDay): void {
-    console.log('📅 Mostrando detalle del día:', day.date, 'Tickets:', day.ticketsCount);
-    this.selectedDayTickets = day.tickets;
-    this.selectedDayDate = day.date;
-    this.showDayDetailModal = true;
+  getDayClass(day: CalendarDayItem): string {
+    const classes = [];
+    
+    if (!day.isCurrentMonth) {
+      classes.push('other-month');
+    }
+    
+    if (this.isToday(day)) {
+      classes.push('today');
+    }
+    
+    if (day.hasTickets) {
+      classes.push('has-tickets');
+    }
+    
+    return classes.join(' ');
   }
 
   previousMonth(): void {
-    console.log('⬅️ Cambiando al mes anterior');
     this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
-    this.generateCalendar();
+    this.loadCalendarioForMonth(this.currentMonth.getMonth(), this.currentMonth.getFullYear());
   }
 
   nextMonth(): void {
-    console.log('➡️ Cambiando al mes siguiente');
     this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
-    this.generateCalendar();
+    this.loadCalendarioForMonth(this.currentMonth.getMonth(), this.currentMonth.getFullYear());
+  }
+
+  private loadCalendarioForMonth(mes: number, anio: number): void {
+    this.loadingSections.calendario = true;
+    this.dashboardService.getCalendario(mes, anio).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.calendario = response.data;
+          this.generateCalendar();
+        }
+        this.loadingSections.calendario = false;
+      },
+      error: (error: any) => {
+        console.error('Error cargando calendario:', error);
+        this.loadingSections.calendario = false;
+      }
+    });
   }
 
   getCurrentMonthYear(): string {
     return `${this.monthNames[this.currentMonth.getMonth()]} ${this.currentMonth.getFullYear()}`;
   }
 
-  // MÉTODOS AUXILIARES MEJORADOS
-  getTicketEstado(ticket: TicketInterface): string {
-    if (!ticket.estado) return 'Eliminado';
-    if (ticket.fecha_resolucion) return 'Resuelto';
-    if (ticket.estado_ticket === 'REABIERTO') return 'Reabierto';
-    if (ticket.tecnico_id) return 'Asignado';
-    return 'Nuevo';
-  }
-
-  getTicketEstadoColor(estado: string): string {
-    switch (estado) {
-      case 'Nuevo': return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'Asignado': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'En Proceso': return 'bg-orange-100 text-orange-800 border border-orange-200';
-      case 'Resuelto': return 'bg-green-100 text-green-800 border border-green-200';
-      case 'Reabierto': return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case 'Cerrado': return 'bg-gray-100 text-gray-800 border border-gray-200';
-      case 'Eliminado': return 'bg-red-100 text-red-800 border border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+  showDayDetail(day: CalendarDayItem): void {
+    if (day.tickets.length > 0) {
+      this.selectedDayTickets = day.tickets;
+      this.selectedDayDate = day.date;
+      this.showDayDetailModal = true;
     }
   }
 
-  getPrioridadColor(nivel?: number): string {
-    if (!nivel) return 'bg-gray-500';
-    if (nivel >= 4) return 'bg-red-500';
-    if (nivel >= 3) return 'bg-orange-500';
-    if (nivel >= 2) return 'bg-yellow-500';
-    return 'bg-green-500';
+  // ==================== RESTANTES MÉTODOS ====================
+
+  private updateChartsWithStats() {
+    this.statusChartOptions.series = [{
+      name: 'Tickets',
+      data: [
+        this.stats.ticketsSinAsignar || 0,
+        this.stats.ticketsAsignados || 0,
+        this.stats.ticketsEnProceso || 0,
+        this.stats.ticketsResueltos,
+        this.stats.ticketsReabiertos
+      ]
+    }];
+
+    this.pieChartOptions.series = [
+      this.stats.ticketsUrgentes,
+      Math.floor(this.stats.ticketsAbiertos * 0.4),
+      Math.floor(this.stats.ticketsAbiertos * 0.4),
+      Math.floor(this.stats.ticketsAbiertos * 0.2)
+    ];
+  }
+
+  private updateCategoriaChart() {
+    if (this.metricasCategorias.length > 0) {
+      this.categoriaChartOptions.series = this.metricasCategorias
+        .slice(0, 6)
+        .map(categoria => categoria.total_tickets);
+      
+      this.categoriaChartOptions.labels = this.metricasCategorias
+        .slice(0, 6)
+        .map(categoria => categoria.nombre);
+      
+      this.categoriaChartOptions.colors = this.metricasCategorias
+        .slice(0, 6)
+        .map(categoria => categoria.color);
+    }
+  }
+
+  private updateTecnicosChart() {
+    if (this.topTecnicos.length > 0) {
+      this.tecnicosChartOptions.series = [{
+        name: 'Eficiencia (%)',
+        data: this.topTecnicos.map(tecnico => tecnico.eficiencia)
+      }];
+      
+      this.tecnicosChartOptions.labels = this.topTecnicos.map(tecnico => tecnico.nombre);
+    }
+  }
+
+  // Métodos de utilidad para UI
+  getColorPrioridad(nivel: number): string {
+    return this.dashboardService.getColorPrioridad(nivel);
+  }
+
+  getNombrePrioridad(nivel: number): string {
+    return this.dashboardService.getNombrePrioridad(nivel);
+  }
+
+  getColorEstado(estado: string): string {
+    return this.dashboardService.getColorEstado(estado);
+  }
+
+  getTextoEstado(estado: string): string {
+    return this.dashboardService.getTextoEstado(estado);
+  }
+
+  getColorSLA(estado: string): string {
+    return this.dashboardService.getColorSLA(estado);
+  }
+
+  getTextoSLA(estado: string): string {
+    return this.dashboardService.getTextoSLA(estado);
   }
 
   getTiempoTranscurrido(fecha: string): string {
-    const creado = new Date(fecha);
-    const ahora = new Date();
-    const diffMs = ahora.getTime() - creado.getTime();
-    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDias = Math.floor(diffHoras / 24);
-
-    if (diffDias > 0) {
-      return `${diffDias} día${diffDias > 1 ? 's' : ''}`;
-    } else if (diffHoras > 0) {
-      return `${diffHoras} hora${diffHoras > 1 ? 's' : ''}`;
-    } else {
-      return 'Menos de 1 hora';
-    }
+    return this.dashboardService.getTiempoTranscurrido(fecha);
   }
 
-  getSLAEstado(ticket: TicketInterface): string {
-    if (!ticket.sla?.tiempo_resolucion) return 'Sin SLA';
-    
-    const fechaCreacion = new Date(ticket.fecha_creacion);
-    const ahora = new Date();
-    const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
-    const horasRestantes = ticket.sla.tiempo_resolucion - horasTranscurridas;
-
-    if (horasRestantes <= 0) return 'Vencido';
-    if (horasRestantes <= 24) return 'Por vencer';
-    return 'En tiempo';
+  formatTiempo(tiempo: string): string {
+    return this.dashboardService.formatTiempoParaUI(tiempo);
   }
 
-  getSLAEstadoColor(estado: string): string {
-    switch (estado) {
-      case 'Vencido': return 'bg-red-100 text-red-800 border border-red-200';
-      case 'Por vencer': return 'bg-orange-100 text-orange-800 border border-orange-200';
-      case 'En tiempo': return 'bg-green-100 text-green-800 border border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
+  getTicketEstado(ticket: RecentTicketResponse): string {
+    return this.getTextoEstado(ticket.estado);
   }
 
-  getHorasRestantesSLA(ticket: TicketInterface): number {
-    if (!ticket.sla?.tiempo_resolucion) return 0;
-    
-    const fechaCreacion = new Date(ticket.fecha_creacion);
-    const ahora = new Date();
-    const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
-    const horasRestantes = ticket.sla.tiempo_resolucion - horasTranscurridas;
-    
-    return Math.max(0, Math.round(horasRestantes));
+  getBadgeColorEstado(estado: string): string {
+    const color = this.getColorEstado(estado);
+    if (color.includes('#2196f3')) return 'new';
+    if (color.includes('#ff9800')) return 'in-progress';
+    if (color.includes('#4caf50')) return 'resolved';
+    if (color.includes('#607d8b')) return 'closed';
+    if (color.includes('#ff5722')) return 'reopened';
+    return 'new';
   }
 
-  // NAVEGACIÓN
+  // Navegación
   navigateToTickets(): void {
     this.router.navigate(['/ticket']);
+  }
+
+  navigateToTicketDetail(ticketId: number): void {
+    this.router.navigate(['/ticket', ticketId]);
   }
 
   navigateToUsers(): void {
@@ -960,11 +695,7 @@ export class AdminDashboardComponent implements OnInit {
     this.router.navigate(['/contratos']);
   }
 
-  navigateToTicketDetail(ticketId: number): void {
-    this.router.navigate(['/ticket', ticketId]);
-  }
-
-  // REPORTES
+  // Modal de reportes
   openReportModal(): void {
     this.showReportModal = true;
   }
@@ -986,93 +717,77 @@ export class AdminDashboardComponent implements OnInit {
       }
       
       this.closeReportModal();
-      this.showSuccessMessage(`Reporte ${this.reportType.toUpperCase()} generado exitosamente`);
-      
+      this.showSuccess('Reporte generado exitosamente');
     } catch (error) {
       console.error('Error generando reporte:', error);
-      this.showErrorMessage('Error al generar el reporte');
+      this.showError('Error al generar el reporte');
     }
   }
 
   private async generatePDFReport(): Promise<void> {
     const doc = new jsPDF();
     
-    // Título
     doc.setFontSize(20);
     doc.text('Reporte de Dashboard Administrativo', 105, 20, { align: 'center' });
     
-    // Información del administrador
     doc.setFontSize(12);
     doc.text(`Generado por: ${this.adminInfo.nombre}`, 14, 35);
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 14, 42);
+    doc.text(`Rango: ${this.reportDateRange.start} a ${this.reportDateRange.end}`, 14, 49);
     
-    // Estadísticas principales
     doc.setFontSize(16);
-    doc.text('Estadísticas Principales', 14, 60);
+    doc.text('Estadísticas Principales', 14, 65);
     
     const statsData = [
       ['Total Tickets', this.stats.totalTickets.toString()],
       ['Tickets Abiertos', this.stats.ticketsAbiertos.toString()],
       ['Tickets Resueltos', this.stats.ticketsResueltos.toString()],
-      ['Tickets Sin Asignar', this.stats.ticketsSinAsignar.toString()],
-      ['SLA Cumplido', this.stats.slaCumplido + '%'],
+      ['Tickets Sin Asignar', this.stats.ticketsSinAsignar?.toString() || '0'],
+      ['SLA Cumplido', `${this.stats.slaCumplido}%`],
       ['Tickets SLA Vencido', this.stats.ticketsSLAVencido.toString()],
       ['Tickets SLA Por Vencer', this.stats.ticketsSLAProximoVencer.toString()],
-      ['Usuarios Activos', this.stats.usuariosActivos.toString()],
-      ['Entidades Activas', this.stats.entidadesActivas.toString()],
+      ['Usuarios Activos', this.stats.usuariosActivos?.toString() || '0'],
+      ['Entidades Activas', this.stats.entidadesActivas?.toString() || '0'],
       ['Tickets Este Mes', this.stats.ticketsEsteMes.toString()]
     ];
     
     autoTable(doc, {
-      startY: 65,
+      startY: 70,
       head: [['Métrica', 'Valor']],
       body: statsData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] }
+      headStyles: { fillColor: [63, 81, 181] }
     });
     
-    // Tickets Recientes
+    const finalY = (doc as any).lastAutoTable.finalY || 100;
     doc.setFontSize(16);
-    doc.text('Tickets Recientes', 14, (doc as any).lastAutoTable.finalY + 20);
+    doc.text('Top Técnicos', 14, finalY + 15);
     
-    const ticketsData = this.ticketsRecientes.map(ticket => [
-      `#${ticket.id}`,
-      ticket.titulo.substring(0, 30) + (ticket.titulo.length > 30 ? '...' : ''),
-      this.getTicketEstado(ticket),
-      ticket.prioridad?.nombre || 'Sin prioridad',
-      new Date(ticket.fecha_creacion).toLocaleDateString('es-ES')
+    const tecnicosData = this.topTecnicos.map(tecnico => [
+      tecnico.nombre,
+      tecnico.tickets_resueltos.toString(),
+      `${tecnico.eficiencia}%`,
+      tecnico.tiempo_promedio
     ]);
     
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 25,
-      head: [['ID', 'Título', 'Estado', 'Prioridad', 'Fecha']],
-      body: ticketsData,
+      startY: finalY + 20,
+      head: [['Nombre', 'Resueltos', 'Eficiencia', 'Tiempo Promedio']],
+      body: tecnicosData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] }
+      headStyles: { fillColor: [33, 150, 243] }
     });
     
-    doc.save(`reporte-dashboard-${new Date().toISOString().split('T')[0]}.pdf`);
+    const fileName = `reporte-dashboard-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   }
 
   private async generateExcelReport(): Promise<void> {
-    // Implementar generación de Excel
-    alert('Funcionalidad de Excel en desarrollo');
+    this.showInfo('Funcionalidad de Excel en desarrollo. Se ha generado PDF en su lugar.');
+    await this.generatePDFReport();
   }
 
-  refreshData() {
-    console.log('🔄 Refrescando datos del dashboard...');
-    this.loadDashboardData();
-  }
-
-  private showSuccessMessage(message: string): void {
-    // Puedes implementar toast notifications aquí
-    alert(message);
-  }
-
-  private showErrorMessage(message: string): void {
-    alert(message);
-  }
-
+  // Contratos
   getDiasRestantes(fechaFin: string): number {
     const fin = new Date(fechaFin);
     const hoy = new Date();
@@ -1082,13 +797,244 @@ export class AdminDashboardComponent implements OnInit {
 
   getContratoEstadoColor(estado: string): string {
     switch (estado) {
-      case 'VIGENTE': return 'bg-green-100 text-green-800 border border-green-200';
-      case 'RENOVADO': return 'bg-green-100 text-green-800 border border-green-200';
-      case 'PENDIENTE_FIRMA': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'SUSPENDIDO': return 'bg-orange-100 text-orange-800 border border-orange-200';
-      case 'FINALIZADO': return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'CANCELADO': return 'bg-red-100 text-red-800 border border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+      case 'VIGENTE': 
+      case 'RENOVADO': 
+        return 'bg-green-100 text-green-800';
+      case 'PENDIENTE_FIRMA': 
+        return 'bg-yellow-100 text-yellow-800';
+      case 'SUSPENDIDO': 
+        return 'bg-orange-100 text-orange-800';
+      case 'FINALIZADO': 
+        return 'bg-blue-100 text-blue-800';
+      case 'CANCELADO': 
+        return 'bg-red-100 text-red-800';
+      default: 
+        return 'bg-gray-100 text-gray-800';
     }
+  }
+
+  // Snackbars
+  private showSuccess(message: string): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration: 3000,
+      panelClass: ['success-snackbar']
+    });
+  }
+
+  private showError(message: string): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration: 5000,
+      panelClass: ['error-snackbar']
+    });
+  }
+
+  private showInfo(message: string): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration: 3000,
+      panelClass: ['info-snackbar']
+    });
+  }
+
+  // Refresh
+  refreshData(): void {
+    this.isLoading = true;
+    Object.keys(this.loadingSections).forEach(key => {
+      (this.loadingSections as any)[key] = true;
+    });
+    this.loadDashboardData();
+    this.showSuccess('Datos actualizados');
+  }
+
+  // Configuración de gráficas
+  private getEfficiencyChartOptions(): ApexOptions {
+    return {
+      series: [{
+        name: 'Tickets',
+        data: []
+      }],
+      chart: {
+        height: 350,
+        type: 'bar',
+        toolbar: {
+          show: true
+        }
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          horizontal: false,
+          columnWidth: '55%',
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        show: true,
+        width: 2,
+        colors: ['transparent']
+      },
+      xaxis: {
+        categories: [],
+      },
+      yaxis: {
+        title: {
+          text: 'Cantidad de Tickets'
+        }
+      },
+      fill: {
+        opacity: 1
+      },
+      colors: ['#3f51b5'],
+      title: {
+        text: 'Tickets por Mes',
+        align: 'left',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      }
+    };
+  }
+
+  private getStatusChartOptions(): ApexOptions {
+    return {
+      series: [{
+        name: 'Tickets',
+        data: []
+      }],
+      chart: {
+        height: 350,
+        type: 'line',
+        toolbar: {
+          show: true
+        }
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      xaxis: {
+        categories: ['Sin Asignar', 'Asignados', 'En Proceso', 'Resueltos', 'Reabiertos'],
+      },
+      yaxis: {
+        title: {
+          text: 'Cantidad'
+        }
+      },
+      colors: ['#ff9800'],
+      title: {
+        text: 'Distribución por Estado',
+        align: 'left',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      }
+    };
+  }
+
+  private getPieChartOptions(): ApexOptions {
+    return {
+      series: [],
+      chart: {
+        type: 'donut',
+        height: 350
+      },
+      labels: ['Urgentes', 'Altas', 'Medias', 'Bajas'],
+      colors: ['#f44336', '#ff9800', '#ffc107', '#4caf50'],
+      legend: {
+        position: 'bottom'
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '45%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total'
+              }
+            }
+          }
+        }
+      },
+      title: {
+        text: 'Distribución por Prioridad',
+        align: 'center',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      }
+    };
+  }
+
+  private getCategoriaChartOptions(): ApexOptions {
+    return {
+      series: [],
+      chart: {
+        type: 'pie',
+        height: 350
+      },
+      labels: [],
+      colors: ['#3f51b5', '#673ab7', '#2196f3', '#4caf50', '#ff9800', '#f44336'],
+      legend: {
+        position: 'bottom'
+      },
+      title: {
+        text: 'Tickets por Categoría',
+        align: 'center',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      }
+    };
+  }
+
+  private getTecnicosChartOptions(): ApexOptions {
+    return {
+      series: [],
+      chart: {
+        height: 350,
+        type: 'bar',
+        toolbar: {
+          show: true
+        }
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          horizontal: false,
+          columnWidth: '55%',
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        categories: [],
+      },
+      yaxis: {
+        title: {
+          text: 'Eficiencia (%)'
+        },
+        max: 100
+      },
+      fill: {
+        opacity: 1
+      },
+      colors: ['#4caf50'],
+      title: {
+        text: 'Top Técnicos por Eficiencia',
+        align: 'left',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      }
+    };
   }
 }

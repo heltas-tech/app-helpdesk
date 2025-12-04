@@ -6,10 +6,11 @@ import {
   BaseConocimiento, 
   BaseConocimientoResponse 
 } from '../../interfaces/base-conocimiento.interface';
+import { MatIcon } from "@angular/material/icon";
 
 @Component({
   selector: 'app-base-conocimiento',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatIcon],
   templateUrl: './base-conocimiento.html',
   styleUrl: './base-conocimiento.scss'
 })

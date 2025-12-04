@@ -21,7 +21,7 @@ import { TicketsTecnicoComponent } from "./tecnico/tickets-tecnico/tickets-tecni
 
 // Importa los nuevos componentes que necesitarás crear
 import { AdminDashboardComponent } from "./inicio-administrador/admin-dashboard.component";
-import { ClienteInicioComponent } from "./inicio-cliente.ts/cliente-inicio.component";
+import { ClienteDashboardComponent } from "./inicio-cliente.ts/cliente-inicio.component";
 import { AccesoDenegadoComponent } from "../seguridad/acceso-denegado/acceso-denegado";
 import { CambioContrasenaObligatorioComponent } from "../seguridad/cambio-contrasena-obligatorio/cambio-contrasena-obligatorio";
 import { RestablecerContrasenaComponent } from "../seguridad/restablecer-contrasena/restablecer-contrasena";
@@ -33,8 +33,7 @@ export default[
         component: Paginas,
         children: [
             // Rutas públicas/comunes
-            {path: '', component: Inicio},
-            {path: 'inicio', component: Inicio},
+           
             {path: 'base-conocimiento', component: BaseConocimientoComponent},
             
             // Rutas de ADMINISTRADOR
@@ -58,12 +57,11 @@ export default[
             {path: 'tickets-tecnico', component: TicketsTecnicoComponent},
             
             // Rutas de CLIENTE
-            {path: 'cliente/inicio', component: ClienteInicioComponent},
+            {path: 'cliente/inicio', component: ClienteDashboardComponent},
             {path: 'crear-ticket', component: CrearTicketComponent},
             {path: 'mis-tickets', component: MisTicketsComponent},
             
-            // Rutas de prueba
-            { path: 'test-route', component: TestRouteComponent },
+            // acceso denegado
             { path: 'acceso-denegado', component: AccesoDenegadoComponent }
 
         ]

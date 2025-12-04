@@ -100,7 +100,7 @@ export class TicketsService {
   getTicketsUrgentes(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/tickets/filtros/urgentes`);
   }
-
+ 
   /** Obtener tickets próximos a vencer */
   getTicketsProximosVencer(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/tickets/filtros/proximos-vencer`);

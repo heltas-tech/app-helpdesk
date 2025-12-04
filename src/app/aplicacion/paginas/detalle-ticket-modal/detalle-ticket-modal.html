@@ -1,7 +1,8 @@
 <div class="modal-container bg-white rounded-xl overflow-hidden w-full h-full flex flex-col shadow-2xl">
   
   <!-- HEADER -->
-  <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white px-6 py-5 flex-shrink-0 shadow-lg">
+  <div class="bg-gray-700 text-white px-6 py-5 flex-shrink-0 border-b border-gray-800">
+
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-2">
@@ -32,12 +33,13 @@
 
         <!-- BOTÓN LOGS -->
         <button 
-          mat-raised-button 
-          (click)="abrirLogs()"
-          class="bg-white text-purple-600 hover:bg-purple-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
-          <mat-icon class="text-lg">history</mat-icon>
-          Ver Logs
-        </button>
+    *ngIf="getUsuarioActual().rol === 'TECNICO' || getUsuarioActual().rol === 'ADMINISTRADOR'"
+    mat-raised-button 
+    (click)="abrirLogs()"
+    class="bg-white text-purple-600 hover:bg-purple-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg">
+    <mat-icon class="text-lg">history</mat-icon>
+    Ver Logs
+  </button>
         
         <!-- BOTÓN REACTIVAR/CERRAR -->
         <button *ngIf="isTicketResuelto()" 
@@ -520,15 +522,17 @@
                 {{getArchivos().length}}
               </span>
             </div>
-            <div class="flex justify-between items-center py-2">
-              <span class="text-sm text-gray-600 flex items-center gap-2">
-                <mat-icon class="text-purple-500 text-lg">history</mat-icon>
-                Logs:
-              </span>
-              <span class="text-sm font-bold text-gray-900 bg-purple-100 px-3 py-1 rounded-full">
-                {{getTotalLogs()}}
-              </span>
-            </div>
+
+            <div *ngIf="getUsuarioActual().rol === 'TECNICO' || getUsuarioActual().rol === 'ADMINISTRADOR'" 
+       class="flex justify-between items-center py-2">
+    <span class="text-sm text-gray-600 flex items-center gap-2">
+      <mat-icon class="text-purple-500 text-lg">history</mat-icon>
+      Logs:
+    </span>
+    <span class="text-sm font-bold text-gray-900 bg-purple-100 px-3 py-1 rounded-full">
+      {{getTotalLogs()}}
+    </span>
+  </div>
           </mat-card-content>
         </mat-card>
 

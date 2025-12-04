@@ -1,64 +1,31 @@
-<!-- entidades-usuarios.html -->
 <div class="p-6 space-y-6 bg-gray-50 min-h-screen">
-  <!-- Título y estadísticas -->
+  <!-- Título -->
   <div class="flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">Asignaciones Entidad-Usuario</h1>
-      <p class="text-sm text-gray-600 mt-1">
-        Gestiona los trabajadores de cada entidad
-      </p>
-    </div>
-    <div class="text-right">
-      <div class="text-sm text-gray-500">
-        Total: {{dataSource.data.length}} asignaciones
-      </div>
-      <div class="text-xs text-gray-400">
-        {{getUsuariosUnicos()}} usuarios únicos • {{getEntidadesUnicas()}} entidades
-      </div>
+    <h1 class="text-2xl font-bold text-gray-800">Asignaciones Entidad-Usuario</h1>
+    <div class="text-sm text-gray-500">
+      Total: {{dataSource.data.length}} asignaciones
     </div>
   </div>
   
   <hr class="border-gray-300">
 
-  <!-- Filtros y botones -->
+  <!-- Filtro y botones -->
   <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
-    <!-- Buscador y Filtros -->
-    <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3">
-      <!-- Buscador -->
-      <div class="relative w-full md:w-64">
-        <input 
-          type="text" 
-          placeholder="Buscar por usuario, entidad, cargo..." 
-          (input)="applyFilter($event)"
-          class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200">
-        <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
-      </div>
-
-      <!-- Filtros rápidos -->
-      <div class="flex space-x-2">
-        <button 
-          (click)="filtrarSoloActivos()"
-          class="px-3 py-2 text-sm border border-green-300 text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition">
-          Solo Activos
-        </button>
-        <button 
-          (click)="filtrarSoloInactivos()"
-          class="px-3 py-2 text-sm border border-red-300 text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition">
-          Solo Inactivos
-        </button>
-        <button 
-          (click)="quitarFiltros()"
-          class="px-3 py-2 text-sm border border-gray-300 text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition">
-          Todos
-        </button>
-      </div>
+    <!-- Buscador -->
+    <div class="relative w-full md:w-1/3">
+      <input 
+        type="text" 
+        placeholder="Buscar por usuario, entidad o cargo..." 
+        (input)="applyFilter($event)"
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200 bg-white placeholder-gray-400">
+      <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
     </div>
 
     <!-- Botones de acción -->
     <div class="flex flex-wrap gap-2 justify-end">
       <button 
         (click)="openModal()" 
-        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
         <mat-icon>add</mat-icon>
         <span>Nueva Asignación</span>
       </button>
@@ -67,14 +34,14 @@
         (click)="exportExcel()" 
         class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
         <mat-icon>grid_on</mat-icon>
-        <span>Excel</span>
+        <span>Exportar Excel</span>
       </button>
 
       <button 
         (click)="exportPDF()" 
         class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
         <mat-icon>picture_as_pdf</mat-icon>
-        <span>PDF</span>
+        <span>Exportar PDF</span>
       </button>
     </div>
   </div>
@@ -85,109 +52,77 @@
       
       <!-- Columna Usuario -->
       <ng-container matColumnDef="usuario">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Usuario
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          USUARIO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-              <mat-icon class="text-purple-600 text-sm">person</mat-icon>
-            </div>
-            <div>
-              <div class="font-medium text-gray-800">{{ element.usuario?.nombre_usuario }}</div>
-              <div class="text-xs text-gray-500">{{ element.usuario?.correo_electronico }}</div>
-              <div class="text-xs text-gray-400 mt-1">
-                Tel: {{ element.usuario?.telefono || 'No especificado' }}
-              </div>
-            </div>
-          </div>
+          <div class="text-gray-800">{{ element.usuario?.nombre_usuario }}</div>
+          <div class="text-sm text-gray-500">{{ element.usuario?.correo_electronico }}</div>
         </td>
       </ng-container>
 
       <!-- Columna Entidad -->
       <ng-container matColumnDef="entidad">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Entidad
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          ENTIDAD
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <mat-icon class="text-blue-600 text-sm">business</mat-icon>
-            </div>
-            <div>
-              <div class="font-medium text-gray-800">{{ element.entidad?.denominacion }}</div>
-              <div class="text-xs text-gray-500">NIT: {{ element.entidad?.nit }}</div>
-              <div class="text-xs mt-1">
-                <span [ngClass]="element.entidad?.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
-                      class="px-2 py-1 rounded-full">
-                  {{ element.entidad?.estado ? 'Activa' : 'Inactiva' }}
-                </span>
-              </div>
-            </div>
-          </div>
+          <div class="text-gray-800">{{ element.entidad?.denominacion }}</div>
+          <div class="text-sm text-gray-500">NIT: {{ element.entidad?.nit }}</div>
         </td>
       </ng-container>
 
       <!-- Columna Cargo -->
       <ng-container matColumnDef="cargo">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Cargo
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          CARGO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="flex items-center space-x-2">
-            <mat-icon class="text-gray-400 text-sm">work</mat-icon>
-            <span class="font-medium text-gray-700">{{ element.cargo }}</span>
-          </div>
-          <div class="text-xs text-gray-500 mt-1">
-            Asignado: {{ element.created_at | date:'dd/MM/yyyy' }}
-          </div>
+          <div class="text-gray-700">{{ element.cargo }}</div>
         </td>
       </ng-container>
 
       <!-- Columna Rol Sistema -->
       <ng-container matColumnDef="rol_sistema">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Rol en Sistema
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ROL SISTEMA
         </th>
-        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
+        <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <span [ngClass]="{
-            'bg-purple-100 text-purple-800': element.usuario?.rol === 'ADMINISTRADOR',
-            'bg-blue-100 text-blue-800': element.usuario?.rol === 'CLIENTE',
+            'bg-indigo-100 text-indigo-800': element.usuario?.rol === 'ADMINISTRADOR',
+            'bg-blue-100 text-blue-800': element.usuario?.rol === 'CLIENTE', 
             'bg-orange-100 text-orange-800': element.usuario?.rol === 'TECNICO'
-          }" class="px-3 py-1 rounded-full text-xs font-semibold">
+          }" class="px-3 py-1 rounded-full text-sm font-semibold">
             {{ element.usuario?.rol }}
           </span>
-          <div class="text-xs text-gray-500 mt-1" *ngIf="!element.usuario?.activo">
-            <span class="bg-red-100 text-red-800 px-2 py-1 rounded">Usuario Inactivo</span>
-          </div>
         </td>
       </ng-container>
 
       <!-- Columna Estado -->
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
-          Estado Asignación
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ESTADO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <button 
             (click)="cambiarEstado(element)" 
             [ngClass]="{
-              'bg-green-100 text-green-800 hover:bg-green-200': element.activo,
-              'bg-red-100 text-red-800 hover:bg-red-200': !element.activo
+              'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300': element.activo,
+              'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300': !element.activo
             }" 
-            class="px-4 py-2 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm flex items-center space-x-2 mx-auto">
+            class="px-3 py-1 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm flex items-center gap-1 mx-auto">
             <mat-icon style="font-size: 16px; height: 16px; width: 16px;">
               {{ element.activo ? 'check_circle' : 'cancel' }}
             </mat-icon>
-            <span>{{ element.activo ? 'Activa' : 'Inactiva' }}</span>
+            {{ element.activo ? 'Activa' : 'Inactiva' }}
           </button>
         </td>
       </ng-container>
 
       <!-- Columna Acciones -->
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
-          Acciones
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ACCIONES
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <div class="flex justify-center gap-2">
@@ -211,7 +146,7 @@
       </ng-container>
 
       <!-- Filas -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-purple-50"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-indigo-50"></tr>
       <tr 
         mat-row 
         *matRowDef="let row; columns: displayedColumns;" 
@@ -220,42 +155,41 @@
     </table>
 
     <!-- Mensaje cuando no hay datos -->
-    <div *ngIf="dataSource.data.length === 0" class="text-center py-12 text-gray-500">
-      <mat-icon class="text-5xl mb-4 text-gray-300">link_off</mat-icon>
-      <p class="text-lg font-medium">No hay asignaciones registradas</p>
-      <p class="text-sm mt-1">Haz clic en "Nueva Asignación" para vincular un usuario con una entidad</p>
+    <div *ngIf="dataSource.data.length === 0" class="text-center py-8 text-gray-500">
+      <mat-icon class="text-4xl mb-2 text-gray-300">assignment</mat-icon>
+      <p class="text-lg">No se encontraron asignaciones</p>
+      <p class="text-sm">Haz clic en "Nueva Asignación" para agregar la primera</p>
     </div>
 
     <!-- Mensaje cuando no hay resultados del filtro -->
     <div *ngIf="dataSource.filteredData.length === 0 && dataSource.data.length > 0" 
-         class="text-center py-12 text-gray-500">
-      <mat-icon class="text-5xl mb-4 text-gray-300">search_off</mat-icon>
-      <p class="text-lg font-medium">No se encontraron resultados</p>
-      <p class="text-sm mt-1">Intenta con otros términos de búsqueda o quita los filtros</p>
+         class="text-center py-8 text-gray-500">
+      <mat-icon class="text-4xl mb-2 text-gray-300">search_off</mat-icon>
+      <p class="text-lg">No se encontraron resultados</p>
+      <p class="text-sm">Intenta con otros términos de búsqueda</p>
     </div>
   </div>
 
   <!-- Paginador -->
   <mat-paginator 
-    [pageSize]="10" 
+    [pageSize]="5" 
     [pageSizeOptions]="[5, 10, 25, 50]"
     showFirstLastButtons
-    class="mt-4 bg-white rounded-lg shadow-sm">
+    class="custom-paginator">
   </mat-paginator>
 
-  <!-- Información del sistema -->
-  <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+  <!-- Información del estado -->
+  <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
     <div class="flex items-start">
-      <mat-icon class="text-purple-500 mr-3 mt-1">info</mat-icon>
+      <mat-icon class="text-indigo-500 mr-3 mt-1">info</mat-icon>
       <div>
-        <h3 class="font-semibold text-purple-800 mb-2">Información sobre asignaciones</h3>
-        <ul class="text-sm text-purple-700 space-y-1">
-          <li>• <span class="font-medium">Un usuario puede trabajar en múltiples entidades</span></li>
-          <li>• <span class="font-medium">Una entidad puede tener múltiples usuarios/trabajadores</span></li>
-          <li>• <span class="font-medium">Estado "Activa":</span> El usuario tiene acceso a la entidad</li>
-          <li>• <span class="font-medium">Estado "Inactiva":</span> El usuario no puede acceder temporalmente</li>
-          <li>• <span class="font-medium">Rol CLIENTE:</span> Normalmente asociado a una entidad específica</li>
-          <li>• <span class="font-medium">Búsqueda:</span> Funciona por usuario, entidad, cargo o rol</li>
+        <h3 class="font-semibold text-indigo-800 mb-1">Información sobre asignaciones</h3>
+        <ul class="text-sm text-indigo-700 space-y-1">
+          <li>• <span class="font-medium">Asignación Entidad-Usuario:</span> Vincula trabajadores con entidades</li>
+          <li>• <span class="font-medium">Usuario:</span> Persona que trabaja en la entidad</li>
+          <li>• <span class="font-medium">Entidad:</span> Empresa u organización</li>
+          <li>• <span class="font-medium">Cargo:</span> Posición del usuario en la entidad</li>
+          <li>• <span class="font-medium">Activa:</span> La asignación está vigente</li>
         </ul>
       </div>
     </div>

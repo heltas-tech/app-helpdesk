@@ -1,212 +1,154 @@
 <div class="profile-container">
   <div class="profile-content">
-    
     <!-- Header -->
     <div class="profile-header">
-      <button 
-        (click)="volver()"
-        class="back-button btn">
-        <mat-icon>arrow_back</mat-icon>
-        <span>
-          Volver al 
-          <span *ngIf="userRol === 'ADMINISTRADOR'">Dashboard</span>
-          <span *ngIf="userRol === 'TECNICO'">Panel Técnico</span>
-          <span *ngIf="userRol === 'CLIENTE'">Mi Panel</span>
-          <span *ngIf="!userRol">Dashboard</span>
-        </span>
-      </button>
-      
-      <div class="header-card">
-        <div class="header-content">
-          <div class="title-section">
-            <h1>Mi Perfil</h1>
-            <p>Gestiona tu información personal y contraseña</p>
-          </div>
-          <div class="role-badge" *ngIf="usuario.rol">
-            {{ usuario.rol }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Formulario Principal -->
-    <div class="profile-card">
-      <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()">
-        
-        <!-- Información Personal -->
-        <div class="section-header personal">
-          <mat-icon>person</mat-icon>
-          <h2>Información Personal</h2>
-        </div>
-        
-        <div class="form-grid">
-          <!-- Nombre -->
-          <div class="form-field-box full-width">
-            <label class="field-label">Nombre completo</label>
-            <mat-form-field appearance="outline" class="w-full">
-              <input 
-                matInput 
-                formControlName="nombre_usuario"
-                [readonly]="!isEditing"
-                placeholder="Ingresa tu nombre completo">
-              <mat-icon matPrefix>badge</mat-icon>
-              <mat-error *ngIf="perfilForm.get('nombre_usuario')?.hasError('required')">
-                El nombre es requerido
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <!-- Email -->
-          <div class="form-field-box full-width">
-            <label class="field-label">Correo electrónico</label>
-            <mat-form-field appearance="outline" class="w-full readonly-field">
-              <input 
-                matInput 
-                formControlName="correo_electronico"
-                type="email"
-                readonly
-                placeholder="Tu correo electrónico">
-              <mat-icon matPrefix>email</mat-icon>
-              <mat-error *ngIf="perfilForm.get('correo_electronico')?.hasError('email')">
-                Formato de email inválido
-              </mat-error>
-            </mat-form-field>
-            <p class="field-hint">El correo electrónico no se puede modificar</p>
-          </div>
-
-          <!-- Teléfono -->
-          <div class="form-field-box full-width">
-            <label class="field-label">Teléfono</label>
-            <mat-form-field appearance="outline" class="w-full">
-              <input 
-                matInput 
-                formControlName="telefono"
-                [readonly]="!isEditing"
-                placeholder="Ingresa tu número de teléfono">
-              <mat-icon matPrefix>phone</mat-icon>
-            </mat-form-field>
-          </div>
-        </div>
-
-        <!-- Cambio de Contraseña -->
-        <div *ngIf="isEditing">
-          <div class="section-header password">
-            <mat-icon>lock</mat-icon>
-            <h2>Cambiar Contraseña</h2>
-          </div>
-          
-          <p class="password-section-hint">Deja estos campos vacíos si no deseas cambiar la contraseña</p>
-          
-          <div class="form-grid">
-            <!-- Nueva Contraseña -->
-            <div class="form-field-box">
-              <label class="field-label">Nueva contraseña</label>
-              <mat-form-field appearance="outline" class="w-full">
-                <input 
-                  matInput 
-                  formControlName="newPassword"
-                  [type]="hideNewPassword ? 'password' : 'text'"
-                  placeholder="Mínimo 6 caracteres">
-                <mat-icon matPrefix>password</mat-icon>
-                <button 
-                  mat-icon-button 
-                  matSuffix
-                  (click)="togglePasswordVisibility('newPassword')"
-                  type="button"
-                  class="password-toggle">
-                  <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-                <mat-error *ngIf="perfilForm.get('newPassword')?.hasError('minlength')">
-                  Mínimo 6 caracteres requeridos
-                </mat-error>
-              </mat-form-field>
-            </div>
-
-            <!-- Confirmar Contraseña -->
-            <div class="form-field-box">
-              <label class="field-label">Confirmar contraseña</label>
-              <mat-form-field appearance="outline" class="w-full">
-                <input 
-                  matInput 
-                  formControlName="confirmPassword"
-                  [type]="hideConfirmPassword ? 'password' : 'text'"
-                  placeholder="Repite la contraseña">
-                <mat-icon matPrefix>password</mat-icon>
-                <button 
-                  mat-icon-button 
-                  matSuffix
-                  (click)="togglePasswordVisibility('confirmPassword')"
-                  type="button"
-                  class="password-toggle">
-                  <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-                <mat-error *ngIf="perfilForm.get('confirmPassword')?.hasError('passwordMismatch')">
-                  Las contraseñas no coinciden
-                </mat-error>
-              </mat-form-field>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botones de Acción -->
-        <div class="action-buttons">
-          <button 
-            *ngIf="!isEditing"
-            type="button"
-            (click)="toggleEdit()"
-            class="btn btn-primary">
-            <mat-icon>edit</mat-icon>
-            <span>Editar Perfil</span>
+      <div class="header-content">
+        <div class="title-section">
+          <button (click)="volver()" class="back-button">
+            <mat-icon>arrow_back</mat-icon>
           </button>
-
-          <div *ngIf="isEditing" class="action-buttons">
-            <button 
-              type="button"
-              (click)="toggleEdit()"
-              class="btn btn-secondary">
-              <mat-icon>cancel</mat-icon>
-              <span>Cancelar</span>
-            </button>
-
-            <button 
-              type="submit"
-              [disabled]="isLoading || !perfilForm.valid"
-              class="btn btn-success">
-              <mat-icon *ngIf="!isLoading">save</mat-icon>
-              <mat-icon *ngIf="isLoading" class="loading-spin">refresh</mat-icon>
-              <span>{{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}</span>
-            </button>
-          </div>
+          <h1>Mi Perfil</h1>
+          <span class="role-badge">{{ usuario.rol }}</span>
         </div>
-      </form>
+        <p class="header-subtitle">Gestión de información personal</p>
+      </div>
     </div>
 
-    <!-- Información de la Cuenta -->
-    <div class="profile-card">
-      <div class="section-header info">
-        <mat-icon>info</mat-icon>
-        <h2>Información de la Cuenta</h2>
+    <!-- Contenido Principal -->
+    <div class="main-content">
+      <!-- Formulario de Perfil -->
+      <div class="card">
+        <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()">
+          <div class="card-header">
+            <mat-icon>person_outline</mat-icon>
+            <h3>Información Personal</h3>
+          </div>
+          
+          <div class="card-body">
+            <div class="form-section">
+              <!-- Nombre -->
+              <div class="form-field">
+                <label>Nombre completo *</label>
+                <mat-form-field appearance="outline">
+                  <mat-icon matPrefix>person</mat-icon>
+                  <input matInput formControlName="nombre_usuario"
+                         [readonly]="!isEditing" placeholder="Nombre completo">
+                </mat-form-field>
+              </div>
+
+              <!-- Email -->
+              <div class="form-field">
+                <label>Correo electrónico</label>
+                <mat-form-field appearance="outline" class="readonly-field">
+                  <mat-icon matPrefix>email</mat-icon>
+                  <input matInput formControlName="correo_electronico"
+                         type="email" readonly placeholder="correo@ejemplo.com">
+                </mat-form-field>
+                <span class="field-note">No modificable</span>
+              </div>
+
+              <!-- Teléfono -->
+              <div class="form-field">
+                <label>Teléfono</label>
+                <mat-form-field appearance="outline">
+                  <mat-icon matPrefix>phone</mat-icon>
+                  <input matInput formControlName="telefono"
+                         [readonly]="!isEditing" placeholder="Teléfono">
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Cambio de Contraseña (solo en edición) -->
+            <div *ngIf="isEditing" class="password-section">
+              <div class="section-title">
+                <mat-icon>lock_outline</mat-icon>
+                <h4>Cambiar Contraseña</h4>
+              </div>
+              <p class="section-hint">Dejar en blanco si no deseas cambiar</p>
+              
+              <div class="form-section">
+                <div class="form-field">
+                  <label>Nueva contraseña</label>
+                  <mat-form-field appearance="outline">
+                    <mat-icon matPrefix>vpn_key</mat-icon>
+                    <input matInput formControlName="newPassword"
+                           [type]="hideNewPassword ? 'password' : 'text'"
+                           placeholder="Mínimo 6 caracteres">
+                    <button mat-icon-button matSuffix type="button"
+                            (click)="togglePasswordVisibility('newPassword')">
+                      <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                    </button>
+                  </mat-form-field>
+                </div>
+
+                <div class="form-field">
+                  <label>Confirmar contraseña</label>
+                  <mat-form-field appearance="outline">
+                    <mat-icon matPrefix>vpn_key</mat-icon>
+                    <input matInput formControlName="confirmPassword"
+                           [type]="hideConfirmPassword ? 'password' : 'text'"
+                           placeholder="Confirmar contraseña">
+                    <button mat-icon-button matSuffix type="button"
+                            (click)="togglePasswordVisibility('confirmPassword')">
+                      <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                    </button>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="action-buttons">
+              <button *ngIf="!isEditing" type="button"
+                      (click)="toggleEdit()" class="btn-edit">
+                <mat-icon>edit</mat-icon>
+                Editar Perfil
+              </button>
+              
+              <div *ngIf="isEditing" class="edit-buttons">
+                <button type="button" (click)="toggleEdit()" class="btn-cancel">
+                  Cancelar
+                </button>
+                <button type="submit" [disabled]="isLoading || !perfilForm.valid"
+                        class="btn-save">
+                  <mat-icon *ngIf="!isLoading">save</mat-icon>
+                  <mat-icon *ngIf="isLoading" class="spinner">refresh</mat-icon>
+                  {{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
-      
-      <div class="info-grid">
-        <div class="info-item">
-          <p>Fecha de registro</p>
-          <p>{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</p>
+
+      <!-- Información de Cuenta -->
+      <div class="card">
+        <div class="card-header">
+          <mat-icon>info_outline</mat-icon>
+          <h3>Información de la Cuenta</h3>
         </div>
-        <div class="info-item">
-          <p>Última modificación</p>
-          <p>{{ usuario.fecha_modificacion | date:'dd/MM/yyyy' }}</p>
-        </div>
-        <div class="info-item">
-          <p>Estado de la cuenta</p>
-          <span 
-            [class]="usuario.activo ? 'status-badge active' : 'status-badge inactive'">
-            {{ usuario.activo ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-        <div class="info-item">
-          <p>Último cambio de contraseña</p>
-          <p>{{ usuario.fecha_ultimo_cambio_password | date:'dd/MM/yyyy' }}</p>
+        
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Fecha de registro</span>
+              <span class="info-value">{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Última modificación</span>
+              <span class="info-value">{{ usuario.fecha_modificacion | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Estado</span>
+              <span [class]="usuario.activo ? 'status-active' : 'status-inactive'">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Último cambio de contraseña</span>
+              <span class="info-value">{{ usuario.fecha_ultimo_cambio_password | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

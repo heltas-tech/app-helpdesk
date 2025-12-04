@@ -1,48 +1,39 @@
-<div class="min-h-screen bg-gray-50 p-6">
-  <!-- Header -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Mis Tickets</h1>
-        <p class="text-gray-600 mt-1">Gestiona y revisa todos tus tickets de soporte</p>
-      </div>
-      <button 
-        class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        routerLink="/crear-ticket">
-        <span class="mr-2">📝</span>
-        Nuevo Ticket
-      </button>
-    </div>
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+  <!-- Header simplificado -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Mis Tickets</h1>
+    <p class="text-gray-600 mt-1">Gestiona y revisa todos tus tickets de soporte</p>
   </div>
 
   <!-- Barra de Búsqueda -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-    <div class="flex gap-4 items-center">
-      <div class="flex-1 relative">
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <div class="flex flex-col md:flex-row gap-4 items-center">
+      <div class="flex-1 relative w-full">
         <input
           type="text"
           [(ngModel)]="textoBusqueda"
           (input)="aplicarBusqueda()"
           placeholder="Buscar en tickets..."
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-        <span class="absolute right-3 top-2 text-gray-400"></span>
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
       </div>
       <button
         (click)="limpiarBusqueda()"
-        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+        class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
         Limpiar
       </button>
     </div>
   </div>
 
   <!-- Tabla de Tickets -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
     <div class="overflow-x-auto">
       <table mat-table [dataSource]="dataSource" class="w-full">
         
         <!-- ID -->
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            ID
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900 font-medium">
             #{{ticket.id}}
           </td>
@@ -50,22 +41,25 @@
 
         <!-- Asunto -->
         <ng-container matColumnDef="asunto">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Asunto</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Asunto
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
             <div class="max-w-xs">
               <div class="text-sm font-medium text-gray-900 truncate">{{ticket.titulo}}</div>
-              <div class="text-xs text-gray-500 truncate" [innerHTML]="getDescripcionCorta(ticket)"></div>
+              <div class="text-xs text-gray-500 truncate mt-1" [innerHTML]="getDescripcionCorta(ticket)"></div>
             </div>
           </td>
         </ng-container>
 
         <!-- Estado -->
         <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Estado</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Estado
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium border"
                   [ngClass]="getEstadoClase(ticket)">
-              <span class="mr-1 text-xs">{{getEstadoIcono(ticket)}}</span>
               {{getEstadoTexto(ticket)}}
             </span>
           </td>
@@ -73,72 +67,89 @@
 
         <!-- Técnico Asignado -->
         <ng-container matColumnDef="tecnico_asignado">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Técnico</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Técnico
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
             <div *ngIf="tieneTecnico(ticket)" class="flex items-center">
-              <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs text-blue-600 mr-2">
-                👤
+              <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-2 text-xs text-gray-600">
+                {{getNombreTecnico(ticket).charAt(0) || 'U'}}
               </div>
               <div>
                 <div class="font-medium">{{getNombreTecnico(ticket)}}</div>
-                <div class="text-xs text-gray-500">{{getEmailTecnico(ticket)}}</div>
+                <div class="text-xs text-gray-500 truncate">{{getEmailTecnico(ticket)}}</div>
               </div>
             </div>
-            <span *ngIf="!tieneTecnico(ticket)" class="text-gray-400 italic">Sin asignar</span>
+            <div *ngIf="!tieneTecnico(ticket)" class="text-gray-400 italic">
+              Sin asignar
+            </div>
           </td>
         </ng-container>
 
         <!-- Prioridad -->
         <ng-container matColumnDef="prioridad">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Prioridad</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Prioridad
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
-            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border"
                   [ngClass]="getPrioridadClase(ticket)">
-              <span class="w-2 h-2 rounded-full mr-1" [ngClass]="getPrioridadPuntoClase(ticket)"></span>
-              {{ticket.prioridad?.nombre || 'No especificada'}}
+              <span class="w-2 h-2 rounded-full mr-1.5" [ngClass]="getPrioridadPuntoClase(ticket)"></span>
+              {{getPrioridadTexto(ticket.prioridad?.nivel)}}
             </span>
           </td>
         </ng-container>
 
         <!-- Categoría -->
         <ng-container matColumnDef="categoria">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Categoría</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Categoría
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
             <div class="max-w-xs truncate">
-              {{ticket.categoria?.nombre || 'General'}}
-              <span *ngIf="ticket.subcategoria?.nombre" class="text-xs text-gray-500">
-                / {{ticket.subcategoria.nombre}}
-              </span>
+              <div>{{ticket.categoria?.nombre || 'General'}}</div>
+              <div *ngIf="ticket.subcategoria?.nombre" class="text-xs text-gray-500">
+                {{ticket.subcategoria.nombre}}
+              </div>
             </div>
           </td>
         </ng-container>
 
         <!-- Fecha Creación -->
         <ng-container matColumnDef="fecha_creacion">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Creado</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Creado
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
-            <div>{{ticket.fecha_creacion | date:'dd/MM/yyyy'}}</div>
-            <div class="text-xs text-gray-500">{{ticket.fecha_creacion | date:'HH:mm'}}</div>
+            <div>
+              <div>{{ticket.fecha_creacion | date:'dd/MM/yyyy'}}</div>
+              <div class="text-xs text-gray-500">{{ticket.fecha_creacion | date:'HH:mm'}}</div>
+            </div>
           </td>
         </ng-container>
 
         <!-- Tiempo Espera -->
         <ng-container matColumnDef="tiempo_espera">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Tiempo</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Tiempo
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
-            {{getTiempoTranscurrido(ticket.fecha_creacion)}}
+            <div>
+              <div>{{getTiempoTranscurrido(ticket.fecha_creacion)}}</div>
+            </div>
           </td>
         </ng-container>
 
         <!-- Acciones -->
         <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Acciones</th>
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Acciones
+          </th>
           <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
             <div class="flex gap-2">
               <button
                 (click)="abrirDetalleTicket(ticket)"
-                class="flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                <span class="mr-1">👁️</span>
+                class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                 Ver
               </button>
             </div>
@@ -147,18 +158,23 @@
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-gray-50"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
-            class="border-b border-gray-200 hover:bg-gray-50 transition-colors"></tr>
+            class="border-b border-gray-100"></tr>
       </table>
     </div>
 
     <!-- Sin resultados -->
     <div *ngIf="dataSource.filteredData.length === 0" class="text-center py-12">
-      <div class="text-6xl mb-4">📭</div>
       <h3 class="text-lg font-semibold text-gray-900 mb-2">No se encontraron tickets</h3>
-      <p class="text-gray-600 mb-4">No hay tickets que coincidan con tu búsqueda</p>
+      <p class="text-gray-600 mb-4" *ngIf="textoBusqueda">
+        No hay tickets que coincidan con "{{textoBusqueda}}"
+      </p>
+      <p class="text-gray-600 mb-4" *ngIf="!textoBusqueda">
+        Aún no tienes tickets creados
+      </p>
       <button 
         (click)="limpiarBusqueda()"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+        *ngIf="textoBusqueda">
         Limpiar búsqueda
       </button>
     </div>
@@ -168,7 +184,7 @@
       [pageSize]="10"
       [pageSizeOptions]="[5, 10, 20, 50]"
       showFirstLastButtons
-      class="bg-gray-50 border-t border-gray-200">
+      class="custom-paginator">
     </mat-paginator>
   </div>
 </div>

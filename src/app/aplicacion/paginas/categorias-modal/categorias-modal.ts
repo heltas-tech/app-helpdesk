@@ -18,7 +18,8 @@ import { CategoriaInterface } from '../../interfaces/categoria.interface';
     MatSlideToggleModule,
     MatIconModule
   ],
-  templateUrl: './categorias-modal.html'
+  templateUrl: './categorias-modal.html',
+  styleUrls: ['./categorias-modal.scss']
 })
 export class CategoriaModal {
   form: FormGroup;

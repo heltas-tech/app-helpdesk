@@ -1,18 +1,13 @@
-import { Component, ViewChild, OnInit, inject } from '@angular/core';
+import { Component, ViewChild, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 
 import Swal from 'sweetalert2';
 import { NgxSpinnerService } from 'ngx-spinner';
@@ -22,12 +17,35 @@ import { TicketDetalleService } from '../../services/ticket-detalle.service';
 import { 
   TicketInterface, 
   TicketUtils, 
-  EstadoTicket,
-  ESTADOS_TICKET_UI 
+  EstadoTicket 
 } from '../../interfaces/ticket.interface';
 import { GlobalFuntions } from '../../services/global-funtions';
 
 import { DetalleTicketModalComponent } from '../detalle-ticket-modal/detalle-ticket-modal';
+
+// Define un tipo parcial que incluya solo las propiedades que necesitas
+type TicketMinimal = Partial<TicketInterface> & {
+  id: number;
+  titulo: string;
+  descripcion?: string;
+  estado_ticket: string;
+  fecha_creacion: string;
+  categoria?: { nombre: string };
+  subcategoria?: { nombre: string };
+  prioridad?: { nivel: number; nombre: string };
+  tecnico?: { nombre_usuario: string; correo_electronico: string };
+  
+  // Propiedades requeridas por TicketUtils
+  estado?: boolean;
+  entidad_usuario_id?: number;
+  categoria_id?: number;
+  prioridad_id?: number;
+  sla_id?: number;
+  contrato_id?: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 @Component({
   selector: 'app-mis-tickets',
@@ -37,22 +55,17 @@ import { DetalleTicketModalComponent } from '../detalle-ticket-modal/detalle-tic
     FormsModule,
     MatPaginatorModule,
     MatTableModule,
-    MatIconModule,
     MatTooltipModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
-    MatProgressBarModule,
     MatDialogModule,
   ],
   templateUrl: './mis-tickets.html',
-  styleUrls: ['./mis-tickets.scss']
-  
+  styleUrls: ['./mis-tickets.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MisTicketsComponent implements OnInit {
-  // ✅ EXPONER TicketUtils para usar en el template
   TicketUtils = TicketUtils;
   EstadoTicket = EstadoTicket;
   
@@ -67,8 +80,7 @@ export class MisTicketsComponent implements OnInit {
     'tiempo_espera',
     'acciones'
   ];
-  dataSource = new MatTableDataSource<any>([]);
-
+  dataSource = new MatTableDataSource<TicketMinimal>([]);
   textoBusqueda: string = '';
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -76,9 +88,10 @@ export class MisTicketsComponent implements OnInit {
   private global = inject(GlobalFuntions);
   private cargando = inject(NgxSpinnerService);
   private ticketsService = inject(TicketsService);
-  private ticketDetalleService = inject(TicketDetalleService);
-  private router = inject(Router);
   private dialog = inject(MatDialog);
+
+  // Cache para información de estado
+  private estadoCache = new Map<string, any>();
 
   ngOnInit() {
     this.global.validacionToken();
@@ -92,18 +105,34 @@ export class MisTicketsComponent implements OnInit {
       next: (res: any) => {
         this.cargando.hide();
         if (res.isSuccess) {
-          // Limpiar y procesar los datos
-          const ticketsProcesados = (res.data || []).map((ticket: any) => ({
-            ...ticket,
-            // Asegurar que no haya estados duplicados
-            estado_ticket: this.limpiarEstado(ticket.estado_ticket)
-          }));
+          const ticketsProcesados = (res.data || []).map((ticket: any) => {
+            // Normaliza el ticket para que tenga la estructura requerida
+            const ticketNormalizado: TicketMinimal = {
+              ...ticket,
+              estado_ticket: this.normalizarEstado(ticket.estado_ticket),
+              // Asegura que las propiedades requeridas existan
+              estado: ticket.estado ?? true,
+              entidad_usuario_id: ticket.entidad_usuario_id ?? 0,
+              categoria_id: ticket.categoria_id ?? 0,
+              prioridad_id: ticket.prioridad_id ?? 0,
+              sla_id: ticket.sla_id ?? 0,
+              contrato_id: ticket.contrato_id ?? 0,
+              created_by: ticket.created_by ?? '',
+              created_at: ticket.created_at ?? new Date().toISOString(),
+              updated_at: ticket.updated_at ?? new Date().toISOString(),
+              // Asegura que las relaciones existan como objetos
+              categoria: ticket.categoria || { nombre: 'General' },
+              subcategoria: ticket.subcategoria || undefined,
+              prioridad: ticket.prioridad || { nivel: 3, nombre: 'Media' },
+              tecnico: ticket.tecnico || undefined
+            };
+            return ticketNormalizado;
+          });
           
           this.dataSource.data = ticketsProcesados;
           this.dataSource.paginator = this.paginator;
           this.configurarFiltros();
-          
-          console.log('✅ Tickets cargados:', this.dataSource.data.length);
+          this.estadoCache.clear();
         } else {
           Swal.fire('Error', res.message || 'Error al cargar tickets', 'error');
         }
@@ -116,36 +145,92 @@ export class MisTicketsComponent implements OnInit {
     });
   }
 
-  // 🔧 CORRECCIÓN: Limpiar estado para evitar duplicados
-  private limpiarEstado(estado: string): string {
+  private normalizarEstado(estado: string): EstadoTicket {
     if (!estado) return EstadoTicket.NUEVO;
     
-    // Remover texto adicional que pueda causar duplicación
-    const estadoLimpio = estado.toString().trim();
+    const estadoLimpio = estado.toString().trim().toUpperCase();
     
-    // Mapear a estados válidos
-    const estadosValidos = [
-      EstadoTicket.NUEVO,
-      EstadoTicket.EN_PROCESO,
-      EstadoTicket.RESUELTO,
-      EstadoTicket.CERRADO,
-      EstadoTicket.REABIERTO,
-      EstadoTicket.EN_ESPERA_CLIENTE,
-      EstadoTicket.EN_ESPERA_TECNICO
-    ];
-    
+    // Mapeo de estados
+    const estadoMap: Record<string, EstadoTicket> = {
+      'NUEVO': EstadoTicket.NUEVO,
+      'PENDIENTE': EstadoTicket.NUEVO,
+      'EN PROCESO': EstadoTicket.EN_PROCESO,
+      'PROCESANDO': EstadoTicket.EN_PROCESO,
+      'RESUELTO': EstadoTicket.RESUELTO,
+      'CERCADO': EstadoTicket.CERRADO,
+      'REABIERTO': EstadoTicket.REABIERTO,
+      'EN ESPERA CLIENTE': EstadoTicket.EN_ESPERA_CLIENTE,
+      'ESPERANDO CLIENTE': EstadoTicket.EN_ESPERA_CLIENTE,
+      'EN ESPERA TECNICO': EstadoTicket.EN_ESPERA_TECNICO,
+      'ESPERANDO TECNICO': EstadoTicket.EN_ESPERA_TECNICO,
+    };
+
     // Buscar coincidencia exacta
-    const estadoEncontrado = estadosValidos.find(e => 
-      estadoLimpio.toLowerCase().includes(e.toLowerCase()) || 
-      e.toLowerCase().includes(estadoLimpio.toLowerCase())
-    );
+    for (const [key, value] of Object.entries(estadoMap)) {
+      if (estadoLimpio === key || estadoLimpio.includes(key.replace(' ', '_'))) {
+        return value;
+      }
+    }
     
-    return estadoEncontrado || EstadoTicket.NUEVO;
+    return EstadoTicket.NUEVO;
+  }
+
+  private crearTicketCompleto(ticket: TicketMinimal): TicketInterface {
+    // Crea un objeto TicketInterface completo a partir del parcial
+    return {
+      id: ticket.id,
+      titulo: ticket.titulo,
+      descripcion: ticket.descripcion,
+      estado: ticket.estado ?? true,
+      estado_ticket: this.normalizarEstado(ticket.estado_ticket),
+      entidad_usuario_id: ticket.entidad_usuario_id ?? 0,
+      tecnico_id: ticket.tecnico?.id,
+      categoria_id: ticket.categoria_id ?? 0,
+      subcategoria_id: ticket.subcategoria?.id,
+      prioridad_id: ticket.prioridad_id ?? 0,
+      sla_id: ticket.sla_id ?? 0,
+      contrato_id: ticket.contrato_id ?? 0,
+      fecha_creacion: ticket.fecha_creacion,
+      fecha_resolucion: undefined,
+      created_by: ticket.created_by ?? '',
+      updated_by: '',
+      created_at: ticket.created_at ?? new Date().toISOString(),
+      updated_at: ticket.updated_at ?? new Date().toISOString(),
+      veces_reabierto: 0,
+      ultima_reapertura: undefined,
+      motivo_reapertura: undefined,
+      
+      // Relaciones
+      entidad_usuario: ticket.entidad_usuario,
+      tecnico: ticket.tecnico,
+      categoria: ticket.categoria,
+      subcategoria: ticket.subcategoria,
+      prioridad: ticket.prioridad,
+      sla: ticket.sla,
+      contrato: ticket.contrato
+    } as TicketInterface;
+  }
+
+  private getTicketCacheKey(ticket: TicketMinimal): string {
+    return `${ticket.id}_${ticket.estado_ticket}`;
+  }
+
+  private getEstadoInfoCached(ticket: TicketMinimal): any {
+    const cacheKey = this.getTicketCacheKey(ticket);
+    
+    if (!this.estadoCache.has(cacheKey)) {
+      // Crea un ticket completo para pasarlo a TicketUtils
+      const ticketCompleto = this.crearTicketCompleto(ticket);
+      const estadoInfo = TicketUtils.getEstadoInfo(ticketCompleto);
+      this.estadoCache.set(cacheKey, estadoInfo);
+    }
+    
+    return this.estadoCache.get(cacheKey);
   }
 
   configurarFiltros() {
-    this.dataSource.filterPredicate = (data: any, filter: string) => {
-      if (!filter) return true;
+    this.dataSource.filterPredicate = (data: TicketMinimal, filter: string) => {
+      if (!filter.trim()) return true;
       
       const searchStr = filter.toLowerCase();
       const searchableFields = [
@@ -175,9 +260,7 @@ export class MisTicketsComponent implements OnInit {
     this.aplicarBusqueda();
   }
 
-  abrirDetalleTicket(ticket: any) {
-    console.log('✅ Abriendo modal para ticket:', ticket.id);
-
+  abrirDetalleTicket(ticket: TicketMinimal) {
     const dialogRef = this.dialog.open(DetalleTicketModalComponent, {
       width: '95vw',
       maxWidth: '1200px',
@@ -193,135 +276,79 @@ export class MisTicketsComponent implements OnInit {
     });
   }
 
-  // 🔧 CORRECCIÓN: Obtener descripción limpia sin HTML
-  getDescripcionCorta(ticket: any): string {
+  getDescripcionCorta(ticket: TicketMinimal): string {
     if (!ticket.descripcion) return '';
     
-    // Remover etiquetas HTML
     const descripcionLimpia = ticket.descripcion
-      .replace(/<[^>]*>/g, '') // Remover tags HTML
-      .replace(/&nbsp;/g, ' ') // Reemplazar espacios HTML
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
     
-    // Limitar longitud
     return descripcionLimpia.length > 60 
-      ? descripcionLimpia.substring(0, 60) + '...' 
+      ? descripcionLimpia.substring(0, 60) + '…' 
       : descripcionLimpia;
   }
 
-  // ==================== MÉTODOS MEJORADOS PARA ESTADOS ====================
-
-  /** Obtener información del estado para UI */
-  getEstadoInfo(ticket: any) {
-    const estadoLimpio = this.limpiarEstado(ticket.estado_ticket);
-    const ticketLimpio = { ...ticket, estado_ticket: estadoLimpio };
-    return TicketUtils.getEstadoInfo(ticketLimpio);
-  }
-
-  /** Obtener texto del estado */
-  getEstadoTexto(ticket: any): string {
-    const estadoInfo = this.getEstadoInfo(ticket);
+  getEstadoTexto(ticket: TicketMinimal): string {
+    const estadoInfo = this.getEstadoInfoCached(ticket);
     return estadoInfo?.label || 'Desconocido';
   }
 
-  /** Obtener clase CSS para el estado */
-  getEstadoClase(ticket: any): string {
-    const estadoInfo = this.getEstadoInfo(ticket);
-    return estadoInfo?.badgeClass || 'bg-gray-100 text-gray-800';
+  getEstadoClase(ticket: TicketMinimal): string {
+    const estadoInfo = this.getEstadoInfoCached(ticket);
+    return estadoInfo?.badgeClass || 'bg-gray-100 text-gray-800 border-gray-200';
   }
 
-  /** Obtener icono del estado (usando emojis como fallback) */
-  getEstadoIcono(ticket: any): string {
-    const estadoInfo = this.getEstadoInfo(ticket);
-    
-    // Si el icono es un nombre de Material, usar emoji como fallback
-    const icon = estadoInfo?.icon;
-    
-    if (!icon) return '❓';
-    
-    // Mapear nombres de Material Icons a emojis
-    const iconMap: { [key: string]: string } = {
-      'check_circle': '✅',
-      'lock': '🔒',
-      'fiber_new': '🆕',
-      'build': '⚡',
-      'autorenew': '🔄',
-      'schedule': '⏳',
-      'error': '❌'
+  getPrioridadClase(ticket: TicketMinimal): string {
+    const nivel = ticket.prioridad?.nivel;
+    const clases: Record<number, string> = {
+      1: 'bg-green-100 text-green-800 border-green-200',
+      2: 'bg-blue-100 text-blue-800 border-blue-200',
+      3: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      4: 'bg-orange-100 text-orange-800 border-orange-200',
+      5: 'bg-red-100 text-red-800 border-red-200'
     };
-    
-    return iconMap[icon] || '📋';
+    return clases[nivel as number] || 'bg-gray-100 text-gray-800 border-gray-200';
   }
 
-  // 🔧 CORRECCIÓN: Clases para prioridad
-  getPrioridadClase(ticket: any): string {
+  getPrioridadPuntoClase(ticket: TicketMinimal): string {
     const nivel = ticket.prioridad?.nivel;
-    switch(nivel) {
-      case 1: return 'bg-green-100 text-green-800';
-      case 2: return 'bg-blue-100 text-blue-800';
-      case 3: return 'bg-yellow-100 text-yellow-800';
-      case 4: return 'bg-orange-100 text-orange-800';
-      case 5: return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    const clases: Record<number, string> = {
+      1: 'bg-green-500',
+      2: 'bg-blue-500',
+      3: 'bg-yellow-500',
+      4: 'bg-orange-500',
+      5: 'bg-red-500'
+    };
+    return clases[nivel as number] || 'bg-gray-500';
   }
 
-  getPrioridadPuntoClase(ticket: any): string {
-    const nivel = ticket.prioridad?.nivel;
-    switch(nivel) {
-      case 1: return 'bg-green-500';
-      case 2: return 'bg-blue-500';
-      case 3: return 'bg-yellow-500';
-      case 4: return 'bg-orange-500';
-      case 5: return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
+  getPrioridadTexto(nivel?: number): string {
+    const niveles: Record<number, string> = {
+      1: 'Muy Baja',
+      2: 'Baja',
+      3: 'Media',
+      4: 'Alta',
+      5: 'Crítica'
+    };
+    return niveles[nivel as number] || 'Sin prioridad';
   }
 
-  /** Verificar si el ticket está reabierto */
-  esReabierto(ticket: any): boolean {
-    return this.limpiarEstado(ticket.estado_ticket) === EstadoTicket.REABIERTO;
+  tieneTecnico(ticket: TicketMinimal): boolean {
+    return !!ticket.tecnico?.nombre_usuario?.trim();
   }
 
-  /** Verificar si el ticket está resuelto */
-  esResuelto(ticket: any): boolean {
-    return this.limpiarEstado(ticket.estado_ticket) === EstadoTicket.RESUELTO;
+  getNombreTecnico(ticket: TicketMinimal): string {
+    const nombre = ticket.tecnico?.nombre_usuario;
+    return (nombre && nombre.trim()) || 'Sin asignar';
   }
 
-  /** Verificar si el ticket está cerrado */
-  esCerrado(ticket: any): boolean {
-    return this.limpiarEstado(ticket.estado_ticket) === EstadoTicket.CERRADO;
-  }
-
-  /** Verificar si el ticket está en proceso */
-  esEnProceso(ticket: any): boolean {
-    return this.limpiarEstado(ticket.estado_ticket) === EstadoTicket.EN_PROCESO;
-  }
-
-  /** Verificar si el ticket está nuevo */
-  esNuevo(ticket: any): boolean {
-    return this.limpiarEstado(ticket.estado_ticket) === EstadoTicket.NUEVO;
-  }
-
-  /** Verificar si el ticket tiene técnico asignado */
-  tieneTecnico(ticket: any): boolean {
-    return !!ticket.tecnico && !!ticket.tecnico.nombre_usuario;
-  }
-
-  getNombreTecnico(ticket: any): string {
-    return ticket.tecnico?.nombre_usuario || 'Sin asignar';
-  }
-
-  getEmailTecnico(ticket: any): string {
+  getEmailTecnico(ticket: TicketMinimal): string {
     return ticket.tecnico?.correo_electronico || '';
   }
 
-  // Utilidades
   getTiempoTranscurrido(fecha: string): string {
     return TicketUtils.getTiempoTranscurrido(fecha);
-  }
-
-  getColorPrioridad(nivel: number): string {
-    return TicketUtils.getColorPrioridad(nivel);
   }
 }

@@ -1,24 +1,21 @@
-<div class="min-h-screen bg-gray-50 p-6">
+<!-- src/app/aplicacion/tecnico/inicio-tecnico/inicio-tecnico.component.html -->
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
   <!-- Header -->
-  <div class="mb-8">
-    <div class="flex justify-between items-start">
+  <div class="mb-6 md:mb-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard Técnico</h1>
-        <p class="text-gray-600 mt-2">Bienvenido de vuelta, <strong class="text-blue-600">{{ tecnicoInfo.nombre }}</strong> 👋</p>
-        <p class="text-sm text-gray-500">{{ tecnicoInfo.fechaIngreso }}</p>
-        <p class="text-xs text-gray-400 mt-1">
-          Especialidad: {{ tecnicoInfo.especialidad }} | 
-          Eficiencia: <span class="font-semibold">{{ stats.eficiencia }}%</span> |
-          Satisfacción: <span class="font-semibold">{{ stats.satisfaccionPromedio }}%</span>
-        </p>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Dashboard Técnico</h1>
+        <p class="text-gray-600 mt-1 md:mt-2">Bienvenido de vuelta, <strong class="text-blue-600">{{ tecnicoInfo.nombre }}</strong></p>
+        <p class="text-sm text-gray-500 mt-1">Última actualización: {{ currentDate | date:'dd/MM/yyyy HH:mm' }}</p>
+        <p class="text-sm text-blue-500 mt-1 font-medium">{{ tecnicoInfo.especialidad }}</p>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2 md:space-x-4 w-full md:w-auto">
         <button 
           (click)="refreshData()"
-          class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          class="flex items-center px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-1 md:flex-none justify-center"
           [disabled]="isLoading">
-          <span class="mr-2">🔄</span>
-          {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
+          <mat-icon class="mr-2 text-white text-sm md:text-base">refresh</mat-icon>
+          <span class="text-sm md:text-base">{{ isLoading ? 'Actualizando...' : 'Actualizar' }}</span>
         </button>
       </div>
     </div>
@@ -27,361 +24,518 @@
   <!-- Loading State -->
   <div *ngIf="isLoading" class="flex justify-center items-center py-20">
     <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <mat-spinner diameter="40" class="mx-auto"></mat-spinner>
       <p class="text-gray-600 mt-4">Cargando datos del dashboard...</p>
+      <div class="mt-2 text-sm text-gray-500">
+        Cargando: 
+        <span *ngIf="loadingSections.stats">estadísticas </span>
+        <span *ngIf="loadingSections.tickets">tickets </span>
+        <span *ngIf="loadingSections.calendario">calendario</span>
+      </div>
     </div>
   </div>
 
   <!-- Dashboard Content -->
-  <div *ngIf="!isLoading" class="space-y-6">
+  <div *ngIf="!isLoading" class="space-y-4 md:space-y-6">
     
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Statistics Cards - Primera fila -->
+    <div class="stats-grid">
       <!-- Tickets Asignados -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div class="stat-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Tickets Asignados</p>
-            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsAsignados }}</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900 mt-1">{{ stats.ticketsAsignados || stats.totalTickets }}</p>
           </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span class="text-2xl">📋</span>
+          <div class="stat-icon blue">
+            <mat-icon class="text-lg md:text-xl">assignment</mat-icon>
           </div>
         </div>
-        <div class="mt-4 flex items-center text-sm text-blue-600">
-          <span>{{ stats.ticketsHoy }} nuevos hoy</span>
+        <div class="mt-2 text-xs text-blue-600">
+          {{ stats.ticketsHoy }} creados hoy
         </div>
       </div>
 
-      <!-- En Proceso -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <!-- Tickets En Proceso -->
+      <div class="stat-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">En Proceso</p>
-            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsEnProceso }}</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900 mt-1">{{ stats.ticketsEnProceso || 0 }}</p>
           </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-            <span class="text-2xl">⚡</span>
+          <div class="stat-icon orange">
+            <mat-icon class="text-lg md:text-xl">build</mat-icon>
           </div>
         </div>
-        <div class="mt-4 flex items-center text-sm text-yellow-600">
-          <span>Trabajando activamente</span>
+        <div class="mt-2 text-xs text-orange-600">
+          Activos y en trabajo
         </div>
       </div>
 
-      <!-- Resueltos -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <!-- Tickets Resueltos -->
+      <div class="stat-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Resueltos</p>
-            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsResueltos }}</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900 mt-1">{{ stats.ticketsResueltos }}</p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <span class="text-2xl">✅</span>
+          <div class="stat-icon green">
+            <mat-icon class="text-lg md:text-xl">check_circle</mat-icon>
           </div>
         </div>
-        <div class="mt-4 flex items-center text-sm text-green-600">
-          <span>{{ stats.eficiencia }}% de eficiencia</span>
+        <div class="mt-2 text-xs text-green-600">
+          {{ stats.ticketsResueltosHoy }} resueltos hoy
         </div>
       </div>
 
-      <!-- Urgentes -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <!-- Eficiencia -->
+      <div class="stat-card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Urgentes</p>
-            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.ticketsUrgentes }}</p>
+            <p class="text-sm font-medium text-gray-600">Eficiencia</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900 mt-1">{{ stats.eficienciaGeneral }}%</p>
           </div>
-          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-            <span class="text-2xl">🚨</span>
-          </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm text-red-600">
-          <span>Requieren atención inmediata</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts and Calendar Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Gráfico de Pastel -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribución de Tickets</h3>
-        <div class="chart-container" style="position: relative; height: 300px;">
-          <canvas baseChart
-            [data]="pieChartData"
-            [options]="pieChartOptions"
-            type="pie">
-          </canvas>
-        </div>
-      </div>
-
-      <!-- Gráfico de Barras -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Actividad Semanal</h3>
-        <div class="chart-container" style="position: relative; height: 300px;">
-          <canvas baseChart
-            [data]="barChartData"
-            [options]="barChartOptions"
-            type="bar">
-          </canvas>
-        </div>
-      </div>
-
-      <!-- Calendario para Técnico -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Mi Calendario</h3>
-          <div class="flex space-x-2">
-            <button (click)="previousMonth()" class="p-1 hover:bg-gray-100 rounded">
-              ‹
-            </button>
-            <button (click)="nextMonth()" class="p-1 hover:bg-gray-100 rounded">
-              ›
-            </button>
+          <div class="stat-icon teal">
+            <mat-icon class="text-lg md:text-xl">trending_up</mat-icon>
           </div>
         </div>
-        <div class="text-center mb-4 font-semibold text-gray-700">
-          {{ getCurrentMonthYear() }}
-        </div>
-        <div class="grid grid-cols-7 gap-1 mb-2">
-          <div class="text-center text-sm font-medium text-gray-500">Dom</div>
-          <div class="text-center text-sm font-medium text-gray-500">Lun</div>
-          <div class="text-center text-sm font-medium text-gray-500">Mar</div>
-          <div class="text-center text-sm font-medium text-gray-500">Mié</div>
-          <div class="text-center text-sm font-medium text-gray-500">Jue</div>
-          <div class="text-center text-sm font-medium text-gray-500">Vie</div>
-          <div class="text-center text-sm font-medium text-gray-500">Sáb</div>
-        </div>
-        <div class="grid grid-cols-7 gap-1">
-          <div *ngFor="let day of calendarDays" 
-               (click)="showDayDetail(day)"
-               class="h-16 border rounded-lg flex flex-col items-center justify-center p-1 text-sm cursor-pointer hover:bg-gray-50 transition-colors relative"
-               [class.bg-blue-50]="day.isToday"
-               [class.border-blue-200]="day.isToday"
-               [class.text-gray-900]="day.isCurrentMonth"
-               [class.text-gray-400]="!day.isCurrentMonth"
-               [class.font-semibold]="day.isToday">
-            <span>{{ day.date.getDate() }}</span>
-            <div *ngIf="day.ticketsCount > 0" 
-                 class="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
-              {{ day.ticketsCount }}
-            </div>
+        <div class="mt-2">
+          <div class="progress-container">
+            <div class="progress-bar teal" [style.width]="stats.eficienciaGeneral + '%'"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Tickets Urgentes -->
-    <div *ngIf="ticketsUrgentes.length > 0" class="bg-white rounded-xl shadow-sm border border-red-200 p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold text-red-900">🚨 Tickets Urgentes 
-          <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full ml-2">{{ ticketsUrgentes.length }}</span>
-        </h3>
-        <button 
-          (click)="navigateToTickets()"
-          class="text-red-600 hover:text-red-800 text-sm font-medium">
-          Gestionar Todos →
-        </button>
+    <!-- Statistics Cards - Segunda fila -->
+    <div class="stats-grid">
+      <!-- Tickets Urgentes -->
+     
+
+      <!-- Tiempo Promedio -->
+      <div class="stat-card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Tiempo Promedio</p>
+            <p class="text-xl font-bold text-gray-900 mt-1">{{ formatTiempo(stats.tiempoPromedioResolucion) }}</p>
+          </div>
+          <div class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+            <mat-icon class="text-teal-600 text-sm">access_time</mat-icon>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-teal-600">
+          Resolución promedio
+        </div>
       </div>
-      
-      <div class="space-y-3">
-        <div *ngFor="let ticket of ticketsUrgentes" 
-             class="border border-red-300 bg-red-50 rounded-lg p-4 hover:border-red-400 transition-colors">
-          <div class="flex justify-between items-start mb-3">
-            <div class="flex-1">
-              <div class="flex items-center space-x-2 mb-2">
-                <h4 class="font-bold text-red-900">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
-                  {{ getPrioridadTexto(ticket.prioridad?.nivel) }}
-                </span>
-              </div>
-              <p class="text-sm text-red-800">{{ ticket.descripcion?.substring(0, 120) }}{{ ticket.descripcion && ticket.descripcion.length > 120 ? '...' : '' }}</p>
-            </div>
+
+      <!-- SLA Vencido -->
+      <div class="stat-card border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-red-600">SLA Vencido</p>
+            <p class="text-xl font-bold text-red-700 mt-1">{{ stats.ticketsSLAVencido }}</p>
           </div>
-          
-          <div class="flex justify-between items-center text-sm text-red-700">
-            <div class="flex items-center space-x-4">
-              <span>Creado: {{ ticket.fecha_creacion | date:'dd/MM/yyyy' }}</span>
-              <span>Hace {{ getTiempoTranscurrido(ticket.fecha_creacion) }}</span>
-            </div>
-            <span class="font-semibold">{{ getTicketEstado(ticket) }}</span>
+          <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+            <mat-icon class="text-red-600 text-sm">timer_off</mat-icon>
           </div>
-          
-          <div class="mt-3">
-            <button (click)="navigateToTicketDetail(ticket.id!)"
-                    class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
-              Ver Detalles
-            </button>
+        </div>
+        <div class="mt-2 text-xs text-red-600">
+          Atención requerida
+        </div>
+      </div>
+
+      <!-- SLA Próximo -->
+      <div class="stat-card border-l-4 border-orange-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-orange-600">SLA Por Vencer</p>
+            <p class="text-xl font-bold text-orange-700 mt-1">{{ stats.ticketsSLAProximoVencer }}</p>
           </div>
+          <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+            <mat-icon class="text-orange-600 text-sm">schedule</mat-icon>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-orange-600">
+          Revisar pronto
         </div>
       </div>
     </div>
 
-    <!-- Tickets Asignados y Recientes -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <!-- Tickets Asignados -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Mis Tickets Activos</h3>
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <!-- Distribución de Tickets -->
+      <div class="chart-container">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribución de Mis Tickets</h3>
+        <apx-chart
+          [series]="distributionChartOptions.series || []"
+          [chart]="distributionChartOptions.chart!"
+          [labels]="distributionChartOptions.labels!"
+          [colors]="distributionChartOptions.colors!"
+          [legend]="distributionChartOptions.legend!"
+          [plotOptions]="distributionChartOptions.plotOptions!"
+          [title]="distributionChartOptions.title!">
+        </apx-chart>
+      </div>
+
+      <!-- Eficiencia Radial -->
+      <div class="chart-container">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mi Eficiencia</h3>
+        <apx-chart
+          [series]="efficiencyChartOptions.series || []"
+          [chart]="efficiencyChartOptions.chart!"
+          [plotOptions]="efficiencyChartOptions.plotOptions!"
+          [labels]="efficiencyChartOptions.labels!"
+          [colors]="efficiencyChartOptions.colors!">
+        </apx-chart>
+      </div>
+    </div>
+
+    <!-- More Charts Section -->
+    <div class="charts-grid">
+      <!-- Tickets por Mes -->
+      <div class="chart-container">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Tickets por Mes</h3>
+        <apx-chart
+          [series]="monthlyChartOptions.series || []"
+          [chart]="monthlyChartOptions.chart!"
+          [dataLabels]="monthlyChartOptions.dataLabels!"
+          [stroke]="monthlyChartOptions.stroke!"
+          [xaxis]="monthlyChartOptions.xaxis!"
+          [yaxis]="monthlyChartOptions.yaxis!"
+          [colors]="monthlyChartOptions.colors!"
+          [fill]="monthlyChartOptions.fill!"
+          [title]="monthlyChartOptions.title!"
+          [plotOptions]="monthlyChartOptions.plotOptions!">
+        </apx-chart>
+      </div>
+
+      <!-- Distribución por Prioridad -->
+      <div class="chart-container">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribución por Prioridad</h3>
+        <apx-chart
+          [series]="priorityChartOptions.series || []"
+          [chart]="priorityChartOptions.chart!"
+          [labels]="priorityChartOptions.labels!"
+          [colors]="priorityChartOptions.colors!"
+          [legend]="priorityChartOptions.legend!"
+          [plotOptions]="priorityChartOptions.plotOptions!"
+          [title]="priorityChartOptions.title!">
+        </apx-chart>
+      </div>
+    </div>
+
+    <!-- Sección de Alertas SLA -->
+    <div class="charts-grid">
+      <!-- Tickets con SLA Vencido -->
+      <div class="alert-section red-alert">
+        <div class="alert-header">
+          <h3 class="text-lg font-semibold text-red-700 flex items-center">
+            <mat-icon class="mr-2 text-red-600">error</mat-icon>
+            Tickets con SLA Vencido
+            <span class="alert-badge">{{ ticketsSLAVencidos.length }}</span>
+          </h3>
           <button 
             (click)="navigateToTickets()"
-            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-            Ver Todos →
+            class="text-red-600 hover:text-red-800 text-sm font-medium flex items-center">
+            Gestionar
+            <mat-icon class="ml-1 text-sm">arrow_forward</mat-icon>
           </button>
         </div>
         
-        <div class="space-y-4">
-          <div *ngFor="let ticket of ticketsAsignados" 
-               class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-            <div class="flex justify-between items-start mb-2">
+        <div class="space-y-3">
+          <div *ngFor="let ticket of ticketsSLAVencidos" 
+               class="ticket-item urgent">
+            <div class="ticket-header">
               <div class="flex-1">
-                <div class="flex items-center space-x-2 mb-1">
-                  <h4 class="font-medium text-gray-900">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
-                  <span class="w-2 h-2 rounded-full {{ getPrioridadColor(ticket.prioridad?.nivel) }}"></span>
-                </div>
-                <p class="text-sm text-gray-600">{{ ticket.descripcion?.substring(0, 80) }}{{ ticket.descripcion && ticket.descripcion.length > 80 ? '...' : '' }}</p>
+                <h4 class="ticket-title cursor-pointer" (click)="navigateToTicketDetail(ticket.id)">
+                  #{{ ticket.id }} - {{ ticket.titulo }}
+                </h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  Cliente: {{ ticket.cliente_nombre || 'N/A' }}
+                </p>
+                <p class="text-sm text-red-600 font-semibold mt-1">
+                  {{ getTextoSLA(ticket.sla_estado) }}
+                </p>
               </div>
-              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ getTicketEstadoColor(getTicketEstado(ticket)) }}">
+              <span class="status-badge" [class]="getBadgeColorEstado(ticket.estado)">
+                {{ getTicketEstado(ticket) }}
+              </span>
+            </div>
+            <div class="ticket-meta">
+              <div class="flex items-center">
+                <span class="priority-dot" [style.background-color]="getColorPrioridad(ticket.prioridad_nivel)"></span>
+                <span class="text-xs ml-1">{{ getNombrePrioridad(ticket.prioridad_nivel) }}</span>
+              </div>
+              <span class="text-xs">{{ getTiempoTranscurrido(ticket.fecha_creacion) }}</span>
+            </div>
+          </div>
+          
+          <div *ngIf="ticketsSLAVencidos.length === 0" class="text-center py-8 text-gray-500">
+            No hay tickets con SLA vencido
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets con SLA Próximo a Vencer -->
+      <div class="alert-section orange-alert">
+        <div class="alert-header">
+          <h3 class="text-lg font-semibold text-orange-700 flex items-center">
+            <mat-icon class="mr-2 text-orange-600">warning</mat-icon>
+            Tickets con SLA Próximo por Vencer
+            <span class="alert-badge orange">{{ ticketsSLAPorVencer.length }}</span>
+          </h3>
+          <button 
+            (click)="navigateToTickets()"
+            class="text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center">
+            Gestionar
+            <mat-icon class="ml-1 text-sm">arrow_forward</mat-icon>
+          </button>
+        </div>
+        
+        <div class="space-y-3">
+          <div *ngFor="let ticket of ticketsSLAPorVencer" 
+               class="ticket-item warning">
+            <div class="ticket-header">
+              <div class="flex-1">
+                <h4 class="ticket-title cursor-pointer" (click)="navigateToTicketDetail(ticket.id)">
+                  #{{ ticket.id }} - {{ ticket.titulo }}
+                </h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  Cliente: {{ ticket.cliente_nombre || 'N/A' }}
+                </p>
+                <p class="text-sm text-orange-600 font-semibold mt-1">
+                  {{ getTextoSLA(ticket.sla_estado) }}
+                </p>
+              </div>
+              <span class="status-badge" [class]="getBadgeColorEstado(ticket.estado)">
+                {{ getTicketEstado(ticket) }}
+              </span>
+            </div>
+            <div class="ticket-meta">
+              <div class="flex items-center">
+                <span class="priority-dot" [style.background-color]="getColorPrioridad(ticket.prioridad_nivel)"></span>
+                <span class="text-xs ml-1">{{ getNombrePrioridad(ticket.prioridad_nivel) }}</span>
+              </div>
+              <span class="text-xs">{{ getTiempoTranscurrido(ticket.fecha_creacion) }}</span>
+            </div>
+          </div>
+          
+          <div *ngIf="ticketsSLAPorVencer.length === 0" class="text-center py-8 text-gray-500">
+            No hay tickets con SLA próximo a vencer
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendario y Tickets Recientes -->
+    <div class="charts-grid">
+      <!-- Calendario -->
+      <div class="calendar-container">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Mi Calendario de Tickets</h3>
+          <div class="flex items-center space-x-2">
+            <button (click)="previousMonth()" class="p-1 hover:bg-gray-100 rounded">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span class="font-medium text-gray-700">{{ getCurrentMonthYear() }}</span>
+            <button (click)="nextMonth()" class="p-1 hover:bg-gray-100 rounded">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Días de la semana -->
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          <div *ngFor="let header of calendarHeaders" 
+               class="text-center text-xs font-medium text-gray-500 py-1">
+            {{ header }}
+          </div>
+        </div>
+        
+        <!-- Semanas del mes -->
+        <div class="calendar-weeks">
+          <div *ngFor="let week of weeks" class="grid grid-cols-7 gap-1 mb-1">
+            <div *ngFor="let day of week" 
+                 [ngClass]="getDayClass(day)"
+                 class="calendar-day p-2 border border-gray-200 rounded min-h-20 flex flex-col cursor-pointer"
+                 (click)="showDayDetail(day)">
+              
+              <!-- Número del día -->
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium" 
+                      [class.text-gray-900]="day.isCurrentMonth" 
+                      [class.text-gray-400]="!day.isCurrentMonth">
+                  {{ day.day }}
+                </span>
+                
+                <!-- Indicador de tickets -->
+                <div *ngIf="day.hasTickets" class="ticket-indicator">
+                  <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                </div>
+              </div>
+              
+              <!-- Mini vista de tickets -->
+              <div *ngIf="day.tickets.length > 0" class="mt-1 flex-grow overflow-hidden">
+                <div *ngFor="let ticket of day.tickets.slice(0, 2)" class="mb-1">
+                  <div class="text-xs truncate" [title]="ticket.titulo">
+                    #{{ ticket.id }}
+                  </div>
+                  <div class="flex items-center mt-0.5">
+                    <span class="w-1.5 h-1.5 rounded-full mr-1" 
+                          [style.background-color]="getColorPrioridad(ticket.prioridad)"></span>
+                    <span class="text-2xs text-gray-500 truncate">{{ getTextoEstado(ticket.estado) }}</span>
+                  </div>
+                </div>
+                <div *ngIf="day.tickets.length > 2" class="text-2xs text-gray-500 text-center mt-1">
+                  +{{ day.tickets.length - 2 }} más
+                </div>
+              </div>
+              
+              <!-- Contador de tickets -->
+              <div *ngIf="day.hasTickets && day.tickets.length > 0" class="mt-1">
+                <div class="text-xs text-center bg-blue-50 text-blue-600 rounded px-1 py-0.5">
+                  {{ day.ticketsCount }} ticket{{ day.ticketsCount !== 1 ? 's' : '' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets Recientes -->
+      <div class="chart-container">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Mis Tickets Recientes</h3>
+          <button 
+            (click)="navigateToTickets()"
+            class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+            Ver todos
+            <mat-icon class="ml-1 text-sm">arrow_forward</mat-icon>
+          </button>
+        </div>
+        
+        <div class="space-y-3">
+          <div *ngFor="let ticket of ticketsRecientes.slice(0, 5)" 
+               class="ticket-item">
+            <div class="ticket-header">
+              <div class="flex-1">
+                <h4 class="ticket-title cursor-pointer" (click)="navigateToTicketDetail(ticket.id)">
+                  #{{ ticket.id }} - {{ ticket.titulo }}
+                </h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  {{ ticket.cliente_nombre || 'N/A' }} • {{ ticket.entidad_nombre || 'N/A' }}
+                </p>
+                <p class="text-sm mt-1" 
+                   [style.color]="getColorSLA(ticket.sla_estado)">
+                  {{ getTextoSLA(ticket.sla_estado) }} 
+                </p>
+              </div>
+              <span class="status-badge" [class]="getBadgeColorEstado(ticket.estado)">
                 {{ getTicketEstado(ticket) }}
               </span>
             </div>
             
-            <div class="flex justify-between items-center text-sm text-gray-500">
-              <div>
-                <span class="font-medium">{{ getNombreCliente(ticket) }}</span>
-                <span class="text-gray-400 ml-2">• {{ getEntidadCliente(ticket) }}</span>
+            <div class="ticket-meta">
+              <div class="flex items-center">
+                <span class="priority-dot" [style.background-color]="getColorPrioridad(ticket.prioridad_nivel)"></span>
+                <span class="text-xs ml-1">{{ ticket.prioridad_nombre }}</span>
               </div>
-              <span>{{ getTiempoTranscurrido(ticket.fecha_creacion) }}</span>
+              <span class="text-xs">{{ getTiempoTranscurrido(ticket.fecha_creacion) }}</span>
             </div>
-            
-            <div class="mt-3">
-              <button (click)="navigateToTicketDetail(ticket.id!)"
-                      class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
-                Ver Detalles
-              </button>
-            </div>
-          </div>
-          
-          <div *ngIf="ticketsAsignados.length === 0" class="text-center py-8 text-gray-500">
-            🎉 No hay tickets asignados pendientes
-          </div>
-        </div>
-      </div>
-
-      <!-- Actividad Reciente -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Mi Actividad Reciente</h3>
-          <span class="text-sm text-gray-500">{{ stats.ticketsEsteMes }} este mes</span>
-        </div>
-        
-        <div class="space-y-3">
-          <div *ngFor="let ticket of ticketsRecientes.slice(0, 8)" 
-               class="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-            <div class="flex items-center space-x-3">
-              <div class="w-2 h-2 rounded-full {{ getPrioridadColor(ticket.prioridad?.nivel) }}"></div>
-              <div>
-                <p class="text-sm font-medium text-gray-900">#{{ ticket.id }} - {{ ticket.titulo }}</p>
-                <p class="text-xs text-gray-500">{{ getNombreCliente(ticket) }} • {{ getTiempoTranscurrido(ticket.fecha_creacion) }}</p>
-              </div>
-            </div>
-            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ getTicketEstadoColor(getTicketEstado(ticket)) }}">
-              {{ getTicketEstado(ticket) }}
-            </span>
           </div>
           
           <div *ngIf="ticketsRecientes.length === 0" class="text-center py-8 text-gray-500">
-            No hay actividad reciente
+            No hay tickets recientes
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Actions Mejoradas -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <!-- Quick Actions -->
+    <div class="chart-container">
       <h3 class="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button (click)="navigateToTickets()" 
-           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">📋</span>
+        <button 
+          (click)="navigateToTickets()"
+          class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+          <mat-icon class="text-blue-600 text-3xl mb-2">assignment</mat-icon>
           <span class="text-sm font-medium text-gray-700">Mis Tickets</span>
-          <span class="text-xs text-gray-500 mt-1">{{ stats.ticketsAsignados }} asignados</span>
         </button>
         
-        <button (click)="navigateToBaseConocimiento()"
-           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">📚</span>
-          <span class="text-sm font-medium text-gray-700">Base Conocimiento</span>
-          <span class="text-xs text-gray-500 mt-1">Soluciones</span>
-        </button>
-        
-        <button (click)="navigateToMiPerfil()"
-           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors group">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">👤</span>
+        <button 
+          (click)="navigateToMiPerfil()"
+          class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
+          <mat-icon class="text-purple-600 text-3xl mb-2">person</mat-icon>
           <span class="text-sm font-medium text-gray-700">Mi Perfil</span>
-          <span class="text-xs text-gray-500 mt-1">{{ tecnicoInfo.especialidad }}</span>
         </button>
         
-        <button (click)="refreshData()"
-           class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors group">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">🔄</span>
+        <button 
+          (click)="navigateToBaseConocimiento()"
+          class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
+          <mat-icon class="text-green-600 text-3xl mb-2">school</mat-icon>
+          <span class="text-sm font-medium text-gray-700">Base Conocimiento</span>
+        </button>
+        
+        <button 
+          (click)="refreshData()"
+          class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
+          <mat-icon class="text-orange-600 text-3xl mb-2">refresh</mat-icon>
           <span class="text-sm font-medium text-gray-700">Actualizar</span>
-          <span class="text-xs text-gray-500 mt-1">Datos en tiempo real</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- Modal de Detalle de Día -->
-  <div *ngIf="showDayDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-semibold text-gray-900">
+  <div *ngIf="showDayDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+      <div class="flex justify-between items-center p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">
           Mis Tickets del {{ selectedDayDate | date:'dd/MM/yyyy' }}
         </h3>
-        <button (click)="closeDayDetailModal()" class="text-gray-400 hover:text-gray-600 text-xl">
-          ✕
+        <button (click)="closeDayDetailModal()" 
+                class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+          <mat-icon>close</mat-icon>
         </button>
       </div>
       
-      <div class="space-y-3">
-        <div *ngFor="let ticket of selectedDayTickets" 
-             class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-          <div class="flex justify-between items-start mb-2">
-            <div class="flex-1">
-              <h4 class="font-medium text-gray-900">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
-              <p class="text-sm text-gray-600 mt-1">
-                <strong>Cliente:</strong> {{ getNombreCliente(ticket) }}
-              </p>
-              <p class="text-sm text-gray-600">
-                <strong>Entidad:</strong> {{ getEntidadCliente(ticket) }}
-              </p>
-              <p class="text-sm text-gray-600">
-                <strong>Prioridad:</strong> {{ getPrioridadTexto(ticket.prioridad?.nivel) }}
-              </p>
-            </div>
-            <div class="text-right space-y-1">
-              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ getTicketEstadoColor(getTicketEstado(ticket)) }}">
-                {{ getTicketEstado(ticket) }}
-              </span>
-              <div class="text-xs text-gray-600">
-                {{ ticket.fecha_creacion | date:'HH:mm' }}
+      <div class="p-6 max-h-[70vh] overflow-y-auto">
+        <div *ngIf="selectedDayTickets.length > 0" class="space-y-3">
+          <div *ngFor="let ticket of selectedDayTickets" 
+               class="border border-gray-200 rounded-lg p-4">
+            <div class="space-y-2">
+              <h4 class="font-medium text-gray-900 text-sm">#{{ ticket.id }} - {{ ticket.titulo }}</h4>
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-1 text-xs rounded-full" 
+                      [style.background-color]="getColorEstado(ticket.estado)"
+                      [style.color]="'white'">
+                  {{ getTextoEstado(ticket.estado) }}
+                </span>
+                <div class="flex items-center">
+                  <span class="w-2 h-2 rounded-full mr-1" 
+                        [style.background-color]="getColorPrioridad(ticket.prioridad)"></span>
+                  <span class="text-xs text-gray-600">{{ getNombrePrioridad(ticket.prioridad) }}</span>
+                </div>
+              </div>
+              <div *ngIf="ticket.tecnico" class="text-xs text-gray-600">
+                Técnico: {{ ticket.tecnico }}
               </div>
             </div>
-          </div>
-          
-          <div class="mt-3">
-            <button (click)="navigateToTicketDetail(ticket.id!)"
-                    class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
-              Ver Detalles Completos
-            </button>
           </div>
         </div>
         
         <div *ngIf="selectedDayTickets.length === 0" class="text-center py-8 text-gray-500">
-          No hay tickets para este día
+          <mat-icon class="text-4xl mb-3 text-gray-300">event_busy</mat-icon>
+          <p class="text-sm">No hay tickets para este día</p>
         </div>
+      </div>
+      
+      <div class="flex justify-end p-6 border-t">
+        <button 
+          (click)="closeDayDetailModal()"
+          class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>

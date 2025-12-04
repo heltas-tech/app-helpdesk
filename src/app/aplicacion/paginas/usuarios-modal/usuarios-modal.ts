@@ -21,7 +21,8 @@ import { UsuarioInterface } from '../../interfaces/usuarios.interface';
     MatIconModule,
     MatSelectModule
   ],
-  templateUrl: './usuarios-modal.html'
+  templateUrl: './usuarios-modal.html',
+  styleUrls: ['./usuarios-modal.scss']
 })
 export class UsuarioModal implements OnInit {
   form: FormGroup;

@@ -30,7 +30,8 @@ import { GlobalFuntions as GlobalFunctionsService } from '../../services/global-
     MatSlideToggleModule,
     MatTooltipModule
   ],
-  templateUrl: './categorias.html'
+  templateUrl: './categorias.html',
+  styleUrls: ['./categorias.scss']
 })
 export class CategoriasComponent {
   displayedColumns: string[] = ['nombre', 'descripcion', 'estado', 'acciones'];

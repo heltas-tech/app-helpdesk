@@ -158,6 +158,59 @@
   margin-top: 8px;
 }
 
+/* ✅ NUEVO: ESTILOS PARA LA LISTA DESPLEGABLE (MAT-SELECT) */
+::ng-deep .mat-select-panel {
+  background: #e3e3e3 !important;
+  border: 2px solid #000 !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    2px 2px 4px #c8c8c8,
+    -2px -2px 4px #fefefe !important;
+  margin-top: 4px !important;
+}
+
+::ng-deep .mat-option {
+  color: #000 !important;
+  font-size: 14px !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  
+  &:hover:not(.mat-option-disabled),
+  &.mat-active {
+    background: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  &:last-child {
+    border-bottom: none !important;
+  }
+}
+
+::ng-deep .mat-option-text {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+::ng-deep .mat-selected {
+  background: rgba(0, 0, 0, 0.2) !important;
+  color: #000 !important;
+  font-weight: bold !important;
+}
+
+::ng-deep .mat-select-arrow {
+  color: #000 !important;
+  border-top-color: #000 !important;
+}
+
+::ng-deep .mat-select-value {
+  color: #000 !important;
+}
+
+::ng-deep .mat-select-trigger {
+  height: auto !important;
+}
+
 /* LOADING INDICATOR */
 .loading-indicator {
   display: flex;
@@ -255,7 +308,7 @@
   font-weight: bold;
 }
 
-/*  CORRECCIÓN: Botones de sugerencias con más espacio */
+/* ✅ CORRECCIÓN: Botones de sugerencias con más espacio */
 .suggestions {
   margin-top: 20px; /* ✅ Más espacio arriba */
   display: flex;

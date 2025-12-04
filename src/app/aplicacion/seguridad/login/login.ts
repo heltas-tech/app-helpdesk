@@ -35,6 +35,9 @@ export class Login {
   registroFormGroup: FormGroup;
   private accesoService = inject(AccesoService);
   public tituloSistema: string = environment.tituloSistema;
+  
+  // Variable para controlar si se muestra la contraseña
+  public mostrarPassword: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -49,6 +52,11 @@ export class Login {
   }
 
   ngOnInit(): void { }
+
+  // Método para alternar entre mostrar/ocultar contraseña
+  toggleMostrarPassword(): void {
+    this.mostrarPassword = !this.mostrarPassword;
+  }
 
   onSubmit(): void {
     if (this.registroFormGroup.invalid) {

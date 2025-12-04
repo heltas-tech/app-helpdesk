@@ -31,7 +31,8 @@ import { UsuarioModal } from '../usuarios-modal/usuarios-modal';
     MatSlideToggleModule,
     MatTooltipModule
   ],
-  templateUrl: './usuarios.html'
+  templateUrl: './usuarios.html',
+  styleUrls: ['./usuarios.scss']
 })
 export class UsuariosComponent {
   displayedColumns: string[] = [

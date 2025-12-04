@@ -1,422 +1,418 @@
-<div class="tickets-container">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-content">
-      <div class="title-section">
-        <h1 class="title">Gestión de Tickets</h1>
-        <p class="subtitle">Administración completa del sistema de tickets</p>
-      </div>
-      <div class="stats">
-        <div class="stat-item">
-          <span class="stat-label">Total:</span>
-          <span class="stat-value">{{dataSource.filteredData.length}}</span>
-        </div>
-      </div>
-    </div>
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+  <!-- Header simplificado -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Gestión de Tickets</h1>
+    <p class="text-gray-600 mt-1">Administración completa del sistema de tickets</p>
   </div>
 
-  <!-- Filtros Rápidos -->
-  <div class="filters-section">
-    <div class="quick-filters">
-      <div class="filter-group">
-        <label class="filter-label">Filtros Rápidos</label>
-        <div class="quick-filter-buttons">
+  <!-- Filtros Rápidos - simplificados -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filtros Rápidos</label>
+        <div class="flex flex-wrap gap-2">
           <button 
-            class="quick-filter-btn"
-            [class.active]="filtrosEspeciales.sinAsignar"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            [class]="filtrosEspeciales.sinAsignar ? 
+              'bg-blue-100 text-blue-700 border border-blue-200' : 
+              'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'"
             (click)="aplicarFiltroEspecial('sinAsignar')">
-            <mat-icon>person_off</mat-icon>
             Sin Asignar
           </button>
           <button 
-            class="quick-filter-btn urgent"
-            [class.active]="filtrosEspeciales.urgentes"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            [class]="filtrosEspeciales.urgentes ? 
+              'bg-red-100 text-red-700 border border-red-200' : 
+              'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'"
             (click)="aplicarFiltroEspecial('urgentes')">
-            <mat-icon>warning</mat-icon>
             Urgentes
           </button>
           <button 
-            class="quick-filter-btn warning"
-            [class.active]="filtrosEspeciales.proximosVencer"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            [class]="filtrosEspeciales.proximosVencer ? 
+              'bg-yellow-100 text-yellow-700 border border-yellow-200' : 
+              'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'"
             (click)="aplicarFiltroEspecial('proximosVencer')">
-            <mat-icon>schedule</mat-icon>
             Próximos a Vencer
           </button>
           <button 
-            class="quick-filter-btn danger"
-            [class.active]="filtrosEspeciales.vencidos"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            [class]="filtrosEspeciales.vencidos ? 
+              'bg-red-100 text-red-700 border border-red-200' : 
+              'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'"
             (click)="aplicarFiltroEspecial('vencidos')">
-            <mat-icon>error</mat-icon>
             Vencidos
           </button>
           <button 
-            class="quick-filter-btn success"
-            [class.active]="filtrosEspeciales.resueltosHoy"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            [class]="filtrosEspeciales.resueltosHoy ? 
+              'bg-green-100 text-green-700 border border-green-200' : 
+              'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'"
             (click)="aplicarFiltroEspecial('resueltosHoy')">
-            <mat-icon>today</mat-icon>
             Resueltos Hoy
           </button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Filtros Avanzados -->
-    <div class="advanced-filters">
-      <div class="filter-row">
-        <!-- Búsqueda -->
-        <div class="filter-item search-item">
-          <label class="filter-label">Buscar</label>
-          <div class="search-container">
-            <input 
-              type="text" 
-              [(ngModel)]="textoBusqueda"
-              (input)="aplicarTodosLosFiltros()"
-              placeholder="Buscar tickets..." 
-              class="search-input">
-            <mat-icon class="search-icon">search</mat-icon>
-            <button 
-              *ngIf="textoBusqueda"
-              (click)="textoBusqueda = ''; aplicarTodosLosFiltros()"
-              class="clear-search">
-              <mat-icon>clear</mat-icon>
-            </button>
-          </div>
-        </div>
-
-        <!-- Estado General -->
-        <div class="filter-item">
-          <label class="filter-label">Estado</label>
-          <select 
-            [(ngModel)]="filtroEstado" 
-            (change)="cargarTickets()"
-            class="filter-select">
-            <option value="activos">Activos</option>
-            <option value="eliminados">Eliminados</option>
-            <option value="todos">Todos</option>
-          </select>
-        </div>
-
-        <!-- Estado Ticket -->
-        <div class="filter-item">
-          <label class="filter-label">Estado Ticket</label>
-          <select 
-            [(ngModel)]="filtroEstadoTicket" 
-            (change)="aplicarTodosLosFiltros()"
-            class="filter-select">
-            <option value="todos">Todos los estados</option>
-            <option value="NUEVO">Nuevo</option>
-            <option value="EN_PROCESO">En Proceso</option>
-            <option value="RESUELTO">Resuelto</option>
-            <option value="REABIERTO">Reabierto</option>
-            <option value="CERRADO">Cerrado</option>
-          </select>
-        </div>
-
-        <!-- Prioridad -->
-        <div class="filter-item">
-          <label class="filter-label">Prioridad</label>
-          <select 
-            [(ngModel)]="filtroPrioridad" 
-            (change)="aplicarTodosLosFiltros()"
-            class="filter-select">
-            <option value="todas">Todas las prioridades</option>
-            <option *ngFor="let prioridad of prioridades" [value]="prioridad.id">
-              {{prioridad.nombre}}
-            </option>
-          </select>
+  <!-- Filtros Avanzados -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <!-- Búsqueda -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+        <div class="relative">
+          <input 
+            type="text" 
+            [(ngModel)]="textoBusqueda"
+            (input)="aplicarTodosLosFiltros()"
+            placeholder="Buscar en tickets..." 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
         </div>
       </div>
 
-      <div class="filter-row">
-        <!-- Técnico -->
-        <div class="filter-item">
-          <label class="filter-label">Técnico</label>
-          <select 
-            [(ngModel)]="filtroTecnico" 
-            (change)="aplicarTodosLosFiltros()"
-            class="filter-select">
-            <option value="todos">Todos los técnicos</option>
-            <option value="sin-asignar">Sin asignar</option>
-            <option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">
-              {{tecnico.nombre_usuario}}
-            </option>
-          </select>
-        </div>
-
-        <!-- Categoría -->
-        <div class="filter-item">
-          <label class="filter-label">Categoría</label>
-          <select 
-            [(ngModel)]="filtroCategoria" 
-            (change)="aplicarTodosLosFiltros()"
-            class="filter-select">
-            <option value="todas">Todas las categorías</option>
-            <option *ngFor="let categoria of categorias" [value]="categoria.id">
-              {{categoria.nombre}}
-            </option>
-          </select>
-        </div>
-
-        <!-- Botones de acción -->
-        <div class="filter-actions">
-          <button 
-            (click)="limpiarFiltros()"
-            class="btn-secondary">
-            <mat-icon>refresh</mat-icon>
-            Limpiar
-          </button>
-          <button 
-            (click)="exportExcel()" 
-            class="btn-success">
-            <mat-icon>description</mat-icon>
-            Excel
-          </button>
-          <button 
-            (click)="exportPDF()" 
-            class="btn-danger">
-            <mat-icon>picture_as_pdf</mat-icon>
-            PDF
-          </button>
-        </div>
+      <!-- Estado General -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select 
+          [(ngModel)]="filtroEstado" 
+          (change)="cargarTickets()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
+          <option value="activos">Activos</option>
+          <option value="eliminados">Eliminados</option>
+          <option value="todos">Todos</option>
+        </select>
       </div>
+
+      <!-- Estado Ticket -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado Ticket</label>
+        <select 
+          [(ngModel)]="filtroEstadoTicket" 
+          (change)="aplicarTodosLosFiltros()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
+          <option value="todos">Todos los estados</option>
+          <option value="NUEVO">Nuevo</option>
+          <option value="EN_PROCESO">En Proceso</option>
+          <option value="RESUELTO">Resuelto</option>
+          <option value="REABIERTO">Reabierto</option>
+          <option value="CERRADO">Cerrado</option>
+        </select>
+      </div>
+
+      <!-- Prioridad -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+        <select 
+          [(ngModel)]="filtroPrioridad" 
+          (change)="aplicarTodosLosFiltros()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
+          <option value="todas">Todas las prioridades</option>
+          <option *ngFor="let prioridad of prioridades" [value]="prioridad.id">
+            {{prioridad.nombre}}
+          </option>
+        </select>
+      </div>
+
+      <!-- Técnico -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Técnico</label>
+        <select 
+          [(ngModel)]="filtroTecnico" 
+          (change)="aplicarTodosLosFiltros()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
+          <option value="todos">Todos los técnicos</option>
+          <option value="sin-asignar">Sin asignar</option>
+          <option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">
+            {{tecnico.nombre_usuario}}
+          </option>
+        </select>
+      </div>
+
+      <!-- Categoría -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+        <select 
+          [(ngModel)]="filtroCategoria" 
+          (change)="aplicarTodosLosFiltros()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors">
+          <option value="todas">Todas las categorías</option>
+          <option *ngFor="let categoria of categorias" [value]="categoria.id">
+            {{categoria.nombre}}
+          </option>
+        </select>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex items-end gap-2">
+        <button 
+          (click)="limpiarFiltros()"
+          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          Limpiar
+        </button>
+        <button 
+          (click)="exportExcel()" 
+          class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          Excel
+        </button>
+        <button 
+          (click)="exportPDF()" 
+          class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+          PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Contador de resultados -->
+    <div class="text-sm text-gray-600">
+      Mostrando {{dataSource.filteredData.length}} de {{dataSource.data.length}} tickets
     </div>
   </div>
 
   <!-- Tabla de Tickets -->
-  <div class="table-container">
-    <table mat-table [dataSource]="dataSource" class="tickets-table">
-      
-      <!-- Columna ID -->
-      <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>ID</th>
-        <td mat-cell *matCellDef="let element" class="id-cell">
-          <div class="id-content">
-            <span class="id-number">#{{element.id}}</span>
-            <span 
-              *ngIf="element.veces_reabierto && element.veces_reabierto > 0"
-              class="reopen-badge"
-              [matTooltip]="'Reabierto ' + element.veces_reabierto + ' veces'">
-              <mat-icon>refresh</mat-icon>
-              {{element.veces_reabierto}}
+  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table mat-table [dataSource]="dataSource" class="w-full">
+        
+        <!-- ID -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            ID
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900 font-medium">
+            <div class="flex items-center gap-2">
+              <span>#{{ticket.id}}</span>
+              <span *ngIf="ticket.veces_reabierto && ticket.veces_reabierto > 0" 
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                {{ticket.veces_reabierto}}x
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- TÍTULO -->
+        <ng-container matColumnDef="titulo">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Título
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
+            <div class="max-w-xs">
+              <div class="text-sm font-medium text-gray-900 truncate">{{ticket.titulo}}</div>
+              <div class="text-xs text-gray-500 truncate mt-1">
+                {{getDescripcionCorta(ticket)}}
+              </div>
+              <div class="text-xs text-blue-600 mt-1">
+                Hace {{getTiempoTranscurrido(ticket.fecha_creacion)}}
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- DESCRIPCIÓN -->
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Descripción
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
+            <div class="max-w-xs truncate">
+              {{ticket.descripcion || 'Sin descripción'}}
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ESTADO -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Estado
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
+            <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium border"
+                  [ngClass]="getEstadoClase(ticket)">
+              {{getEstadoTexto(ticket)}}
             </span>
-          </div>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Columna Título -->
-      <ng-container matColumnDef="titulo">
-        <th mat-header-cell *matHeaderCellDef>Título</th>
-        <td mat-cell *matCellDef="let element" class="title-cell">
-          <div class="title-content">
-            <div class="title-text">{{ element.titulo }}</div>
-            <div class="title-meta">
-              <mat-icon>schedule</mat-icon>
-              {{ getTiempoTranscurrido(element.fecha_creacion) }}
-            </div>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- Columna Descripción -->
-      <ng-container matColumnDef="descripcion">
-        <th mat-header-cell *matHeaderCellDef>Descripción</th>
-        <td mat-cell *matCellDef="let element" class="description-cell">
-          {{ element.descripcion ? (element.descripcion.substring(0, 80) + (element.descripcion.length > 80 ? '...' : '')) : 'Sin descripción' }}
-        </td>
-      </ng-container>
-
-      <!-- Columna Estado -->
-      <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef>Estado</th>
-        <td mat-cell *matCellDef="let element" class="status-cell">
-          <div class="status-content">
-            <div [class]="'status-badge ' + getEstadoInfo(element).badgeClass">
-              <mat-icon>{{getEstadoInfo(element).icon}}</mat-icon>
-              {{getEstadoInfo(element).label}}
-            </div>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- 🆕 NUEVA Columna SLA -->
-      <ng-container matColumnDef="sla">
-        <th mat-header-cell *matHeaderCellDef>SLA</th>
-        <td mat-cell *matCellDef="let element" class="sla-cell">
-          <div class="sla-container" *ngIf="element.estado">
-            <div class="sla-progress">
-              <div class="sla-progress-bar">
-                <div 
-                  class="sla-progress-fill"
-                  [class]="'sla-' + getSlaInfo(element).estado.toLowerCase()"
-                  [style.width.%]="getSlaInfo(element).porcentaje">
+        <!-- SLA - Mantenemos la barrita -->
+        <ng-container matColumnDef="sla">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            SLA
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
+            <div *ngIf="ticket.estado" class="sla-container">
+              <div class="mb-1">
+                <div class="sla-progress-bar">
+                  <div 
+                    class="sla-progress-fill h-1.5 rounded-full transition-all duration-300"
+                    [class]="getSlaClase(ticket)"
+                    [style.width.%]="getSlaPorcentaje(ticket)">
+                  </div>
                 </div>
               </div>
-              <div class="sla-info">
-                <div 
-                  class="sla-badge"
-                  [class]="'sla-' + getSlaInfo(element).estado.toLowerCase()">
-                  <mat-icon>{{getSlaInfo(element).icono}}</mat-icon>
-                  <span class="sla-text">{{getSlaInfo(element).texto}}</span>
-                  <span class="sla-time" *ngIf="getSlaInfo(element).tiempoRestante">
-                    {{getSlaInfo(element).tiempoRestante}}
-                  </span>
-                </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium" [ngClass]="getSlaTextoClase(ticket)">
+                  {{getSlaTexto(ticket)}}
+                </span>
+                <span class="text-xs text-gray-500">
+                  {{getSlaTiempoRestante(ticket)}}
+                </span>
               </div>
             </div>
-          </div>
-          <div *ngIf="!element.estado" class="sla-inactive">
-            <span class="inactive-text">Eliminado</span>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- Columna Técnico -->
-      <ng-container matColumnDef="tecnico">
-        <th mat-header-cell *matHeaderCellDef>Técnico</th>
-        <td mat-cell *matCellDef="let element" class="technician-cell">
-          <div *ngIf="element.tecnico" class="technician-assigned">
-            <div class="technician-name">{{ element.tecnico.nombre_usuario }}</div>
-            <div class="technician-email">{{ element.tecnico.correo_electronico }}</div>
-          </div>
-          <div *ngIf="!element.tecnico" class="technician-unassigned">
-            <span class="unassigned-text">No asignado</span>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- Columna Categoría -->
-      <ng-container matColumnDef="categoria">
-        <th mat-header-cell *matHeaderCellDef>Categoría</th>
-        <td mat-cell *matCellDef="let element" class="category-cell">
-          <div class="category-content">
-            <div class="category-name">{{ element.categoria?.nombre || 'No asignada' }}</div>
-            <div *ngIf="element.subcategoria" class="subcategory">
-              {{ element.subcategoria.nombre }}
+            <div *ngIf="!ticket.estado" class="text-gray-400 italic text-xs">
+              Eliminado
             </div>
-          </div>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Columna Prioridad -->
-      <ng-container matColumnDef="prioridad">
-        <th mat-header-cell *matHeaderCellDef>Prioridad</th>
-        <td mat-cell *matCellDef="let element" class="priority-cell">
-          <div *ngIf="element.prioridad" 
-               [class]="'priority-badge ' + getPrioridadClase(element)">
-            {{ element.prioridad.nombre }}
-            <div class="priority-level">Nivel {{ element.prioridad.nivel }}</div>
-          </div>
-        </td>
-      </ng-container>
+        <!-- TÉCNICO -->
+        <ng-container matColumnDef="tecnico">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Técnico
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
+            <div *ngIf="ticket.tecnico" class="flex items-center">
+              <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-2 text-xs text-gray-600">
+                {{getInicialTecnico(ticket)}}
+              </div>
+              <div class="min-w-0">
+                <div class="font-medium text-gray-900 truncate">{{ticket.tecnico.nombre_usuario}}</div>
+                <div class="text-xs text-gray-500 truncate">{{ticket.tecnico.correo_electronico}}</div>
+              </div>
+            </div>
+            <div *ngIf="!ticket.tecnico" class="text-gray-400 italic">
+              Sin asignar
+            </div>
+          </td>
+        </ng-container>
 
-      <!-- Columna Fecha -->
-      <ng-container matColumnDef="fecha_creacion">
-        <th mat-header-cell *matHeaderCellDef>Fecha Creación</th>
-        <td mat-cell *matCellDef="let element" class="date-cell">
-          <div class="date-content">
-            <div class="date">{{ element.fecha_creacion | date:'dd/MM/yyyy' }}</div>
-            <div class="time">{{ element.fecha_creacion | date:'HH:mm' }}</div>
-          </div>
-        </td>
-      </ng-container>
+        <!-- CATEGORÍA -->
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Categoría
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
+            <div class="max-w-xs">
+              <div>{{ticket.categoria?.nombre || 'General'}}</div>
+              <div *ngIf="ticket.subcategoria?.nombre" class="text-xs text-gray-500 truncate">
+                {{ticket.subcategoria.nombre}}
+              </div>
+            </div>
+          </td>
+        </ng-container>
 
-      <!-- Columna Acciones -->
-      <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef class="actions-header">Acciones</th>
-        <td mat-cell *matCellDef="let element" class="actions-cell">
-          <div class="actions-container">
-            <!-- Conversación -->
-            <button 
-              (click)="abrirConversacion(element)" 
-              class="btn-action chat"
-              matTooltip="Ver conversación">
-              <mat-icon>chat</mat-icon>
-            </button>
+        <!-- PRIORIDAD -->
+        <ng-container matColumnDef="prioridad">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Prioridad
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
+            <div *ngIf="ticket.prioridad">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border"
+                    [ngClass]="getPrioridadClase(ticket)">
+                <span class="w-2 h-2 rounded-full mr-1.5" [ngClass]="getPrioridadPuntoClase(ticket)"></span>
+                {{getPrioridadTexto(ticket.prioridad.nivel)}}
+              </span>
+            </div>
+            <div *ngIf="!ticket.prioridad" class="text-gray-400 italic text-xs">
+              Sin asignar
+            </div>
+          </td>
+        </ng-container>
 
-            <!-- Asignar/Reasignar Técnico -->
-            <button 
-              (click)="asignarTecnico(element)" 
-              class="btn-action assign"
-              matTooltip="Asignar/Reasignar técnico"
-              [disabled]="!element.estado">
-              <mat-icon>person</mat-icon>
-            </button>
+        <!-- FECHA CREACIÓN -->
+        <ng-container matColumnDef="fecha_creacion">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Creado
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3 text-sm text-gray-900">
+            <div>
+              <div>{{ticket.fecha_creacion | date:'dd/MM/yyyy'}}</div>
+              <div class="text-xs text-gray-500">{{ticket.fecha_creacion | date:'HH:mm'}}</div>
+            </div>
+          </td>
+        </ng-container>
 
-            <!-- Marcar Resuelto -->
-            <button 
-              *ngIf="getEstadoInfo(element).value !== 'RESUELTO' && getEstadoInfo(element).value !== 'CERRADO'"
-              (click)="marcarResuelto(element)" 
-              class="btn-action resolve"
-              matTooltip="Marcar como resuelto"
-              [disabled]="!element.estado">
-              <mat-icon>check_circle</mat-icon>
-            </button>
-
-            <!-- Reabrir -->
-            <button 
-              *ngIf="getEstadoInfo(element).value === 'RESUELTO' || getEstadoInfo(element).value === 'CERRADO'"
-              (click)="reabrirTicket(element)" 
-              class="btn-action reopen"
-              matTooltip="Reabrir ticket"
-              [disabled]="!element.estado">
-              <mat-icon>refresh</mat-icon>
-            </button>
-
-            <!-- Eliminar/Restaurar -->
-            <button 
-              *ngIf="element.estado; else restaurarBtn"
-              (click)="delete(element.id)" 
-              class="btn-action delete"
-              matTooltip="Eliminar ticket">
-              <mat-icon>delete</mat-icon>
-            </button>
-
-            <ng-template #restaurarBtn>
-              <button 
-                (click)="restaurar(element.id)" 
-                class="btn-action restore"
-                matTooltip="Restaurar ticket">
-                <mat-icon>restore</mat-icon>
+        <!-- ACCIONES -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-sm font-medium text-gray-900 bg-gray-50">
+            Acciones
+          </th>
+          <td mat-cell *matCellDef="let ticket" class="px-4 py-3">
+            <div class="flex gap-2">
+              <button
+                (click)="abrirConversacion(ticket)"
+                class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                Ver
               </button>
-            </ng-template>
-          </div>
-        </td>
-      </ng-container>
+              <button
+                (click)="asignarTecnico(ticket)"
+                class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                [disabled]="!ticket.estado">
+                Asignar
+              </button>
+              <button
+                *ngIf="getEstadoInfo(ticket).value !== 'RESUELTO' && getEstadoInfo(ticket).value !== 'CERRADO'"
+                (click)="marcarResuelto(ticket)"
+                class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                [disabled]="!ticket.estado">
+                Resolver
+              </button>
+              <button
+                *ngIf="getEstadoInfo(ticket).value === 'RESUELTO' || getEstadoInfo(ticket).value === 'CERRADO'"
+                (click)="reabrirTicket(ticket)"
+                class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                [disabled]="!ticket.estado">
+                Reabrir
+              </button>
+              <button
+                *ngIf="ticket.estado; else restaurarBtn"
+                (click)="delete(ticket.id)"
+                class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm">
+                Eliminar
+              </button>
+              <ng-template #restaurarBtn>
+                <button
+                  (click)="restaurar(ticket.id)"
+                  class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm">
+                  Restaurar
+                </button>
+              </ng-template>
+            </div>
+          </td>
+        </ng-container>
 
-      <!-- Filas -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="header-row"></tr>
-      <tr 
-        mat-row 
-        *matRowDef="let row; columns: displayedColumns;" 
-        [class.deleted-row]="!row.estado"
-        class="data-row">
-      </tr>
-    </table>
-
-    <!-- Estados vacíos -->
-    <div *ngIf="dataSource.data.length === 0" class="empty-state">
-      <mat-icon class="empty-icon">support</mat-icon>
-      <h3>No hay tickets</h3>
-      <p>Los tickets aparecerán aquí cuando sean creados</p>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-gray-50"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+            class="border-b border-gray-100"></tr>
+      </table>
     </div>
 
-    <div *ngIf="dataSource.filteredData.length === 0 && dataSource.data.length > 0" class="empty-state">
-      <mat-icon class="empty-icon">search_off</mat-icon>
-      <h3>No se encontraron resultados</h3>
-      <p>Intenta con otros términos de búsqueda</p>
+    <!-- Sin resultados -->
+    <div *ngIf="dataSource.filteredData.length === 0" class="text-center py-12">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        {{dataSource.data.length === 0 ? 'No hay tickets' : 'No se encontraron tickets'}}
+      </h3>
+      <p class="text-gray-600 mb-4">
+        {{dataSource.data.length === 0 ? 
+          'Los tickets aparecerán aquí cuando sean creados' : 
+          'Intenta ajustar los términos de búsqueda'
+        }}
+      </p>
       <button 
         (click)="limpiarFiltros()"
-        class="btn-primary">
-        Limpiar Filtros
+        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+        *ngIf="textoBusqueda || filtroEstado !== 'activos'">
+        Limpiar filtros
       </button>
     </div>
-  </div>
 
-  <!-- Paginador -->
-  <mat-paginator 
-    [pageSize]="10" 
-    [pageSizeOptions]="[5, 10, 25, 50]"
-    showFirstLastButtons
-    class="paginator">
-  </mat-paginator>
+    <!-- Paginación consistente -->
+    <mat-paginator
+      [pageSize]="10"
+      [pageSizeOptions]="[5, 10, 20, 50]"
+      showFirstLastButtons
+      class="custom-paginator">
+    </mat-paginator>
+  </div>
 </div>

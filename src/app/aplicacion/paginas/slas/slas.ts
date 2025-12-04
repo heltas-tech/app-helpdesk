@@ -94,26 +94,27 @@ export class SlasComponent implements OnInit {
   }
 
   procesarDatosSlas(slasData: any[]) {
-    console.log('🔄 Procesando datos de SLAs:', slasData);
+  console.log('🔄 Procesando datos de SLAs:', slasData);
+  
+  this.dataSource.data = slasData.map((sla: any) => {
+    // sla.prioridades viene del backend transformado
+    const prioridades = sla.prioridades || [];
+    const prioridades_ids = prioridades.map((p: any) => p.id);
     
-    this.dataSource.data = slasData.map((sla: any) => {
-      // sla.prioridades viene del backend transformado
-      const prioridades = sla.prioridades || [];
-      const prioridades_ids = prioridades.map((p: any) => p.id);
-      
-      console.log(`📊 SLA: ${sla.nombre}, Prioridades:`, prioridades);
-      
-      return {
-        ...sla,
-        tipo_sla_nombre: sla.tipo_sla?.nombre || 'No asignado',
-        prioridades_incluidas: prioridades,
-        prioridades_count: prioridades.length,
-        prioridades_ids: prioridades_ids,
-        tiempos_ejemplo: this.obtenerTiemposEjemplo(prioridades)
-      };
-    });
-    this.dataSource.paginator = this.paginator;
-  }
+    console.log(`📊 SLA: ${sla.nombre}, Prioridades:`, prioridades);
+    
+    return {
+      ...sla,
+      tipo_sla_nombre: sla.tipo_sla?.nombre || 'No asignado',
+      prioridades_incluidas: prioridades,
+      prioridades_count: prioridades.length,
+      prioridades_ids: prioridades_ids,
+      tiempos_ejemplo: this.obtenerTiemposEjemplo(prioridades)
+    };
+  });
+  
+  this.actualizarPaginator();
+}
 
   private obtenerTiemposEjemplo(prioridades: PrioridadInterface[]): string {
     if (prioridades.length === 0) return 'Sin tiempos definidos';

@@ -19,7 +19,7 @@ import { NotificacionesCampanitaComponent } from '../shared/notificaciones-campa
     MatIconModule,
     MatMenuModule,
     NotificacionesCampanitaComponent
-],
+  ],
   templateUrl: './paginas.html',
   styleUrls: ['./paginas.scss'],
 })
@@ -40,7 +40,7 @@ export class Paginas implements OnInit {
   isSidebarOpen: boolean = window.innerWidth >= 768;
 
   ngOnInit() {
-      console.log('🔍 PAGINAS: Componente iniciado en ruta:', this.router.url);
+    console.log('🔍 PAGINAS: Componente iniciado en ruta:', this.router.url);
 
     // Mantiene el estado del sidebar según preferencia
     const savedPref = localStorage.getItem('sidebarPref');
@@ -52,7 +52,7 @@ export class Paginas implements OnInit {
     this.global.validacionToken();
 
     // Verificar acceso y obtener rol
-      console.log('🔍 PAGINAS: Iniciando verificación de acceso...');
+    console.log('🔍 PAGINAS: Iniciando verificación de acceso...');
 
     this.verificarAccesoYCargarMenu();
   }
@@ -61,43 +61,39 @@ export class Paginas implements OnInit {
    * Verifica acceso y carga menú según rol
    */
   private verificarAccesoYCargarMenu(): void {
-      console.log('🔍 PAGINAS: Llamando checkAccess()');
+    console.log('🔍 PAGINAS: Llamando checkAccess()');
 
     this.accessControl.checkAccess().subscribe({
       next: (accessData) => {
-              console.log('🔍 PAGINAS: Respuesta de checkAccess:', accessData);
+        console.log('🔍 PAGINAS: Respuesta de checkAccess:', accessData);
 
         if (!accessData) {
-          
           console.error('No se pudo obtener datos de acceso');
           this.router.navigate(['/login']);
           return;
         }
 
         if (!accessData.hasAccess) {
-                  console.log('🔍 PAGINAS: Acceso denegado');
-
+          console.log('🔍 PAGINAS: Acceso denegado');
           this.router.navigate(['/acceso-denegado']);
           return;
         }
 
         this.userRol = accessData.rol;
-              console.log('🔍 PAGINAS: Rol del usuario:', this.userRol);
+        console.log('🔍 PAGINAS: Rol del usuario:', this.userRol);
 
         // Definir sistema
         this.sistemaObjeto = { cod_sistema: this.codSistema };
 
         // Cargar menú según rol
-
         this.cargarMenuPorRol(this.userRol);
 
         // Redirigir al dashboard correspondiente
-              console.log('🔍 PAGINAS: Redirigiendo según rol...');
-
+        console.log('🔍 PAGINAS: Redirigiendo según rol...');
         this.redirigirSegunRol(this.userRol);
       },
       error: (error) => {
-      console.error('🔍 PAGINAS: Error en checkAccess:', error);
+        console.error('🔍 PAGINAS: Error en checkAccess:', error);
         this.router.navigate(['/login']);
       }
     });
@@ -118,7 +114,7 @@ export class Paginas implements OnInit {
         this.menu = this.getMenuCliente();
         break;
       default:
-        this.menu = this.getMenuDefault();
+        this.menu = []; // Sin menú por defecto
         break;
     }
   }
@@ -128,13 +124,13 @@ export class Paginas implements OnInit {
    */
   private redirigirSegunRol(rol: string) {
     const currentRoute = this.router.url;
-    
+
     // Si ya está en una ruta específica de su rol, no redirigir
     if (currentRoute.includes('/admin/') && rol === 'ADMINISTRADOR') return;
     if (currentRoute.includes('/tecnico/') && rol === 'TECNICO') return;
     if (currentRoute.includes('/cliente/') && rol === 'CLIENTE') return;
-    if (currentRoute === '/inicio') return; 
-    if (currentRoute !== '/') return
+    if (currentRoute === '/inicio') return;
+    if (currentRoute !== '/') return;
 
     switch (rol.toUpperCase()) {
       case 'ADMINISTRADOR':
@@ -158,12 +154,30 @@ export class Paginas implements OnInit {
   private getMenuAdministrador() {
     return [
       {
-        menu: 'Panel Principal',
+        menu: 'Dashboard',
         icono: 'dashboard',
         expanded: true,
         hijos: [
-          { menu: 'Dashboard', url: 'admin/dashboard' },
-          { menu: 'Análisis', url: 'analisis' }
+          { menu: 'Panel de Control', url: 'admin/dashboard' }
+        ],
+      },
+      {
+        menu: 'Gestión de Usuarios',
+        icono: 'people',
+        expanded: false,
+        hijos: [
+          { menu: 'Usuarios del Sistema', url: 'usuarios' },
+          { menu: 'Personas', url: 'personas' }
+        ],
+      },
+      {
+        menu: 'Gestión de Clientes',
+        icono: 'business',
+        expanded: false,
+        hijos: [
+          { menu: 'Entidades', url: 'entidades' },
+          { menu: 'Asignación Entidades-Usuarios', url: 'entidades-usuarios' },
+          { menu: 'Contratos', url: 'contratos' }
         ],
       },
       {
@@ -171,50 +185,35 @@ export class Paginas implements OnInit {
         icono: 'confirmation_number',
         expanded: false,
         hijos: [
-          { menu: 'Todos los Tickets', url: 'ticket' },
-          { menu: 'Estadísticas', url: 'analisis' }
+          { menu: 'Todos los Tickets', url: 'ticket' }
+        ],
+      },
+      {
+        menu: 'Configuración del Sistema',
+        icono: 'settings',
+        expanded: false,
+        hijos: [
+          { menu: 'Categorías', url: 'categorias' },
+          { menu: 'Subcategorías', url: 'subcategorias' },
+          { menu: 'Prioridades', url: 'prioridades' },
+          { menu: 'SLAs', url: 'slas' }
         ],
       },
       {
         menu: 'Base de Conocimiento',
         icono: 'menu_book',
         expanded: false,
-        hijos: [{ menu: 'Consultas', url: 'base-conocimiento' }],
-      },
-      {
-        menu: 'Catálogos',
-        icono: 'category',
-        expanded: false,
         hijos: [
-          { menu: 'Categorías', url: 'categorias' },
-          { menu: 'Subcategorías', url: 'subcategorias' },
-          { menu: 'Prioridades', url: 'prioridades' },
+          { menu: 'Gestión', url: 'base-conocimiento' }
         ],
       },
       {
-        menu: 'Entidades y Usuarios',
-        icono: 'business',
+        menu: 'Mi Cuenta',
+        icono: 'person',
         expanded: false,
         hijos: [
-          { menu: 'Entidades', url: 'entidades' },
-          { menu: 'Usuarios', url: 'usuarios' },
-          { menu: 'Asignación', url: 'entidades-usuarios' },
+          { menu: 'Mi Perfil', url: 'mi-perfil' }
         ],
-      },
-      {
-        menu: 'Contratos y SLAs',
-        icono: 'assignment',
-        expanded: false,
-        hijos: [
-          { menu: 'Contratos', url: 'contratos' },
-          { menu: 'SLAs', url: 'slas' },
-        ],
-      },
-      {
-        menu: 'Personas',
-        icono: 'people',
-        expanded: false,
-        hijos: [{ menu: 'Lista de Personas', url: 'personas' }],
       }
     ];
   }
@@ -225,20 +224,29 @@ export class Paginas implements OnInit {
   private getMenuTecnico() {
     return [
       {
-        menu: 'Panel Técnico',
+        menu: 'Panel Principal',
         icono: 'dashboard',
         expanded: true,
         hijos: [
           { menu: 'Inicio', url: 'tecnico/inicio' },
-          { menu: 'Mis Tickets', url: 'tecnico/tickets' }
+          { menu: 'Mis Tickets Asignados', url: 'tecnico/tickets' }
         ],
       },
-      
       {
-        menu: 'Base de Conocimiento',
+        menu: 'Recursos',
         icono: 'menu_book',
         expanded: false,
-        hijos: [{ menu: 'Consultar', url: 'base-conocimiento' }],
+        hijos: [
+          { menu: 'Base de Conocimiento', url: 'base-conocimiento' }
+        ],
+      },
+      {
+        menu: 'Mi Cuenta',
+        icono: 'person',
+        expanded: false,
+        hijos: [
+          { menu: 'Mi Perfil', url: 'mi-perfil' }
+        ],
       }
     ];
   }
@@ -253,38 +261,33 @@ export class Paginas implements OnInit {
         icono: 'dashboard',
         expanded: true,
         hijos: [
-          { menu: 'Inicio', url: 'cliente/inicio' },
-          { menu: 'Mis Tickets', url: 'mis-tickets' }
+          { menu: 'Inicio', url: 'cliente/inicio' }
         ],
       },
       {
-        menu: 'Tickets',
+        menu: 'Mis Solicitudes',
         icono: 'confirmation_number',
         expanded: false,
         hijos: [
           { menu: 'Nuevo Ticket', url: 'crear-ticket' },
-          { menu: 'Historial', url: 'mis-tickets' }
+          { menu: 'Mis Tickets', url: 'mis-tickets' }
         ],
       },
       {
-        menu: 'Base de Conocimiento',
-        icono: 'menu_book',
+        menu: 'Centro de Ayuda',
+        icono: 'help',
         expanded: false,
-        hijos: [{ menu: 'Consultar', url: 'base-conocimiento' }],
-      }
-    ];
-  }
-
-  /**
-   * Menú por defecto
-   */
-  private getMenuDefault() {
-    return [
+        hijos: [
+          { menu: 'Base de Conocimiento', url: 'base-conocimiento' }
+        ],
+      },
       {
-        menu: 'Inicio',
-        icono: 'home',
-        expanded: true,
-        hijos: [{ menu: 'Página Principal', url: 'inicio' }],
+        menu: 'Mi Cuenta',
+        icono: 'person',
+        expanded: false,
+        hijos: [
+          { menu: 'Mi Perfil', url: 'mi-perfil' }
+        ],
       }
     ];
   }

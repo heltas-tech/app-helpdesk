@@ -25,6 +25,7 @@ export class NotificacionesSistemaService {
       .set('pagina', pagina.toString())
       .set('limite', limite.toString());
 
+    console.log('🔍 [SERVICE] Obteniendo mis notificaciones...');
     return this.http.get<NotificacionesPaginadas>(`${this.apiUrl}/mis-notificaciones`, { params });
   }
 
@@ -51,5 +52,17 @@ export class NotificacionesSistemaService {
   // ELIMINAR NOTIFICACIÓN
   eliminarNotificacion(id: number): Observable<{ success: boolean }> {
     return this.http.delete<{ success: boolean }>(`${this.apiUrl}/${id}`);
+  }
+
+  // 🔍 MÉTODO: DIAGNÓSTICO DE FILTRADO
+  obtenerDiagnosticoFiltrado(): Observable<any> {
+    console.log('🔍 [SERVICE] Solicitando diagnóstico de filtrado...');
+    return this.http.get<any>(`${this.apiUrl}/diagnostico-filtrado`);
+  }
+
+  // 🔍 NUEVO MÉTODO: VERIFICACIÓN DIRECTA DE BD
+  verificarBaseDatos(): Observable<any> {
+    console.log('🔍 [SERVICE] Solicitando verificación directa de BD...');
+    return this.http.get<any>(`${this.apiUrl}/verificar-bd`);
   }
 }

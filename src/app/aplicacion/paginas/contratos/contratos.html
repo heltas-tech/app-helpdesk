@@ -18,8 +18,8 @@
         type="text" 
         placeholder="Buscar por número, título, entidad..." 
         (input)="applyFilter($event)"
-        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200">
-      <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px; width: 20px; height: 20px;">search</mat-icon>
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200 bg-white placeholder-gray-400">
+      <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
     </div>
 
     <!-- Botones de acción -->
@@ -29,28 +29,28 @@
         (click)="toggleVistaEliminados()" 
         [ngClass]="mostrarEliminados ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'"
         class="text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
-        <mat-icon style="width: 20px; height: 20px;">{{mostrarEliminados ? 'restore' : 'delete'}}</mat-icon>
+        <mat-icon>{{mostrarEliminados ? 'restore' : 'delete'}}</mat-icon>
         <span>{{mostrarEliminados ? 'Ver Activos' : 'Ver Eliminados'}}</span>
       </button>
 
       <button 
         (click)="openModal()" 
-        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
-        <mat-icon style="width: 20px; height: 20px;">add</mat-icon>
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        <mat-icon>add</mat-icon>
         <span>Nuevo Contrato</span>
       </button>
 
       <button 
         (click)="exportExcel()" 
         class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
-        <mat-icon style="width: 20px; height: 20px;">grid_on</mat-icon>
+        <mat-icon>grid_on</mat-icon>
         <span>Exportar Excel</span>
       </button>
 
       <button 
         (click)="exportPDF()" 
         class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
-        <mat-icon style="width: 20px; height: 20px;">picture_as_pdf</mat-icon>
+        <mat-icon>picture_as_pdf</mat-icon>
         <span>Exportar PDF</span>
       </button>
     </div>
@@ -62,11 +62,11 @@
       
       <!-- Columna Número Contrato -->
       <ng-container matColumnDef="numero_contrato">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          N° Contrato
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          N° CONTRATO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="font-mono font-bold text-purple-700">{{ element.numero_contrato || 'Sin número' }}</div>
+          <div class="font-mono text-gray-800">{{ element.numero_contrato || 'Sin número' }}</div>
           <div class="text-xs text-gray-500 mt-1">
             {{ element.tipo_contrato ? (element.tipo_contrato | titlecase) : 'Sin tipo' }}
           </div>
@@ -75,11 +75,11 @@
 
       <!-- Columna Título -->
       <ng-container matColumnDef="titulo">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Título
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          TÍTULO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="font-medium text-gray-800">{{ element.titulo || 'Sin título' }}</div>
+          <div class="text-gray-800">{{ element.titulo || 'Sin título' }}</div>
           <div class="text-xs text-gray-500 mt-1">
             {{ element.descripcion ? (element.descripcion.substring(0, 50) + (element.descripcion.length > 50 ? '...' : '')) : 'Sin descripción' }}
           </div>
@@ -88,15 +88,15 @@
 
       <!-- Columna Entidad -->
       <ng-container matColumnDef="entidad">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Entidad
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          ENTIDAD
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <div class="flex items-center space-x-2">
             <div class="w-2 h-2 rounded-full" 
                  [ngClass]="element.entidad?.estado ? 'bg-green-500' : 'bg-red-500'"></div>
             <div>
-              <div class="font-medium text-gray-800">{{ element.entidad?.denominacion || 'Sin entidad' }}</div>
+              <div class="text-gray-800">{{ element.entidad?.denominacion || 'Sin entidad' }}</div>
               <div class="text-xs text-gray-500">{{ element.entidad?.nit || '' }}</div>
             </div>
           </div>
@@ -105,15 +105,15 @@
 
       <!-- Columna Estado -->
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
-          Estado
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ESTADO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <button 
             (click)="cambiarEstado(element)" 
             [class]="getEstadoContrato(element.estado_contrato).color" 
             class="px-3 py-1 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm flex items-center space-x-1 mx-auto">
-            <mat-icon class="text-sm" style="font-size: 16px; height: 16px; width: 16px;">
+            <mat-icon style="font-size: 16px; height: 16px; width: 16px;">
               {{ getEstadoContrato(element.estado_contrato).icon }}
             </mat-icon>
             <span>{{ getEstadoContrato(element.estado_contrato).label }}</span>
@@ -123,8 +123,8 @@
 
       <!-- Columna Fechas -->
       <ng-container matColumnDef="fechas">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-left">
-          Vigencia
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          VIGENCIA
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <div class="text-sm">
@@ -152,17 +152,17 @@
 
       <!-- Columna Acciones -->
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef class="bg-purple-100 font-semibold px-4 py-3 text-center">
-          Acciones
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ACCIONES
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
-          <div class="flex justify-center gap-1">
+          <div class="flex justify-center gap-2">
             <!-- Botón Editar -->
             <button 
               (click)="openModal(element)" 
               class="bg-yellow-400 hover:bg-yellow-500 p-2 rounded transition transform hover:scale-110 shadow-md"
               title="Editar contrato">
-              <mat-icon class="text-white" style="font-size: 18px; width: 18px; height: 18px;">edit</mat-icon>
+              <mat-icon class="text-white" style="font-size: 18px;">edit</mat-icon>
             </button>
 
             <!-- Botones PDF -->
@@ -171,7 +171,7 @@
               (click)="generarPdf(element)" 
               class="bg-blue-600 hover:bg-blue-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
               title="Generar PDF">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">description</mat-icon>
+              <mat-icon style="font-size: 18px;">description</mat-icon>
             </button>
 
             <button 
@@ -179,7 +179,7 @@
               (click)="verPdf(element)" 
               class="bg-green-600 hover:bg-green-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
               title="Ver PDF">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">visibility</mat-icon>
+              <mat-icon style="font-size: 18px;">visibility</mat-icon>
             </button>
 
             <button 
@@ -187,7 +187,7 @@
               (click)="descargarPdf(element)" 
               class="bg-indigo-600 hover:bg-indigo-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
               title="Descargar PDF">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">download</mat-icon>
+              <mat-icon style="font-size: 18px;">download</mat-icon>
             </button>
 
             <!-- Botón Eliminar/Restaurar -->
@@ -196,7 +196,7 @@
               (click)="eliminar(element.id)" 
               class="bg-red-600 hover:bg-red-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
               title="Eliminar contrato">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">delete</mat-icon>
+              <mat-icon style="font-size: 18px;">delete</mat-icon>
             </button>
 
             <button 
@@ -204,14 +204,14 @@
               (click)="restaurar(element.id)" 
               class="bg-green-600 hover:bg-green-700 p-2 rounded text-white transition transform hover:scale-110 shadow-md"
               title="Restaurar contrato">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">restore</mat-icon>
+              <mat-icon style="font-size: 18px;">restore</mat-icon>
             </button>
           </div>
         </td>
       </ng-container>
 
       <!-- Filas -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-purple-50"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-indigo-50"></tr>
       <tr 
         mat-row 
         *matRowDef="let row; columns: displayedColumns;" 
@@ -221,7 +221,7 @@
 
     <!-- Mensaje cuando no hay datos -->
     <div *ngIf="dataSource.data.length === 0" class="text-center py-8 text-gray-500">
-      <mat-icon class="text-4xl mb-2 text-gray-300" style="width: 40px; height: 40px;">description</mat-icon>
+      <mat-icon class="text-4xl mb-2 text-gray-300">description</mat-icon>
       <p class="text-lg">No se encontraron contratos</p>
       <p class="text-sm" *ngIf="!mostrarEliminados">Haz clic en "Nuevo Contrato" para agregar el primero</p>
       <p class="text-sm" *ngIf="mostrarEliminados">No hay contratos eliminados</p>
@@ -230,7 +230,7 @@
     <!-- Mensaje cuando no hay resultados del filtro -->
     <div *ngIf="dataSource.filteredData.length === 0 && dataSource.data.length > 0" 
          class="text-center py-8 text-gray-500">
-      <mat-icon class="text-4xl mb-2 text-gray-300" style="width: 40px; height: 40px;">search_off</mat-icon>
+      <mat-icon class="text-4xl mb-2 text-gray-300">search_off</mat-icon>
       <p class="text-lg">No se encontraron resultados</p>
       <p class="text-sm">Intenta con otros términos de búsqueda</p>
     </div>
@@ -238,20 +238,19 @@
 
   <!-- Paginador -->
   <mat-paginator 
-    [pageSize]="10" 
+    [pageSize]="5" 
     [pageSizeOptions]="[5, 10, 25, 50]"
     showFirstLastButtons
-    aria-label="Seleccionar página de contratos"
-    class="mt-4 bg-white rounded-lg shadow-sm">
+    class="custom-paginator">
   </mat-paginator>
 
   <!-- Información del estado -->
-  <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+  <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
     <div class="flex items-start">
-      <mat-icon class="text-purple-500 mr-3 mt-1" style="width: 20px; height: 20px;">info</mat-icon>
+      <mat-icon class="text-indigo-500 mr-3 mt-1">info</mat-icon>
       <div>
-        <h3 class="font-semibold text-purple-800 mb-1">Información sobre contratos</h3>
-        <ul class="text-sm text-purple-700 space-y-1">
+        <h3 class="font-semibold text-indigo-800 mb-1">Información sobre contratos</h3>
+        <ul class="text-sm text-indigo-700 space-y-1">
           <li>• <span class="font-medium">Vigente:</span> Contrato activo y en ejecución</li>
           <li>• <span class="font-medium">Por Vencer:</span> Menos de 30 días para su finalización</li>
           <li>• <span class="font-medium">Vencido:</span> La fecha de fin ha pasado</li>

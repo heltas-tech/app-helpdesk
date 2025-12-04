@@ -1,648 +1,882 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Acceso } from '../../services/acceso';
+import { DashboardService } from '../../services/dashboard.service';
 import { TicketsService } from '../../services/ticket.service';
+import { 
+  DashboardStatsResponse, 
+  RecentTicketResponse, 
+  CalendarMonthResponse,
+  CalendarTicket,
+  EstadoTicket,
+  EstadoSLA,
+  PrioridadTicket
+} from '../../interfaces/dashboard.interface';
 
 // ApexCharts
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { ApexOptions } from 'ng-apexcharts';
 
-// Angular Material
+// Material
+import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatGridListModule } from '@angular/material/grid-list';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatTabsModule } from '@angular/material/tabs';
+
+interface CalendarDayItem {
+  day: number;
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  tickets: CalendarTicket[];
+  ticketsCount: number;
+  hasTickets: boolean;
+}
+
+interface TicketExtended extends RecentTicketResponse {
+  ticketOriginal?: any;
+}
 
 @Component({
-  selector: 'app-cliente-inicio',
+  selector: 'app-cliente-dashboard',
   standalone: true,
   imports: [
     CommonModule,
     RouterModule,
     NgApexchartsModule,
+    MatIconModule,
     MatCardModule,
     MatButtonModule,
-    MatIconModule,
-    MatListModule,
     MatProgressBarModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
-    MatGridListModule,
+    MatChipsModule,
     MatTooltipModule,
-    MatBadgeModule,
-    MatTabsModule
+    MatBadgeModule
   ],
   templateUrl: './cliente-inicio.component.html',
   styleUrls: ['./cliente-inicio.component.scss']
 })
-export class ClienteInicioComponent implements OnInit {
-  usuario: any;
-  today = new Date();
-  isLoading = true;
-  
-  // Métricas REALES del cliente
-  metricas = {
+export class ClienteDashboardComponent implements OnInit, OnDestroy {
+  stats: DashboardStatsResponse = {
+    totalTickets: 0,
     ticketsAbiertos: 0,
     ticketsResueltos: 0,
-    ticketsEnProceso: 0,
-    ticketsUrgentes: 0,
-    tiempoPromedio: '0 días',
-    satisfaccion: 0,
     slaCumplido: 0,
     ticketsEsteMes: 0,
     ticketsHoy: 0,
     ticketsReabiertos: 0,
-    totalTickets: 0,
-    // NUEVAS MÉTRICAS SLA
     ticketsSLAVencido: 0,
     ticketsSLAProximoVencer: 0,
+    ticketsUrgentes: 0,
+    ticketsResueltosHoy: 0,
+    tiempoPromedioResolucion: '0h 0m',
+    satisfaccionPromedio: 0,
     ticketsConSLA: 0
   };
 
-  // Datos REALES
-  ticketsRecientes: any[] = [];
-  todosLosTickets: any[] = [];
-  notificaciones: any[] = [];
+  clienteInfo: any = {};
+  ticketsRecientes: TicketExtended[] = [];
+  ticketsSLAVencidos: TicketExtended[] = [];
+  ticketsSLAPorVencer: TicketExtended[] = [];
   
-  // Calendario
-  calendarDays: any[] = [];
+  calendario: CalendarMonthResponse = {
+    mes: new Date().getMonth(),
+    anio: new Date().getFullYear(),
+    dias: []
+  };
+  
+  isLoading = true;
+  loadingSections = {
+    stats: true,
+    tickets: true,
+    calendario: true
+  };
+  
   currentMonth: Date = new Date();
+  currentDate = new Date();
   monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   
-  // Modal
   showDayDetailModal = false;
-  selectedDayTickets: any[] = [];
+  selectedDayTickets: CalendarTicket[] = [];
   selectedDayDate: Date = new Date();
 
-  // Gráficos
-  donutChartOptions: any = {
-    series: [0, 0, 0, 0],
-    chart: {
-      type: 'donut',
-      height: 350
-    },
-    labels: ['Resueltos', 'En Proceso', 'Abiertos', 'Urgentes'],
-    colors: ['#4CAF50', '#FF9800', '#F44336', '#9C27B0'],
-    legend: {
-      position: 'bottom'
-    },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '65%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Total'
-            }
-          }
-        }
-      }
-    }
-  };
+  public distributionChartOptions: ApexOptions;
+  public monthlyChartOptions: ApexOptions;
+  public priorityChartOptions: ApexOptions;
+  public satisfactionChartOptions: ApexOptions;
 
-  barChartOptions: any = {
-    series: [{
-      name: 'Mis Tickets',
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    }],
-    chart: {
-      type: 'bar',
-      height: 350
-    },
-    xaxis: {
-      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    }
-  };
-
-  radialChartOptions: any = {
-    series: [0],
-    chart: {
-      height: 300,
-      type: 'radialBar',
-    },
-    plotOptions: {
-      radialBar: {
-        hollow: {
-          size: '70%',
-        }
-      }
-    },
-    labels: ['Satisfacción']
-  };
+  calendarDays: CalendarDayItem[] = [];
+  calendarHeaders = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  weeks: CalendarDayItem[][] = [];
 
   constructor(
     private accesoService: Acceso,
-    private ticketsService: TicketsService
-  ) {}
-
-  async ngOnInit() {
-    this.usuario = this.accesoService.obtenerUsuario();
-    await this.loadDashboardData();
+    private dashboardService: DashboardService,
+    private ticketsService: TicketsService,
+    private router: Router
+  ) {
+    this.distributionChartOptions = this.getDistributionChartOptions();
+    this.monthlyChartOptions = this.getMonthlyChartOptions();
+    this.priorityChartOptions = this.getPriorityChartOptions();
+    this.satisfactionChartOptions = this.getSatisfactionChartOptions();
   }
 
-  private async loadDashboardData() {
+  ngOnInit() {
+    this.loadClienteInfo();
+    this.loadDashboardData();
+  }
+
+  ngOnDestroy() {}
+
+  private loadClienteInfo() {
+    const usuario = this.accesoService.obtenerUsuario();
+    this.clienteInfo = {
+      nombre: usuario?.nombre_usuario || 'Cliente',
+      email: usuario?.correo_electronico || '',
+      rol: usuario?.rol || 'CLIENTE'
+    };
+  }
+
+  private loadDashboardData() {
     this.isLoading = true;
-    
-    try {
-      const ticketsResponse = await this.ticketsService.listaMisTicketsCliente().toPromise();
-      
-      if (ticketsResponse?.isSuccess) {
-        if (ticketsResponse.data && Array.isArray(ticketsResponse.data)) {
-          const ticketsReales = ticketsResponse.data;
-          
-          this.todosLosTickets = ticketsReales;
-          this.calcularMetricasReales(ticketsReales);
-          this.calcularMetricasSLA(ticketsReales);
-          this.cargarTicketsRecientesReales(ticketsReales);
-          this.cargarNotificacionesReales(ticketsReales);
-          this.actualizarGraficos();
-          this.generateCalendar();
-          
+    this.loadDashboardStats();
+    this.loadTicketsRecientes();
+    this.loadCalendario();
+    this.loadTicketsSLA();
+  }
+
+  private loadDashboardStats() {
+    this.loadingSections.stats = true;
+    this.dashboardService.getMiDashboard().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.stats = response.data;
+          this.updateChartsWithStats();
         } else {
-          this.cargarDatosDeDemostracion();
+          const usuario = this.accesoService.obtenerUsuario();
+          if (usuario?.id) {
+            this.loadClienteStats();
+          } else {
+            this.loadDataFromTicketsService();
+          }
         }
-        
-      } else {
-        this.cargarDatosDeDemostracion();
-      }
-      
-    } catch (error: any) {
-      this.cargarDatosDeDemostracion();
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  private calcularMetricasReales(tickets: any[]) {
-    // Cálculos con datos REALES
-    this.metricas.ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado).length;
-    this.metricas.ticketsEnProceso = tickets.filter((t: any) => !t.fecha_resolucion && t.tecnico_id && t.estado).length;
-    this.metricas.ticketsAbiertos = tickets.filter((t: any) => !t.fecha_resolucion && !t.tecnico_id && t.estado).length;
-    this.metricas.ticketsUrgentes = tickets.filter((t: any) => t.prioridad?.nivel >= 3 && t.estado).length;
-    this.metricas.ticketsReabiertos = tickets.filter((t: any) => t.veces_reabierto > 0 && t.estado).length;
-    this.metricas.totalTickets = tickets.filter((t: any) => t.estado).length;
-
-    // Tiempo promedio REAL
-    this.calcularTiempoPromedioReal(tickets);
-    
-    // Satisfacción REAL
-    this.metricas.satisfaccion = this.calcularSatisfaccionReal(tickets);
-
-    // SLA REAL
-    this.metricas.slaCumplido = this.calcularSLAReal(tickets);
-
-    // Tickets este mes REAL
-    const esteMes = new Date().getMonth();
-    const esteAnio = new Date().getFullYear();
-    this.metricas.ticketsEsteMes = tickets.filter((t: any) => {
-      const fecha = new Date(t.fecha_creacion);
-      return fecha.getMonth() === esteMes && fecha.getFullYear() === esteAnio && t.estado;
-    }).length;
-
-    // Tickets hoy REAL
-    const hoy = new Date().toDateString();
-    this.metricas.ticketsHoy = tickets.filter((t: any) => 
-      new Date(t.fecha_creacion).toDateString() === hoy && t.estado
-    ).length;
-  }
-
-  private calcularMetricasSLA(tickets: any[]) {
-    let ticketsSLAVencido = 0;
-    let ticketsSLAProximoVencer = 0;
-    let ticketsConSLA = 0;
-
-    tickets.forEach((ticket: any) => {
-      if (ticket.estado && !ticket.fecha_resolucion) {
-        const estadoSLA = this.verificarEstadoSLA(ticket);
-        
-        if (estadoSLA === 'vencido') {
-          ticketsSLAVencido++;
-        } else if (estadoSLA === 'proximo_vencer') {
-          ticketsSLAProximoVencer++;
-        }
-        
-        if (ticket.sla) {
-          ticketsConSLA++;
-        }
+        this.loadingSections.stats = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando estadísticas:', error);
+        this.loadingSections.stats = false;
+        this.checkAllLoaded();
+        this.loadDataFromTicketsService();
       }
     });
-
-    this.metricas.ticketsSLAVencido = ticketsSLAVencido;
-    this.metricas.ticketsSLAProximoVencer = ticketsSLAProximoVencer;
-    this.metricas.ticketsConSLA = ticketsConSLA;
   }
 
-  private verificarEstadoSLA(ticket: any): string {
-    if (!ticket.sla?.tiempo_resolucion || !ticket.fecha_creacion) {
-      return 'sin_sla';
-    }
+  private loadClienteStats() {
+    this.dashboardService.getDashboardCliente().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.stats = response.data;
+          this.updateChartsWithStats();
+        }
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando stats cliente:', error);
+        this.loadDataFromTicketsService();
+      }
+    });
+  }
 
-    const fechaCreacion = new Date(ticket.fecha_creacion);
-    const ahora = new Date();
-    
-    const horasTranscurridas = (ahora.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60);
-    const horasSLA = ticket.sla.tiempo_resolucion;
-    const horasRestantes = horasSLA - horasTranscurridas;
-
-    if (horasRestantes <= 0) {
-      return 'vencido';
-    } else if (horasRestantes <= 24) {
-      return 'proximo_vencer';
-    } else {
-      return 'en_tiempo';
+  private async loadDataFromTicketsService() {
+    try {
+      const ticketsResponse = await this.ticketsService.lista().toPromise();
+      if (ticketsResponse?.isSuccess && ticketsResponse.data) {
+        const ticketsCliente = Array.isArray(ticketsResponse.data) 
+          ? ticketsResponse.data.filter((t: any) => t.estado)
+          : [];
+        this.calcularStatsManual(ticketsCliente);
+        this.cargarTicketsRecientesManual(ticketsCliente);
+        this.actualizarGraficosManual();
+      }
+    } catch (error) {
+      console.error('Error cargando tickets:', error);
     }
   }
 
-  private calcularTiempoPromedioReal(tickets: any[]) {
-    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
+  private calcularStatsManual(tickets: any[]) {
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     
-    if (ticketsResueltos.length === 0) {
-      this.metricas.tiempoPromedio = '0 días';
-      return;
-    }
+    this.stats = {
+      totalTickets: tickets.length,
+      ticketsAbiertos: tickets.filter(t => !t.fecha_resolucion && !['RESUELTO', 'CERRADO'].includes(t.estado)).length,
+      ticketsResueltos: tickets.filter(t => t.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(t.estado)).length,
+      slaCumplido: this.calcularSLAManual(tickets),
+      ticketsEsteMes: tickets.filter(t => new Date(t.fecha_creacion) >= inicioMes).length,
+      ticketsHoy: tickets.filter(t => new Date(t.fecha_creacion) >= inicioDia).length,
+      ticketsReabiertos: tickets.filter(t => t.veces_reabierto > 0).length,
+      ticketsSLAVencido: this.calcularTicketsSLAVencido(tickets),
+      ticketsSLAProximoVencer: this.calcularTicketsSLAPorVencer(tickets),
+      ticketsUrgentes: tickets.filter(t => t.prioridad?.nivel >= 3 && !t.fecha_resolucion && !['RESUELTO', 'CERRADO'].includes(t.estado)).length,
+      ticketsResueltosHoy: tickets.filter(t => t.fecha_resolucion && new Date(t.fecha_resolucion) >= inicioDia).length,
+      tiempoPromedioResolucion: this.calcularTiempoPromedioManual(tickets),
+      satisfaccionPromedio: this.calcularSatisfaccionManual(tickets),
+      ticketsConSLA: tickets.filter(t => t.sla || t.prioridad?.tiempo_resolucion).length
+    };
+  }
 
-    let totalDias = 0;
-    let ticketsValidos = 0;
+  private calcularSLAManual(tickets: any[]): number {
+    const ticketsResueltos = tickets.filter(t => t.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(t.estado));
+    if (ticketsResueltos.length === 0) return 0;
 
-    ticketsResueltos.forEach((ticket: any) => {
+    let cumplidos = 0;
+    ticketsResueltos.forEach(ticket => {
       const creado = new Date(ticket.fecha_creacion);
-      const resuelto = new Date(ticket.fecha_resolucion);
-      
-      if (resuelto > creado) {
-        const diffMs = resuelto.getTime() - creado.getTime();
-        const diffDias = diffMs / (1000 * 60 * 60 * 24);
-        totalDias += diffDias;
-        ticketsValidos++;
+      const resuelto = new Date(ticket.fecha_resolucion || ticket.fecha_actualizacion || creado);
+      const diffHoras = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60);
+      const tiempoSLA = ticket.prioridad?.tiempo_resolucion || ticket.sla?.tiempo_resolucion || 72;
+      if (diffHoras <= tiempoSLA) {
+        cumplidos++;
       }
     });
 
-    if (ticketsValidos > 0) {
-      const promedioDias = (totalDias / ticketsValidos).toFixed(1);
-      this.metricas.tiempoPromedio = `${promedioDias} días`;
-    }
+    return Math.round((cumplidos / ticketsResueltos.length) * 100);
   }
 
-  private calcularSatisfaccionReal(tickets: any[]): number {
-    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
-    
+  private calcularTicketsSLAVencido(tickets: any[]): number {
+    const ahora = new Date();
+    return tickets.filter(ticket => {
+      // Excluir tickets resueltos/cerrados
+      if (ticket.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(ticket.estado)) {
+        return false;
+      }
+      const creado = new Date(ticket.fecha_creacion);
+      const tiempoSLA = ticket.prioridad?.tiempo_resolucion || ticket.sla?.tiempo_resolucion || 72;
+      const fechaLimite = new Date(creado.getTime() + tiempoSLA * 60 * 60 * 1000);
+      return fechaLimite < ahora;
+    }).length;
+  }
+
+  private calcularTicketsSLAPorVencer(tickets: any[]): number {
+    const ahora = new Date();
+    const en24Horas = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
+    return tickets.filter(ticket => {
+      // Excluir tickets resueltos/cerrados
+      if (ticket.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(ticket.estado)) {
+        return false;
+      }
+      const creado = new Date(ticket.fecha_creacion);
+      const tiempoSLA = ticket.prioridad?.tiempo_resolucion || ticket.sla?.tiempo_resolucion || 72;
+      const fechaLimite = new Date(creado.getTime() + tiempoSLA * 60 * 60 * 1000);
+      return fechaLimite > ahora && fechaLimite <= en24Horas;
+    }).length;
+  }
+
+  private calcularTiempoPromedioManual(tickets: any[]): string {
+    const ticketsResueltos = tickets.filter(t => t.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(t.estado));
+    if (ticketsResueltos.length === 0) return '0h 0m';
+
+    let totalHoras = 0;
+    ticketsResueltos.forEach(ticket => {
+      const creado = new Date(ticket.fecha_creacion);
+      const resuelto = new Date(ticket.fecha_resolucion || ticket.fecha_actualizacion || creado);
+      totalHoras += (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60);
+    });
+
+    const promedioHoras = totalHoras / ticketsResueltos.length;
+    return this.formatTiempoPrivado(promedioHoras);
+  }
+
+  private calcularSatisfaccionManual(tickets: any[]): number {
+    const ticketsResueltos = tickets.filter(t => t.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(t.estado));
     if (ticketsResueltos.length === 0) return 0;
 
     let satisfaccionTotal = 0;
-    let ticketsConSatisfaccion = 0;
-
-    ticketsResueltos.forEach((ticket: any) => {
+    ticketsResueltos.forEach(ticket => {
       const creado = new Date(ticket.fecha_creacion);
-      const resuelto = new Date(ticket.fecha_resolucion);
-      
-      if (resuelto > creado) {
-        const diffDias = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60 * 24);
-        
-        let satisfaccionTicket = 100;
-        if (diffDias > 7) satisfaccionTicket = 60;
-        else if (diffDias > 3) satisfaccionTicket = 80;
-        else if (diffDias > 1) satisfaccionTicket = 90;
-        
-        satisfaccionTotal += satisfaccionTicket;
-        ticketsConSatisfaccion++;
-      }
-    });
-
-    return ticketsConSatisfaccion > 0 ? Math.round(satisfaccionTotal / ticketsConSatisfaccion) : 0;
-  }
-
-  private calcularSLAReal(tickets: any[]): number {
-    const ticketsResueltos = tickets.filter((t: any) => t.fecha_resolucion && t.estado);
-    
-    if (ticketsResueltos.length === 0) return 0;
-
-    let ticketsEnSLA = 0;
-
-    ticketsResueltos.forEach((ticket: any) => {
-      const creado = new Date(ticket.fecha_creacion);
-      const resuelto = new Date(ticket.fecha_resolucion);
+      const resuelto = new Date(ticket.fecha_resolucion || ticket.fecha_actualizacion || creado);
       const diffDias = (resuelto.getTime() - creado.getTime()) / (1000 * 60 * 60 * 24);
-      
-      if (diffDias <= 7) {
-        ticketsEnSLA++;
-      }
+      let satisfaccionTicket = 100;
+      if (diffDias > 7) satisfaccionTicket = 60;
+      else if (diffDias > 3) satisfaccionTicket = 80;
+      else if (diffDias > 1) satisfaccionTicket = 90;
+      satisfaccionTotal += satisfaccionTicket;
     });
 
-    return Math.round((ticketsEnSLA / ticketsResueltos.length) * 100);
+    return Math.round(satisfaccionTotal / ticketsResueltos.length);
   }
 
-  private cargarTicketsRecientesReales(tickets: any[]) {
+  private cargarTicketsRecientesManual(tickets: any[]) {
     this.ticketsRecientes = tickets
-      .filter((t: any) => t.estado)
       .sort((a: any, b: any) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime())
       .slice(0, 5)
-      .map((ticket: any) => ({
+      .map((ticket: any): TicketExtended => ({
         id: ticket.id,
         titulo: ticket.titulo,
-        estado: this.getEstadoTicketReal(ticket),
-        fecha: ticket.fecha_creacion,
-        prioridad: this.getPrioridadTexto(ticket.prioridad?.nivel),
-        categoria: ticket.categoria?.nombre || 'General',
-        tiempoTranscurrido: this.getTiempoTranscurrido(ticket.fecha_creacion),
+        descripcion: ticket.descripcion,
+        estado: ticket.estado_ticket || (ticket.fecha_resolucion ? 'RESUELTO' : 'ABIERTO'),
+        fecha_creacion: ticket.fecha_creacion,
+        fecha_resolucion: ticket.fecha_resolucion,
+        prioridad_nivel: ticket.prioridad?.nivel || 1,
+        prioridad_nombre: ticket.prioridad?.nombre || 'Normal',
+        categoria_nombre: ticket.categoria?.nombre,
+        tecnico_nombre: ticket.tecnico?.nombre_usuario,
+        cliente_nombre: ticket.entidad_usuario?.usuario?.nombre_usuario,
+        entidad_nombre: ticket.entidad_usuario?.entidad?.denominacion,
+        tiempo_transcurrido: this.getTiempoTranscurrido(ticket.fecha_creacion),
+        sla_estado: this.verificarSLAEstado(ticket),
         ticketOriginal: ticket
       }));
   }
 
-  private cargarNotificacionesReales(tickets: any[]) {
-    this.notificaciones = [];
+  private verificarSLAEstado(ticket: any): string {
+    // Si el ticket está resuelto o cerrado, mostrar como dentro del tiempo
+    if (ticket.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(ticket.estado)) {
+      return EstadoSLA.DENTRO_TIEMPO;
+    }
     
-    const ticketsActivos = tickets.filter((t: any) => t.estado);
-
-    // Notificación por tickets urgentes REALES
-    const ticketsUrgentesReales = ticketsActivos.filter((t: any) => t.prioridad?.nivel >= 3 && !t.fecha_resolucion);
-    if (ticketsUrgentesReales.length > 0) {
-      this.notificaciones.push({
-        tipo: 'warning',
-        mensaje: `Tienes ${ticketsUrgentesReales.length} ticket(s) urgente(s) pendientes`,
-        fecha: 'Ahora',
-        icon: 'priority_high'
-      });
+    if (!ticket.prioridad?.tiempo_resolucion && !ticket.sla?.tiempo_resolucion) {
+      return EstadoSLA.SIN_SLA;
     }
 
-    // Notificación por SLA vencido
-    if (this.metricas.ticketsSLAVencido > 0) {
-      this.notificaciones.push({
-        tipo: 'error',
-        mensaje: `${this.metricas.ticketsSLAVencido} ticket(s) con SLA vencido - ¡Atención inmediata!`,
-        fecha: 'Urgente',
-        icon: 'warning'
-      });
-    }
+    const ahora = new Date();
+    const creado = new Date(ticket.fecha_creacion);
+    const tiempoSLA = ticket.prioridad?.tiempo_resolucion || ticket.sla?.tiempo_resolucion || 72;
+    const fechaLimite = new Date(creado.getTime() + tiempoSLA * 60 * 60 * 1000);
+    const horasRestantes = (fechaLimite.getTime() - ahora.getTime()) / (1000 * 60 * 60);
 
-    // Notificación por SLA próximo a vencer
-    if (this.metricas.ticketsSLAProximoVencer > 0) {
-      this.notificaciones.push({
-        tipo: 'warning',
-        mensaje: `${this.metricas.ticketsSLAProximoVencer} ticket(s) con SLA próximo a vencer`,
-        fecha: 'Próximo',
-        icon: 'schedule'
-      });
-    }
-
-    // Notificación por tickets en proceso REALES
-    const ticketsEnProcesoReales = ticketsActivos.filter((t: any) => t.tecnico_id && !t.fecha_resolucion);
-    if (ticketsEnProcesoReales.length > 0) {
-      this.notificaciones.push({
-        tipo: 'info',
-        mensaje: `${ticketsEnProcesoReales.length} ticket(s) en proceso con técnicos asignados`,
-        fecha: 'Activo',
-        icon: 'build'
-      });
-    }
-
-    // Notificación por tickets resueltos recientemente REALES
-    const ticketsResueltosRecientes = ticketsActivos.filter((t: any) => {
-      if (!t.fecha_resolucion) return false;
-      const resuelto = new Date(t.fecha_resolucion);
-      const unaSemanaAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return resuelto > unaSemanaAtras;
-    });
-
-    if (ticketsResueltosRecientes.length > 0) {
-      this.notificaciones.push({
-        tipo: 'success',
-        mensaje: `${ticketsResueltosRecientes.length} ticket(s) resuelto(s) esta semana`,
-        fecha: 'Reciente',
-        icon: 'check_circle'
-      });
-    }
-
-    // Notificación si no hay tickets
-    if (ticketsActivos.length === 0) {
-      this.notificaciones.push({
-        tipo: 'info',
-        mensaje: 'No tienes tickets activos. ¡Crea tu primer ticket!',
-        fecha: 'Bienvenido',
-        icon: 'add_circle'
-      });
-    }
+    if (horasRestantes <= 0) return EstadoSLA.VENCIDO;
+    if (horasRestantes <= 24) return EstadoSLA.POR_VENCER;
+    return EstadoSLA.DENTRO_TIEMPO;
   }
 
-  private actualizarGraficos() {
-    // Gráfico de donut con datos REALES
-    this.donutChartOptions.series = [
-      this.metricas.ticketsResueltos,
-      this.metricas.ticketsEnProceso,
-      this.metricas.ticketsAbiertos,
-      this.metricas.ticketsUrgentes
-    ];
+  private actualizarGraficosManual() {
+    const tickets = this.ticketsRecientes;
+    const resueltos = tickets.filter(t => t.fecha_resolucion || ['RESUELTO', 'CERRADO'].includes(t.estado)).length;
+    const enProceso = tickets.filter(t => !t.fecha_resolucion && t.tecnico_nombre && !['RESUELTO', 'CERRADO'].includes(t.estado)).length;
+    const abiertos = tickets.filter(t => !t.fecha_resolucion && !t.tecnico_nombre && !['RESUELTO', 'CERRADO'].includes(t.estado)).length;
+    const urgentes = tickets.filter(t => t.prioridad_nivel && t.prioridad_nivel >= 3 && !t.fecha_resolucion && !['RESUELTO', 'CERRADO'].includes(t.estado)).length;
 
-    // Gráfico radial con satisfacción REAL
-    this.radialChartOptions.series = [this.metricas.satisfaccion];
-
-    // Gráfico de barras con datos mensuales REALES
-    this.generarDatosMensualesReales();
+    this.distributionChartOptions.series = [resueltos, enProceso, abiertos, urgentes];
+    this.satisfactionChartOptions.series = [this.stats.satisfaccionPromedio ?? 0];
   }
 
-  private generarDatosMensualesReales() {
-    const datosMensuales = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const añoActual = new Date().getFullYear();
-    
-    this.todosLosTickets.forEach((ticket: any) => {
-      if (ticket.estado) {
-        const fecha = new Date(ticket.fecha_creacion);
-        if (fecha.getFullYear() === añoActual) {
-          const mes = fecha.getMonth();
-          datosMensuales[mes]++;
+  private loadTicketsRecientes() {
+    this.loadingSections.tickets = true;
+    this.dashboardService.getTicketsRecientes().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.ticketsRecientes = response.data.map(ticket => ({
+            ...ticket,
+            ticketOriginal: ticket
+          }));
         }
+        this.loadingSections.tickets = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando tickets recientes:', error);
+        this.loadingSections.tickets = false;
+        this.checkAllLoaded();
       }
     });
-    
-    this.barChartOptions.series = [{ name: 'Mis Tickets', data: datosMensuales }];
   }
 
-  // CALENDARIO con datos REALES
-  generateCalendar(): void {
+  private loadTicketsSLA(): void {
+    this.dashboardService.getTicketsRecientes().subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          // Filtrar tickets VENCIDOS excluyendo los ya resueltos/cerrados
+          this.ticketsSLAVencidos = response.data
+            .filter(ticket => 
+              ticket.sla_estado === EstadoSLA.VENCIDO && 
+              !['RESUELTO', 'CERRADO'].includes(ticket.estado)
+            )
+            .slice(0, 3)
+            .map(ticket => ({ ...ticket, ticketOriginal: ticket }));
+          
+          // Filtrar tickets POR VENCER excluyendo los ya resueltos/cerrados
+          this.ticketsSLAPorVencer = response.data
+            .filter(ticket => 
+              ticket.sla_estado === EstadoSLA.POR_VENCER && 
+              !['RESUELTO', 'CERRADO'].includes(ticket.estado)
+            )
+            .slice(0, 3)
+            .map(ticket => ({ ...ticket, ticketOriginal: ticket }));
+        }
+        this.checkAllLoaded();
+      },
+      error: (error) => {
+        console.error('Error cargando tickets SLA:', error);
+        this.checkAllLoaded();
+      }
+    });
+  }
+
+  private loadCalendario() {
+    this.loadingSections.calendario = true;
+    const hoy = new Date();
+    this.dashboardService.getCalendario(hoy.getMonth(), hoy.getFullYear()).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.calendario = response.data;
+          this.generateCalendar();
+        } else {
+          this.generateCalendarManual();
+        }
+        this.loadingSections.calendario = false;
+        this.checkAllLoaded();
+      },
+      error: (error: any) => {
+        console.error('Error cargando calendario:', error);
+        this.generateCalendarManual();
+        this.loadingSections.calendario = false;
+        this.checkAllLoaded();
+      }
+    });
+  }
+
+  private checkAllLoaded() {
+    const allLoaded = Object.values(this.loadingSections).every(loaded => !loaded);
+    if (allLoaded) {
+      this.isLoading = false;
+    }
+  }
+
+  // ==================== MÉTODOS DEL CALENDARIO ====================
+
+  private generateCalendar(): void {
+    this.calendarDays = [];
+    this.weeks = [];
+    
     const year = this.currentMonth.getFullYear();
     const month = this.currentMonth.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDayOfMonth.getDay();
+    const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
     
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    const endDate = new Date(lastDay);
-    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
-    
-    this.calendarDays = [];
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-      const date = new Date(currentDate);
-      const isCurrentMonth = date.getMonth() === month;
-      const isToday = this.isToday(date);
-      
-      const ticketsCount = this.countTicketsForDateReal(date);
-      const tickets = this.getTicketsForDateReal(date);
-      
-      this.calendarDays.push({
-        date,
-        isCurrentMonth,
-        isToday,
-        ticketsCount,
-        tickets
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = lastDayOfPrevMonth - i;
+      const date = new Date(year, month - 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
     }
+    
+    const daysInMonth = lastDayOfMonth.getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, true));
+    }
+    
+    const totalDays = this.calendarDays.length;
+    const remainingDays = 42 - totalDays;
+    
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
+    }
+    
+    for (let i = 0; i < this.calendarDays.length; i += 7) {
+      this.weeks.push(this.calendarDays.slice(i, i + 7));
+    }
+  }
+
+  private generateCalendarManual(): void {
+    this.calendarDays = [];
+    this.weeks = [];
+    
+    const year = this.currentMonth.getFullYear();
+    const month = this.currentMonth.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDayOfMonth.getDay();
+    const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
+    
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = lastDayOfPrevMonth - i;
+      const date = new Date(year, month - 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
+    }
+    
+    const daysInMonth = lastDayOfMonth.getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, true));
+    }
+    
+    const totalDays = this.calendarDays.length;
+    const remainingDays = 42 - totalDays;
+    
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      this.calendarDays.push(this.createCalendarDay(day, date, false));
+    }
+    
+    for (let i = 0; i < this.calendarDays.length; i += 7) {
+      this.weeks.push(this.calendarDays.slice(i, i + 7));
+    }
+  }
+
+  private createCalendarDay(day: number, date: Date, isCurrentMonth: boolean): CalendarDayItem {
+    const dateString = date.toISOString().split('T')[0];
+    const isToday = this.isToday(date);
+    let dayTickets: CalendarTicket[] = [];
+    let ticketsCount = 0;
+    
+    if (this.calendario.dias) {
+      const dayData = this.calendario.dias.find(d => {
+        const dayDate = new Date(d.fecha);
+        return dayDate.toDateString() === date.toDateString();
+      });
+      if (dayData) {
+        dayTickets = dayData.tickets || [];
+        ticketsCount = dayData.cantidad_tickets || 0;
+      }
+    }
+    
+    return {
+      day,
+      date,
+      isCurrentMonth,
+      isToday,
+      tickets: dayTickets,
+      ticketsCount,
+      hasTickets: ticketsCount > 0
+    };
   }
 
   private isToday(date: Date): boolean {
     const today = new Date();
     return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+          date.getMonth() === today.getMonth() &&
+          date.getFullYear() === today.getFullYear();
   }
 
-  private countTicketsForDateReal(date: Date): number {
-    return this.todosLosTickets.filter((ticket: any) => {
-      if (!ticket.estado) return false;
-      const ticketDate = new Date(ticket.fecha_creacion);
-      return ticketDate.toDateString() === date.toDateString();
-    }).length;
+  getDayClass(day: CalendarDayItem): string {
+    const classes = [];
+    if (!day.isCurrentMonth) classes.push('other-month');
+    if (day.isToday) classes.push('today');
+    if (day.hasTickets) classes.push('has-tickets');
+    return classes.join(' ');
   }
 
-  private getTicketsForDateReal(date: Date): any[] {
-    return this.todosLosTickets.filter((ticket: any) => {
-      if (!ticket.estado) return false;
-      const ticketDate = new Date(ticket.fecha_creacion);
-      return ticketDate.toDateString() === date.toDateString();
-    });
-  }
-
-  // Datos de demostración SOLO si falla
-  private cargarDatosDeDemostracion() {
-    this.metricas = {
-      ticketsAbiertos: 0,
-      ticketsResueltos: 0,
-      ticketsEnProceso: 0,
-      ticketsUrgentes: 0,
-      tiempoPromedio: '0 días',
-      satisfaccion: 0,
-      slaCumplido: 0,
-      ticketsEsteMes: 0,
-      ticketsHoy: 0,
-      ticketsReabiertos: 0,
-      totalTickets: 0,
-      ticketsSLAVencido: 0,
-      ticketsSLAProximoVencer: 0,
-      ticketsConSLA: 0
-    };
-
-    this.ticketsRecientes = [];
-    this.notificaciones = [{
-      tipo: 'warning',
-      mensaje: 'No se pudieron cargar los datos reales. Verifica la conexión.',
-      fecha: 'Error',
-      icon: 'error'
-    }];
-
-    this.actualizarGraficos();
-    this.generateCalendar();
-  }
-
-  // Métodos públicos para el template
-  getEstadoTicketReal(ticket: any): string {
-    if (!ticket.estado) return 'Eliminado';
-    if (ticket.fecha_resolucion) return 'Resuelto';
-    if (ticket.tecnico_id) return 'En Proceso';
-    return 'Abierto';
-  }
-
-  getPrioridadTexto(nivel?: number): string {
-    if (!nivel) return 'Normal';
-    if (nivel >= 4) return 'Crítica';
-    if (nivel >= 3) return 'Alta';
-    if (nivel >= 2) return 'Media';
-    return 'Baja';
-  }
-
-  getTiempoTranscurrido(fecha: string): string {
-    const creado = new Date(fecha);
-    const ahora = new Date();
-    const diffMs = ahora.getTime() - creado.getTime();
-    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDias === 0) return 'Hoy';
-    if (diffDias === 1) return 'Ayer';
-    if (diffDias < 7) return `Hace ${diffDias} días`;
-    if (diffDias < 30) return `Hace ${Math.floor(diffDias / 7)} semanas`;
-    return `Hace ${Math.floor(diffDias / 30)} meses`;
-  }
-
-  // Métodos de UI
-  getEstadoColor(estado: string): string {
-    switch (estado) {
-      case 'Resuelto': return 'primary';
-      case 'En Proceso': return 'accent';
-      case 'Abierto': return 'warn';
-      case 'Eliminado': return 'warn';
-      default: return '';
-    }
-  }
-
-  getPrioridadColor(prioridad: string): string {
-    switch (prioridad) {
-      case 'Crítica': return 'warn';
-      case 'Alta': return 'warn';
-      case 'Media': return 'accent';
-      case 'Baja': return 'primary';
-      default: return '';
-    }
-  }
-
-  getNotificacionColor(tipo: string): string {
-    switch (tipo) {
-      case 'info': return 'primary';
-      case 'warning': return 'accent';
-      case 'success': return 'primary';
-      case 'error': return 'warn';
-      default: return '';
-    }
-  }
-
-  // Navegación del calendario
   previousMonth(): void {
     this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
-    this.generateCalendar();
+    this.loadCalendarioForMonth(this.currentMonth.getMonth(), this.currentMonth.getFullYear());
   }
 
   nextMonth(): void {
     this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
-    this.generateCalendar();
+    this.loadCalendarioForMonth(this.currentMonth.getMonth(), this.currentMonth.getFullYear());
+  }
+
+  private loadCalendarioForMonth(mes: number, anio: number): void {
+    this.loadingSections.calendario = true;
+    this.dashboardService.getCalendario(mes, anio).subscribe({
+      next: (response) => {
+        if (response.isSuccess && response.data) {
+          this.calendario = response.data;
+          this.generateCalendar();
+        }
+        this.loadingSections.calendario = false;
+      },
+      error: (error: any) => {
+        console.error('Error cargando calendario:', error);
+        this.loadingSections.calendario = false;
+        this.generateCalendarManual();
+      }
+    });
   }
 
   getCurrentMonthYear(): string {
     return `${this.monthNames[this.currentMonth.getMonth()]} ${this.currentMonth.getFullYear()}`;
   }
 
-  // Modal de detalle de día
-  showDayDetail(day: any): void {
-    this.selectedDayTickets = day.tickets;
-    this.selectedDayDate = day.date;
-    this.showDayDetailModal = true;
+  showDayDetail(day: CalendarDayItem): void {
+    if (day.tickets.length > 0) {
+      this.selectedDayTickets = day.tickets;
+      this.selectedDayDate = day.date;
+      this.showDayDetailModal = true;
+    }
+  }
+
+  // ==================== RESTANTES MÉTODOS ====================
+
+  private updateChartsWithStats() {
+    this.distributionChartOptions.series = [
+      this.stats.ticketsResueltos,
+      this.stats.ticketsAbiertos - this.stats.ticketsUrgentes,
+      this.stats.ticketsUrgentes,
+      0
+    ];
+    this.satisfactionChartOptions.series = [this.stats.satisfaccionPromedio ?? 0];
+  }
+
+  // MÉTODOS DE UTILIDAD PARA UI - SIMPLIFICADOS Y CORREGIDOS
+  getColorPrioridad(nivel: number | undefined): string {
+    const nivelSeguro = nivel || 1;
+    // Usar colores directamente aquí para evitar problemas
+    switch (nivelSeguro) {
+      case 1: return '#4caf50'; // Baja - Verde
+      case 2: return '#ffc107'; // Media - Amarillo
+      case 3: return '#ff9800'; // Alta - Naranja
+      case 4: return '#f44336'; // Urgente - Rojo
+      default: return '#9e9e9e'; // Gris por defecto
+    }
+  }
+
+  getNombrePrioridad(nivel: number | undefined): string {
+    const nivelSeguro = nivel || 1;
+    switch (nivelSeguro) {
+      case 1: return 'Baja';
+      case 2: return 'Media';
+      case 3: return 'Alta';
+      case 4: return 'Urgente';
+      default: return 'Normal';
+    }
+  }
+
+  getColorEstado(estado: string): string {
+    // Implementación directa sin dependencia del servicio
+    switch (estado) {
+      case 'NUEVO': return '#2196f3';
+      case 'EN_PROCESO': return '#ff9800';
+      case 'PENDIENTE': return '#9c27b0';
+      case 'RESUELTO': return '#4caf50';
+      case 'CERRADO': return '#607d8b';
+      case 'REABIERTO': return '#ff5722';
+      default: return '#9e9e9e';
+    }
+  }
+
+  getTextoEstado(estado: string): string {
+    switch (estado) {
+      case 'NUEVO': return 'Nuevo';
+      case 'EN_PROCESO': return 'En Proceso';
+      case 'PENDIENTE': return 'Pendiente';
+      case 'RESUELTO': return 'Resuelto';
+      case 'CERRADO': return 'Cerrado';
+      case 'REABIERTO': return 'Reabierto';
+      default: return estado;
+    }
+  }
+
+  getColorSLA(estado: string): string {
+    switch (estado) {
+      case 'DENTRO_TIEMPO': return '#4caf50';
+      case 'POR_VENCER': return '#ff9800';
+      case 'VENCIDO': return '#f44336';
+      case 'SIN_SLA': return '#9e9e9e';
+      default: return '#9e9e9e';
+    }
+  }
+
+  getTextoSLA(estado: string): string {
+    switch (estado) {
+      case 'DENTRO_TIEMPO': return 'En tiempo';
+      case 'POR_VENCER': return 'Por vencer';
+      case 'VENCIDO': return 'Vencido';
+      case 'SIN_SLA': return 'Sin SLA';
+      default: return estado;
+    }
+  }
+
+  getTiempoTranscurrido(fecha: string): string {
+    // Implementación directa
+    const creado = new Date(fecha);
+    const ahora = new Date();
+    const diffMs = ahora.getTime() - creado.getTime();
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDias = Math.floor(diffHoras / 24);
+
+    if (diffDias > 0) {
+      return `${diffDias} día${diffDias > 1 ? 's' : ''}`;
+    } else if (diffHoras > 0) {
+      return `${diffHoras} hora${diffHoras > 1 ? 's' : ''}`;
+    } else {
+      return 'Menos de 1 hora';
+    }
+  }
+
+  formatTiempo(tiempo: string | undefined): string {
+    const tiempoSeguro = tiempo || '0h 0m';
+    if (!tiempoSeguro || tiempoSeguro === '0h 0m') return 'Sin datos';
+    
+    const diasMatch = tiempoSeguro.match(/(\d+)d/);
+    const horasMatch = tiempoSeguro.match(/(\d+)h/);
+    const minutosMatch = tiempoSeguro.match(/(\d+)m/);
+    
+    let result = '';
+    if (diasMatch) result += `${diasMatch[1]} días `;
+    if (horasMatch) result += `${horasMatch[1]} horas `;
+    if (minutosMatch) result += `${minutosMatch[1]} minutos`;
+    
+    return result.trim() || tiempoSeguro;
+  }
+
+  getTicketEstado(ticket: RecentTicketResponse): string {
+    return this.getTextoEstado(ticket.estado);
+  }
+
+  getBadgeColorEstado(estado: string): string {
+    const color = this.getColorEstado(estado);
+    if (color === '#2196f3') return 'new';
+    if (color === '#ff9800') return 'in-progress';
+    if (color === '#4caf50') return 'resolved';
+    if (color === '#607d8b') return 'closed';
+    if (color === '#ff5722') return 'reopened';
+    return 'new';
+  }
+
+  // Método privado para formateo interno
+  private formatTiempoPrivado(horas: number): string {
+    if (horas < 1) {
+      const minutos = Math.round(horas * 60);
+      return `${minutos}m`;
+    } else if (horas < 24) {
+      const horasEnteras = Math.floor(horas);
+      const minutos = Math.round((horas - horasEnteras) * 60);
+      return `${horasEnteras}h ${minutos}m`;
+    } else {
+      const dias = Math.floor(horas / 24);
+      const horasRestantes = Math.round(horas % 24);
+      return `${dias}d ${horasRestantes}h`;
+    }
+  }
+
+  // Navegación
+  navigateToTickets(): void {
+    this.router.navigate(['/mis-tickets']);
+  }
+
+  navigateToTicketDetail(ticketId: number): void {
+    this.router.navigate(['/ticket', ticketId]);
+  }
+
+  navigateToNewTicket(): void {
+    this.router.navigate(['/crear-ticket']);
   }
 
   closeDayDetailModal(): void {
     this.showDayDetailModal = false;
   }
 
-  // Refresh
-  refreshData() {
+  refreshData(): void {
+    this.isLoading = true;
+    Object.keys(this.loadingSections).forEach(key => {
+      (this.loadingSections as any)[key] = true;
+    });
     this.loadDashboardData();
+  }
+
+  // Configuración de gráficas
+  private getDistributionChartOptions(): ApexOptions {
+    return {
+      series: [0, 0, 0, 0],
+      chart: { type: 'donut', height: 350 },
+      labels: ['Resueltos', 'En Proceso', 'Urgentes', 'Abiertos'],
+      colors: ['#4caf50', '#2196f3', '#f44336', '#ff9800'],
+      legend: { position: 'bottom' },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total',
+                color: '#666',
+                formatter: function (w) {
+                  return w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0)
+                }
+              }
+            }
+          }
+        }
+      },
+      title: {
+        text: 'Distribución de Mis Tickets',
+        align: 'center',
+        style: { fontSize: '16px', fontWeight: 'bold' }
+      }
+    };
+  }
+
+  private getMonthlyChartOptions(): ApexOptions {
+    return {
+      series: [{ name: 'Mis Tickets', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
+      chart: { type: 'bar', height: 350, toolbar: { show: true } },
+      plotOptions: { bar: { borderRadius: 4, horizontal: false, columnWidth: '55%' } },
+      dataLabels: { enabled: false },
+      stroke: { show: true, width: 2, colors: ['transparent'] },
+      xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] },
+      yaxis: { title: { text: 'Cantidad de Tickets' } },
+      fill: { opacity: 1 },
+      colors: ['#3f51b5'],
+      title: {
+        text: 'Mis Tickets por Mes',
+        align: 'left',
+        style: { fontSize: '16px', fontWeight: 'bold' }
+      }
+    };
+  }
+
+  private getPriorityChartOptions(): ApexOptions {
+    return {
+      series: [0, 0, 0, 0],
+      chart: { type: 'pie', height: 350 },
+      labels: ['Baja', 'Media', 'Alta', 'Urgente'],
+      colors: ['#4caf50', '#ffc107', '#ff9800', '#f44336'],
+      legend: { position: 'bottom' },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '45%',
+            labels: {
+              show: true,
+              total: { show: true, label: 'Total' }
+            }
+          }
+        }
+      },
+      title: {
+        text: 'Distribución por Prioridad',
+        align: 'center',
+        style: { fontSize: '16px', fontWeight: 'bold' }
+      }
+    };
+  }
+
+  private getSatisfactionChartOptions(): ApexOptions {
+    return {
+      series: [0],
+      chart: { height: 300, type: 'radialBar' },
+      plotOptions: {
+        radialBar: {
+          hollow: { size: '70%' },
+          dataLabels: {
+            name: { fontSize: '16px', color: '#666' },
+            value: { fontSize: '24px', color: '#333' },
+            total: {
+              show: true,
+              label: 'Satisfacción',
+              formatter: function (w) {
+                return w.globals.series[0] + '%'
+              }
+            }
+          }
+        }
+      },
+      labels: ['Satisfacción'],
+      colors: ['#4CAF50']
+    };
   }
 }

@@ -23,9 +23,13 @@ import { CategoriasService } from '../../services/categorias.service';
     MatIconModule,
     MatSelectModule
   ],
-  templateUrl: './subcategorias-modal.html'
+  templateUrl: './subcategorias-modal.html',
+  styleUrls: ['./subcategorias-modal.scss']
 })
 export class SubcategoriaModal implements OnInit {
+hasCategoriasInactivas(): boolean {
+  return this.categorias?.some(cat => !cat.estado) || false;
+}
   form: FormGroup;
   isEditMode = false;
   categorias: CategoriaInterface[] = [];

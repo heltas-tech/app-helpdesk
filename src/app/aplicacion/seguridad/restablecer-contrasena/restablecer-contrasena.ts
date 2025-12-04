@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Acceso } from '../../services/acceso';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-restablecer-contrasena',
@@ -22,22 +23,25 @@ export class RestablecerContrasenaComponent implements OnInit {
   tokenChecked = false;
   step: 'solicitar' | 'restablecer' = 'solicitar';
   emailSolicitud = '';
+  
+  // Para mostrar/ocultar contraseñas
+  mostrarNewPassword = false;
+  mostrarConfirmPassword = false;
 
-  resetFormSolicitud: FormGroup;  // Para paso 1 (solo email)
-  resetFormContrasena: FormGroup; // Para paso 2 (solo contraseñas)
+  resetFormSolicitud: FormGroup;
+  resetFormContrasena: FormGroup;
 
   constructor(
     private fb: FormBuilder,
     private accesoService: Acceso,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private snackbar: MatSnackBar
   ) {
-    // Formulario para SOLICITUD (paso 1)
     this.resetFormSolicitud = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
     });
-  
-    // Formulario para RESTABLECER (paso 2) - SIN EMAIL
+
     this.resetFormContrasena = this.fb.group({
       newPassword: ['', [
         Validators.required,
@@ -72,6 +76,15 @@ export class RestablecerContrasenaComponent implements OnInit {
     return null;
   }
 
+  // Métodos para mostrar/ocultar contraseñas
+  toggleMostrarNewPassword(): void {
+    this.mostrarNewPassword = !this.mostrarNewPassword;
+  }
+
+  toggleMostrarConfirmPassword(): void {
+    this.mostrarConfirmPassword = !this.mostrarConfirmPassword;
+  }
+
   solicitarRestablecimiento() {
     if (this.resetFormSolicitud.get('email')?.valid) {
       this.isLoading = true;
@@ -81,15 +94,18 @@ export class RestablecerContrasenaComponent implements OnInit {
         next: (response) => {
           this.isLoading = false;
           if (response.isSuccess) {
-            this.message = '✅ Se han enviado instrucciones a tu correo electrónico';
-            this.step = 'restablecer';
+            this.snackbar.open('✅ Se han enviado instrucciones a tu correo electrónico', 'OK', { duration: 5000 });
+            this.message = '';
+            // Mantenemos al usuario en la misma vista pero mostramos mensaje de éxito
           } else {
-            this.message = `❌ ${response.message}`;
+            this.message = response.message || 'Error al procesar la solicitud';
+            this.snackbar.open(`❌ ${this.message}`, 'OK', { duration: 3000 });
           }
         },
         error: (error) => {
           this.isLoading = false;
           this.message = '❌ Error al procesar la solicitud';
+          this.snackbar.open(this.message, 'OK', { duration: 3000 });
           console.error('Error:', error);
         }
       });
@@ -98,10 +114,12 @@ export class RestablecerContrasenaComponent implements OnInit {
 
   validarToken() {
     if (this.token) {
+      this.isLoading = true;
       console.log('🔍 Validando token:', this.token);
 
       this.accesoService.validarTokenRestablecimiento(this.token).subscribe({
         next: (response) => {
+          this.isLoading = false;
           console.log('✅ Respuesta validación token:', response);
           this.tokenValid = response.isSuccess;
           this.tokenChecked = true;
@@ -109,16 +127,20 @@ export class RestablecerContrasenaComponent implements OnInit {
           if (!response.isSuccess) {
             console.log('❌ Token inválido:', response.message);
             this.message = '❌ El enlace ha expirado o es inválido';
+            this.snackbar.open(this.message, 'OK', { duration: 3000 });
           } else {
             console.log('🎯 Token válido para:', response.data?.email);
-            this.message = ''; // Limpiar mensajes anteriores
+            this.emailSolicitud = response.data?.email || '';
+            this.message = '';
           }
         },
         error: (error) => {
+          this.isLoading = false;
           console.error('💥 Error validando token:', error);
           this.tokenChecked = true;
           this.tokenValid = false;
           this.message = '❌ Error al validar el enlace';
+          this.snackbar.open(this.message, 'OK', { duration: 3000 });
         }
       });
     }
@@ -131,7 +153,7 @@ export class RestablecerContrasenaComponent implements OnInit {
     console.log('🔍 Token:', this.token);
     console.log('🔍 Valores del form:', this.resetFormContrasena.value);
     
-    if (this.resetFormContrasena.valid && this.token) {
+    if (this.resetFormContrasena.valid && this.token && this.tokenValid) {
       console.log('🎯 Condiciones CUMPLIDAS - procediendo...');
       this.isLoading = true;
       const { newPassword, confirmPassword } = this.resetFormContrasena.value;
@@ -140,24 +162,31 @@ export class RestablecerContrasenaComponent implements OnInit {
         next: (response) => {
           this.isLoading = false;
           if (response.isSuccess) {
-            this.message = '✅ Contraseña restablecida correctamente. Redirigiendo al login...';
+            this.snackbar.open('✅ Contraseña restablecida correctamente', 'OK', { duration: 3000 });
             setTimeout(() => {
               this.router.navigate(['/auth/login']);
-            }, 3000);
+            }, 2000);
           } else {
-            this.message = `❌ ${response.message}`;
+            this.message = response.message || 'Error al restablecer la contraseña';
+            this.snackbar.open(`❌ ${this.message}`, 'OK', { duration: 3000 });
           }
         },
         error: (error) => {
           this.isLoading = false;
           this.message = '❌ Error al restablecer la contraseña';
+          this.snackbar.open(this.message, 'OK', { duration: 3000 });
           console.error('Error:', error);
         }
       });
     } else {
       console.log('❌ Condiciones NO cumplidas:');
       console.log('   - Form válido:', this.resetFormContrasena.valid);
+      console.log('   - Token válido:', this.tokenValid);
       console.log('   - Token existe:', !!this.token);
+      
+      if (!this.resetFormContrasena.valid) {
+        this.snackbar.open('Por favor, complete correctamente todos los campos', 'OK', { duration: 3000 });
+      }
     }
   }
 

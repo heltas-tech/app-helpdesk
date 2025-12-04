@@ -17,7 +17,7 @@
         type="text" 
         placeholder="Buscar por nombre, descripción o tipo..." 
         (input)="applyFilter($event)"
-        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200">
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200 bg-white placeholder-gray-400">
       <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
     </div>
 
@@ -52,19 +52,18 @@
       
       <!-- Columna Nombre -->
       <ng-container matColumnDef="nombre">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-left">
-          Nombre SLA
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          NOMBRE SLA
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="font-semibold text-gray-800">{{ element.nombre }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ element.prioridades_count || 0 }} prioridades incluidas</div>
+          <div class="text-gray-800">{{ element.nombre }}</div>
         </td>
       </ng-container>
 
       <!-- Columna Descripción -->
       <ng-container matColumnDef="descripcion">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-left">
-          Descripción
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          DESCRIPCIÓN
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <div class="text-gray-700">{{ element.descripcion || 'Sin descripción' }}</div>
@@ -73,38 +72,26 @@
 
       <!-- Columna Prioridades Incluidas -->
       <ng-container matColumnDef="prioridades_incluidas">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-left">
-          Prioridades
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          TIEMPOS DEFINIDOS
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="flex flex-wrap gap-1 mb-2">
-            <span *ngFor="let prioridad of element.prioridades_incluidas || []" 
-                  [class]="'px-2 py-1 rounded-full text-xs font-semibold border ' + getPrioridadColor(prioridad.nivel)"
-                  [matTooltip]="'Nivel ' + prioridad.nivel + ': ' + (prioridad.descripcion || '')">
-              {{ prioridad.nombre }}
-            </span>
-            <span *ngIf="!(element.prioridades_incluidas || []).length" 
-                  class="text-gray-400 text-xs bg-gray-100 px-2 py-1 rounded-full">
-              Sin prioridades
-            </span>
-          </div>
-          
-          <!-- Tiempos de ejemplo -->
+          <!-- Solo los tiempos definidos - SIN NOMBRES, SIN ICONO -->
           <div *ngIf="element.tiempos_ejemplo && element.tiempos_ejemplo !== 'Sin tiempos definidos'" 
-               class="text-xs text-gray-500 bg-gray-50 p-2 rounded border">
-            <div class="flex items-center gap-1 mb-1">
-              <mat-icon class="text-blue-500" style="font-size: 14px; width: 14px; height: 14px;">schedule</mat-icon>
-              <span class="font-medium">Tiempos definidos:</span>
-            </div>
-            <div class="text-xs">{{ element.tiempos_ejemplo }}</div>
+               class="text-sm text-gray-600">
+            {{ element.tiempos_ejemplo }}
+          </div>
+          <div *ngIf="!element.tiempos_ejemplo || element.tiempos_ejemplo === 'Sin tiempos definidos'" 
+               class="text-sm text-gray-400">
+            Sin tiempos definidos
           </div>
         </td>
       </ng-container>
 
       <!-- Columna Tipo SLA -->
       <ng-container matColumnDef="tipo_sla">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-center">
-          Tipo SLA
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          TIPO SLA
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <span [class]="'px-3 py-2 rounded-full text-sm font-semibold flex items-center justify-center gap-2 ' + getTipoSlaColor(element.tipo_sla_nombre)">
@@ -116,8 +103,8 @@
 
       <!-- Columna Estado -->
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-center">
-          Estado
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ESTADO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <button 
@@ -137,8 +124,8 @@
 
       <!-- Columna Acciones -->
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-semibold px-4 py-3 text-center">
-          Acciones
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ACCIONES
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <div class="flex justify-center gap-2">

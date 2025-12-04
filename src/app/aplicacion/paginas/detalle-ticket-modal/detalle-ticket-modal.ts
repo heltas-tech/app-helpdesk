@@ -734,53 +734,72 @@ export class DetalleTicketModalComponent implements OnInit, OnDestroy {
   }
 
   /** Abrir logs en modal - CORREGIDO: Solo logs del ticket actual */
-  abrirLogs() {
-    const logsData = this.getLogs();
-    
-    // Filtrar logs solo del ticket actual
-    const logsFiltrados = this.filtrarLogsPorTicket(logsData);
-    
+  /** Abrir logs en modal - SOLO PARA TÉCNICOS Y ADMINISTRADORES */
+abrirLogs() {
+  const usuario = this.getUsuarioActual();
+  
+  // ✅ VERIFICAR PERMISOS: SOLO TÉCNICOS Y ADMINISTRADORES
+  if (usuario.rol !== 'TECNICO' && usuario.rol !== 'ADMINISTRADOR') {
     Swal.fire({
-      title: 'Historial de Logs - Ticket #' + (this.getTicket()?.id || ''),
+      title: 'Acceso Restringido',
       html: `
-        <div class="max-h-96 overflow-y-auto text-left">
-          ${logsFiltrados.length === 0 ? 
-            '<p class="text-gray-500 text-center py-8">No hay registros de logs para este ticket</p>' : 
-            logsFiltrados.map((log: any) => `
-              <div class="border-b border-gray-200 py-3">
-                <div class="flex justify-between items-start mb-2">
-                  <strong class="text-gray-900">${this.getUserName(log.usuario)}</strong>
-                  <span class="text-xs text-gray-500">${new Date(log.fecha_cambio).toLocaleString('es-ES')}</span>
-                </div>
-                <p class="text-sm text-gray-700 mb-1">${log.accion || 'Modificación'}</p>
-                ${log.estado_anterior || log.estado_nuevo ? `
-                  <div class="flex items-center gap-2 text-xs">
-                    ${log.estado_anterior ? `<span class="bg-gray-100 px-2 py-1 rounded">${log.estado_anterior}</span>` : ''}
-                    ${log.estado_anterior && log.estado_nuevo ? '<span class="text-gray-400">→</span>' : ''}
-                    ${log.estado_nuevo ? `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">${log.estado_nuevo}</span>` : ''}
-                  </div>
-                ` : ''}
-                ${log.comentarios ? `<p class="text-xs text-gray-600 mt-2">${log.comentarios}</p>` : ''}
-              </div>
-            `).join('')}
+        <div class="text-center">
+          <mat-icon class="text-4xl text-yellow-500 mb-4">lock</mat-icon>
+          <p class="text-lg font-medium text-gray-800 mb-2">No tienes permisos</p>
+          <p class="text-gray-600">Los logs del sistema solo están disponibles para el personal técnico y administradores.</p>
         </div>
       `,
-      width: '700px',
-      showCancelButton: true,
-      confirmButtonText: 'Cerrar',
-      cancelButtonText: 'Descargar PDF',
-      showCloseButton: true,
-      preConfirm: () => {
-        return {
-          action: 'close'
-        };
-      }
-    }).then((result) => {
-      if (result.dismiss === 'cancel') {
-        this.descargarPdf();
-      }
+      icon: 'warning',
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#3085d6'
     });
+    return;
   }
+
+  const logsData = this.getLogs();
+  
+  // Filtrar logs solo del ticket actual
+  const logsFiltrados = this.filtrarLogsPorTicket(logsData);
+  
+  Swal.fire({
+    title: '🔧 Historial de Logs - Ticket #' + (this.getTicket()?.id || ''),
+    html: `
+      <div class="max-h-96 overflow-y-auto text-left">
+        ${logsFiltrados.length === 0 ? 
+          '<p class="text-gray-500 text-center py-8">No hay registros de logs para este ticket</p>' : 
+          logsFiltrados.map((log: any) => `
+            <div class="border-b border-gray-200 py-3">
+              <div class="flex justify-between items-start mb-2">
+                <strong class="text-gray-900">${this.getUserName(log.usuario)}</strong>
+                <span class="text-xs text-gray-500">${new Date(log.fecha_cambio).toLocaleString('es-ES')}</span>
+              </div>
+              <p class="text-sm text-gray-700 mb-1">${log.accion || 'Modificación'}</p>
+              ${log.estado_anterior || log.estado_nuevo ? `
+                <div class="flex items-center gap-2 text-xs">
+                  ${log.estado_anterior ? `<span class="bg-gray-100 px-2 py-1 rounded">${log.estado_anterior}</span>` : ''}
+                  ${log.estado_anterior && log.estado_nuevo ? '<span class="text-gray-400">→</span>' : ''}
+                  ${log.estado_nuevo ? `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">${log.estado_nuevo}</span>` : ''}
+                </div>
+              ` : ''}
+              ${log.comentarios ? `<p class="text-xs text-gray-600 mt-2">${log.comentarios}</p>` : ''}
+            </div>
+          `).join('')}
+      </div>
+    `,
+    width: '700px',
+    showCancelButton: true,
+    confirmButtonText: 'Cerrar',
+    cancelButtonText: 'Descargar PDF',
+    showCloseButton: true,
+    customClass: {
+      title: 'text-gray-800 font-bold'
+    }
+  }).then((result) => {
+    if (result.dismiss === 'cancel') {
+      this.descargarPdf();
+    }
+  });
+}
 
   /** Filtrar logs solo del ticket actual - NUEVO MÉTODO */
   private filtrarLogsPorTicket(logsData: { activos: any[], eliminados: any[] }): any[] {

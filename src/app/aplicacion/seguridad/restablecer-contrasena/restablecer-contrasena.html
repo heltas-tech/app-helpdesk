@@ -1,157 +1,202 @@
-<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-      
-      <!-- Paso 1: Solicitar restablecimiento -->
-      <div *ngIf="step === 'solicitar'">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">¿Olvidaste tu contraseña?</h2>
-          <p class="text-gray-600">Ingresa tu correo electrónico y te enviaremos instrucciones para restablecerla.</p>
-        </div>
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+    <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+      <!-- Puedes agregar tu logo aquí -->
+    </a>
+    <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+      <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+        
+        <!-- Paso 1: Solicitar restablecimiento -->
+        <div *ngIf="step === 'solicitar'">
+          <h1 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+            Restablecer Contraseña
+          </h1>
+          <p class="text-center text-sm text-gray-600 mt-2">
+            Ingresa tu correo electrónico y te enviaremos instrucciones para restablecerla.
+          </p>
 
-        <form [formGroup]="resetFormSolicitud">
-          <!-- Email -->
-          <div class="mb-6">
-            <label for="email" class="block text-sm font-medium text-gray-700">
-              Correo Electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              formControlName="email"
-              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="tu@ejemplo.com">
-            
-            <div *ngIf="resetFormSolicitud.get('email')?.invalid && resetFormSolicitud.get('email')?.touched" 
-                 class="text-red-600 text-sm mt-1">
-              <div *ngIf="resetFormSolicitud.get('email')?.errors?.['required']">
-                El correo electrónico es requerido
+          <form class="space-y-6" [formGroup]="resetFormSolicitud" (ngSubmit)="solicitarRestablecimiento()">
+            <!-- Email -->
+            <div class="mb-4">
+              <label for="email" class="block text-sm/6 font-medium text-gray-900">
+                Correo Electrónico
+              </label>
+              <div class="mt-2">
+                <input 
+                  id="email"
+                  type="email" 
+                  name="email" 
+                  autocomplete="email"
+                  placeholder="Ejemplo: email@gmail.com"
+                  formControlName="email"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
               </div>
-              <div *ngIf="resetFormSolicitud.get('email')?.errors?.['email']">
-                Ingresa un correo electrónico válido
+              <div *ngIf="resetFormSolicitud.get('email')?.invalid && resetFormSolicitud.get('email')?.touched" 
+                   class="text-red-600 text-sm mt-1">
+                <div *ngIf="resetFormSolicitud.get('email')?.errors?.['required']">
+                  El correo electrónico es requerido
+                </div>
+                <div *ngIf="resetFormSolicitud.get('email')?.errors?.['email']">
+                  Ingresa un correo electrónico válido
+                </div>
               </div>
             </div>
+
+            <!-- Botones -->
+            <div class="flex space-x-3">
+              <button 
+                type="button"
+                (click)="volverALogin()"
+                class="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Volver
+              </button>
+              <button 
+                type="submit"
+                [disabled]="!resetFormSolicitud.valid || isLoading"
+                class="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span *ngIf="!isLoading">Enviar Instrucciones</span>
+                <span *ngIf="isLoading">Enviando...</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Paso 2: Restablecer contraseña -->
+        <div *ngIf="step === 'restablecer'">
+          <h1 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+            Nueva Contraseña
+          </h1>
+          <p *ngIf="emailSolicitud" class="text-center text-sm text-gray-600 mt-2">
+            Para: <span class="font-medium">{{ emailSolicitud }}</span>
+          </p>
+
+          <!-- Validación de token -->
+          <div *ngIf="!tokenChecked" class="text-center py-4">
+            <p class="text-gray-600">Validando enlace...</p>
           </div>
 
-          <!-- Mensaje -->
-          <div *ngIf="message" 
-               [class]="message.includes('❌') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'"
-               class="rounded-md p-4 mb-4 text-sm">
-            {{ message }}
-          </div>
-
-          <!-- Botones -->
-          <div class="flex space-x-3">
+          <div *ngIf="tokenChecked && !tokenValid" class="text-center py-4">
+            <p class="text-red-600 font-medium">El enlace ha expirado o es inválido.</p>
             <button
-              type="button"
               (click)="volverALogin()"
-              class="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              class="mt-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
               Volver al Login
             </button>
-            <button
-              type="button"
-              (click)="solicitarRestablecimiento()"
-              [disabled]="!resetFormSolicitud.get('email')?.valid || isLoading"
-              class="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-              <span *ngIf="!isLoading">Enviar Instrucciones</span>
-              <span *ngIf="isLoading">Enviando...</span>
-            </button>
           </div>
-        </form>
-      </div>
 
-      <!-- Paso 2: Restablecer contraseña -->
-      <div *ngIf="step === 'restablecer'">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Restablecer Contraseña</h2>
-          <p class="text-gray-600" *ngIf="emailSolicitud">Para: {{ emailSolicitud }}</p>
-        </div>
-
-        <!-- Validación de token -->
-        <div *ngIf="!tokenChecked" class="text-center">
-          <p class="text-gray-600">Validando enlace...</p>
-        </div>
-
-        <div *ngIf="tokenChecked && !tokenValid" class="text-center">
-          <p class="text-red-600">El enlace ha expirado o es inválido.</p>
-          <button
-            (click)="volverALogin()"
-            class="mt-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-            Volver al Login
-          </button>
-        </div>
-
-        <form *ngIf="tokenChecked && tokenValid" [formGroup]="resetFormContrasena" (ngSubmit)="restablecerContrasena()">
-          
-          <!-- Nueva Contraseña -->
-          <div class="mb-4">
-            <label for="newPassword" class="block text-sm font-medium text-gray-700">
-              Nueva Contraseña
-            </label>
-            <input
-              id="newPassword"
-              type="password"
-              formControlName="newPassword"
-              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ingresa tu nueva contraseña">
+          <!-- Formulario para restablecer contraseña -->
+          <form *ngIf="tokenChecked && tokenValid" 
+                class="space-y-6" 
+                [formGroup]="resetFormContrasena" 
+                (ngSubmit)="restablecerContrasena()">
             
-            <div *ngIf="resetFormContrasena.get('newPassword')?.invalid && resetFormContrasena.get('newPassword')?.touched" 
-                 class="text-red-600 text-sm mt-1">
-              <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['required']">
-                La contraseña es requerida
+            <!-- Nueva Contraseña -->
+            <div>
+              <label for="newPassword" class="block text-sm/6 font-medium text-gray-900">
+                Nueva Contraseña
+              </label>
+              <div class="mt-2 relative">
+                <input 
+                  [type]="mostrarNewPassword ? 'text' : 'password'"
+                  id="newPassword"
+                  name="newPassword"
+                  autocomplete="new-password"
+                  placeholder="Ingresa tu nueva contraseña"
+                  formControlName="newPassword"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 pr-10">
+                
+                <!-- Botón del ojito para nueva contraseña -->
+                <button type="button"
+                        (click)="toggleMostrarNewPassword()"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        [attr.aria-label]="mostrarNewPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path *ngIf="!mostrarNewPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path *ngIf="!mostrarNewPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    <path *ngIf="mostrarNewPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                  </svg>
+                </button>
               </div>
-              <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['minlength']">
-                Mínimo 8 caracteres
-              </div>
-              <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['pattern']">
-                Debe contener mayúscula, minúscula, número y carácter especial
+              <div *ngIf="resetFormContrasena.get('newPassword')?.invalid && resetFormContrasena.get('newPassword')?.touched" 
+                   class="text-red-600 text-sm mt-1 space-y-1">
+                <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['required']">
+                  La contraseña es requerida
+                </div>
+                <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['minlength']">
+                  Mínimo 8 caracteres
+                </div>
+                <div *ngIf="resetFormContrasena.get('newPassword')?.errors?.['pattern']">
+                  Debe contener: mayúscula, minúscula, número y carácter especial (!@#$%^&*)
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Confirmar Contraseña -->
-          <div class="mb-6">
-            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">
-              Confirmar Contraseña
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              formControlName="confirmPassword"
-              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Confirma tu nueva contraseña">
-            
-            <div *ngIf="resetFormContrasena.get('confirmPassword')?.errors?.['passwordMismatch'] && resetFormContrasena.get('confirmPassword')?.touched" 
-                 class="text-red-600 text-sm mt-1">
-              Las contraseñas no coinciden
-            </div>  
-          </div>
+            <!-- Confirmar Contraseña -->
+            <div>
+              <label for="confirmPassword" class="block text-sm/6 font-medium text-gray-900">
+                Confirmar Contraseña
+              </label>
+              <div class="mt-2 relative">
+                <input 
+                  [type]="mostrarConfirmPassword ? 'text' : 'password'"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  autocomplete="new-password"
+                  placeholder="Confirma tu nueva contraseña"
+                  formControlName="confirmPassword"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 pr-10">
+                
+                <!-- Botón del ojito para confirmar contraseña -->
+                <button type="button"
+                        (click)="toggleMostrarConfirmPassword()"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        [attr.aria-label]="mostrarConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path *ngIf="!mostrarConfirmPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path *ngIf="!mostrarConfirmPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    <path *ngIf="mostrarConfirmPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                  </svg>
+                </button>
+              </div>
+              <div *ngIf="resetFormContrasena.get('confirmPassword')?.errors?.['passwordMismatch'] && resetFormContrasena.get('confirmPassword')?.touched" 
+                   class="text-red-600 text-sm mt-1">
+                Las contraseñas no coinciden
+              </div>
+            </div>
 
-          <!-- Mensaje -->
-          <div *ngIf="message" 
-               [class]="message.includes('❌') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'"
-               class="rounded-md p-4 mb-4 text-sm">
-            {{ message }}
-          </div>
+            <!-- Botones -->
+            <div class="flex space-x-3 pt-4">
+              <button 
+                type="button"
+                (click)="volverALogin()"
+                class="flex-1 py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                [disabled]="!resetFormContrasena.valid || isLoading"
+                class="flex-1 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span *ngIf="!isLoading">Restablecer Contraseña</span>
+                <span *ngIf="isLoading">Procesando...</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
-          <!-- Botones -->
-          <div class="flex space-x-3">
-            <button
-              type="button"
-              (click)="volverALogin()"
-              class="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              [disabled]="!resetFormContrasena.valid || isLoading"
-              class="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-              <span *ngIf="!isLoading">Restablecer Contraseña</span>
-              <span *ngIf="isLoading">Procesando...</span>
-            </button>
-          </div>
-        </form>
+        <!-- Enlace para volver al login -->
+        <p class="mt-6 text-center text-sm/6 text-gray-500">
+          ¿Recordaste tu contraseña?
+          <a (click)="volverALogin()" class="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer ml-1">
+            Inicia sesión
+          </a>
+        </p>
       </div>
     </div>
   </div>
-</div>
+</section>

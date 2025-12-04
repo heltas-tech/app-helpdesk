@@ -15,12 +15,28 @@
                       class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
                 </div>
               </div>
+              
+              <!-- Contraseña con ojito -->
               <div>
-                <div class="mt-2">
-                  <label for="password" class="block text-sm/6 font-medium text-gray-900">Contraseña</label>
-                  <input type="password" name="password" id="password" autocomplete="current-password" 
-                  placeholder="Password" formControlName="password"
-                      type="password" [required]="true" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                <label for="password" class="block text-sm/6 font-medium text-gray-900">Contraseña</label>
+                <div class="mt-2 relative">
+                  <input [type]="mostrarPassword ? 'text' : 'password'" 
+                         name="password" 
+                         id="password" 
+                         autocomplete="current-password" 
+                         placeholder="Password" 
+                         formControlName="password"
+                         class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 pr-10">
+                  
+                  <!-- Botón del ojito -->
+                  <button type="button"
+                          (click)="toggleMostrarPassword()"
+                          class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                          [attr.aria-label]="mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                    <mat-icon class="h-5 w-5">
+                      {{ mostrarPassword ? 'visibility_off' : 'visibility' }}
+                    </mat-icon>
+                  </button>
                 </div>
               </div>
         
@@ -29,7 +45,6 @@
               </div>
               <div class="flex items-center justify-between">
                 <div class="text-sm">
-                  <!-- ACTUALIZADO: Ahora llama al método olvidoContrasena() -->
                   <a (click)="olvidoContrasena()" class="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer">
                     ¿Olvidó su contraseña?
                   </a>
@@ -37,8 +52,7 @@
               </div>
               </form>
               <p class="mt-10 text-center text-sm/6 text-gray-500">
-                No estas registrado?
-                <a href="registro" class="font-semibold text-indigo-600 hover:text-indigo-500">Registro</a>
+                <a href="registro" class="font-semibold text-indigo-600 hover:text-indigo-500"></a>
               </p>
             </div>
         </div>

@@ -4,7 +4,7 @@
     <h1 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h1>
     <div class="text-sm text-gray-500">
       Total: {{dataSource.data.length}} usuarios
-      <span *ngIf="filtrosAplicados" class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+      <span *ngIf="filtrosAplicados" class="ml-2 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
         Filtros aplicados
       </span>
     </div>
@@ -15,7 +15,7 @@
   <!-- 🔍 FILTROS AVANZADOS -->
   <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
     <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-      <mat-icon class="mr-2 text-blue-500">filter_list</mat-icon>
+      <mat-icon class="mr-2 text-indigo-500">filter_list</mat-icon>
       Filtros Avanzados
     </h3>
     
@@ -26,7 +26,7 @@
         <select 
           #rolFilter
           (change)="aplicarFiltrosAvanzados()"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
           <option value="">Todos los roles</option>
           <option value="ADMINISTRADOR">Administradores</option>
           <option value="TECNICO">Técnicos</option>
@@ -40,7 +40,7 @@
         <select 
           #estadoFilter
           (change)="aplicarFiltrosAvanzados()"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
           <option value="">Todos los estados</option>
           <option value="activo">Solo activos</option>
           <option value="inactivo">Solo inactivos</option>
@@ -60,7 +60,7 @@
         
         <button 
           (click)="cargarUsuarios()"
-          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center space-x-1 transition shadow-md">
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center space-x-1 transition shadow-md">
           <mat-icon style="font-size: 18px;">refresh</mat-icon>
           <span>Actualizar</span>
         </button>
@@ -76,7 +76,7 @@
         type="text" 
         placeholder="Buscar por nombre, correo, teléfono..." 
         (input)="applyFilter($event)"
-        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200 bg-white placeholder-gray-400">
       <mat-icon class="absolute left-3 top-2 text-gray-400" style="font-size: 20px;">search</mat-icon>
     </div>
 
@@ -84,7 +84,7 @@
     <div class="flex flex-wrap gap-2 justify-end">
       <button 
         (click)="openModal()" 
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center space-x-2 transition transform hover:scale-105 shadow-md">
         <mat-icon>person_add</mat-icon>
         <span>Nuevo Usuario</span>
       </button>
@@ -105,17 +105,17 @@
     </div>
   </div>
 
-  <!-- Tabla -->
-  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+  <!-- Tabla con SOLO 1 SCROLL -->
+  <div class="bg-white rounded-lg shadow-md overflow-auto" style="max-height: 60vh;">
     <table mat-table [dataSource]="dataSource" class="w-full">
       
       <!-- Columna Nombre Usuario -->
       <ng-container matColumnDef="nombre_usuario">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
-          Nombre Completo
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          NOMBRE COMPLETO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
-          <div class="font-medium text-gray-800 flex items-center space-x-2">
+          <div class="text-gray-800 flex items-center space-x-2">
             <span>{{ element.nombre_usuario }}</span>
             <!-- Indicador de bloqueado -->
             <mat-icon 
@@ -135,41 +135,41 @@
 
       <!-- Columna Correo Electrónico -->
       <ng-container matColumnDef="correo_electronico">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
-          Correo Electrónico
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          CORREO ELECTRÓNICO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <div class="flex items-center space-x-1">
             <mat-icon class="text-gray-400 text-sm">email</mat-icon>
-            <span class="text-sm">{{ element.correo_electronico }}</span>
+            <span class="text-sm text-gray-600">{{ element.correo_electronico }}</span>
           </div>
         </td>
       </ng-container>
 
       <!-- Columna Teléfono -->
       <ng-container matColumnDef="telefono">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
-          Teléfono
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          TELÉFONO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <div class="flex items-center space-x-1">
             <mat-icon class="text-gray-400 text-sm">phone</mat-icon>
-            <span>{{ element.telefono || '-' }}</span>
+            <span class="text-gray-600">{{ element.telefono || '-' }}</span>
           </div>
         </td>
       </ng-container>
 
       <!-- Columna Rol -->
       <ng-container matColumnDef="rol">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-left">
-          Rol
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-left text-gray-800">
+          ROL
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200">
           <span [ngClass]="{
-            'bg-purple-100 text-purple-800': element.rol === 'ADMINISTRADOR',
+            'bg-indigo-100 text-indigo-800': element.rol === 'ADMINISTRADOR',
             'bg-blue-100 text-blue-800': element.rol === 'CLIENTE',
             'bg-orange-100 text-orange-800': element.rol === 'TECNICO'
-          }" class="px-2 py-1 rounded-full text-xs font-semibold">
+          }" class="px-3 py-1 rounded-full text-xs font-semibold">
             {{ element.rol }}
           </span>
         </td>
@@ -177,33 +177,30 @@
 
       <!-- Columna Estado -->
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-center">
-          Estado
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ESTADO
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
-          <div class="flex flex-col space-y-2 items-center">
-            <!-- Estado Activo/Inactivo -->
-            <button 
-              (click)="cambiarEstado(element)" 
-              [ngClass]="{
-                'bg-green-100 text-green-800 hover:bg-green-200': element.activo && !element.eliminado,
-                'bg-red-100 text-red-800 hover:bg-red-200': (!element.activo || element.eliminado) && !element.bloqueado,
-                'bg-orange-100 text-orange-800 hover:bg-orange-200': element.bloqueado
-              }" 
-              class="px-3 py-1 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm">
-              <mat-icon class="mr-1" style="font-size: 16px; height: 16px; width: 16px;">
-                {{ element.bloqueado ? 'lock' : (element.activo && !element.eliminado ? 'check_circle' : 'cancel') }}
-              </mat-icon>
-              {{ element.bloqueado ? 'Bloqueado' : (element.eliminado ? 'Eliminado' : (element.activo ? 'Activo' : 'Inactivo')) }}
-            </button>
-          </div>
+          <button 
+            (click)="cambiarEstado(element)" 
+            [ngClass]="{
+              'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300': element.activo && !element.eliminado,
+              'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300': (!element.activo || element.eliminado) && !element.bloqueado,
+              'bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300': element.bloqueado
+            }" 
+            class="px-3 py-1 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow-sm flex items-center gap-1 mx-auto">
+            <mat-icon style="font-size: 16px; height: 16px; width: 16px;">
+              {{ element.bloqueado ? 'lock' : (element.activo && !element.eliminado ? 'check_circle' : 'cancel') }}
+            </mat-icon>
+            {{ element.bloqueado ? 'Bloqueado' : (element.eliminado ? 'Eliminado' : (element.activo ? 'Activo' : 'Inactivo')) }}
+          </button>
         </td>
       </ng-container>
 
       <!-- Columna Acciones -->
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef class="bg-blue-100 font-semibold px-4 py-3 text-center">
-          Acciones
+        <th mat-header-cell *matHeaderCellDef class="bg-indigo-100 font-bold px-4 py-3 text-center text-gray-800">
+          ACCIONES
         </th>
         <td mat-cell *matCellDef="let element" class="px-4 py-3 border-b border-gray-200 text-center">
           <div class="flex justify-center gap-2">
@@ -224,7 +221,7 @@
               <mat-icon style="font-size: 18px;">delete</mat-icon>
             </button>
 
-            <!-- 🔓 NUEVO: Botón Desbloquear (solo para usuarios bloqueados) -->
+            <!-- 🔓 Botón Desbloquear -->
             <button 
               *ngIf="element.bloqueado && !element.eliminado"
               (click)="desbloquearUsuario(element)" 
@@ -237,7 +234,7 @@
       </ng-container>
 
       <!-- Filas -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-blue-50"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-indigo-50"></tr>
       <tr 
         mat-row 
         *matRowDef="let row; columns: displayedColumns;" 
@@ -266,16 +263,16 @@
     [pageSize]="5" 
     [pageSizeOptions]="[5, 10, 25, 50]"
     showFirstLastButtons
-    class="mt-4 bg-white rounded-lg shadow-sm">
+    class="custom-paginator">
   </mat-paginator>
 
   <!-- Información del estado -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+  <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
     <div class="flex items-start">
-      <mat-icon class="text-blue-500 mr-3 mt-1">info</mat-icon>
+      <mat-icon class="text-indigo-500 mr-3 mt-1">info</mat-icon>
       <div>
-        <h3 class="font-semibold text-blue-800 mb-1">Información sobre usuarios</h3>
-        <ul class="text-sm text-blue-700 space-y-1">
+        <h3 class="font-semibold text-indigo-800 mb-1">Información sobre usuarios</h3>
+        <ul class="text-sm text-indigo-700 space-y-1">
           <li>• <span class="font-medium">ADMINISTRADOR:</span> Acceso completo al sistema</li>
           <li>• <span class="font-medium">CLIENTE:</span> Acceso limitado a funciones específicas</li>
           <li>• <span class="font-medium">TECNICO:</span> Acceso a herramientas técnicas</li>

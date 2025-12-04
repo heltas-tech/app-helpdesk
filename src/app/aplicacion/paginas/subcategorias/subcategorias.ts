@@ -30,7 +30,8 @@ import { CommonModule } from '@angular/common';
     MatSlideToggleModule,
     MatTooltipModule
   ],
-  templateUrl: './subcategorias.html'
+  templateUrl: './subcategorias.html',
+  styleUrls: ['./subcategorias.scss']
 })
 export class SubcategoriasComponent {
   displayedColumns: string[] = ['nombre', 'descripcion', 'categoria', 'estado', 'acciones'];

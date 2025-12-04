@@ -10,7 +10,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { NgxSpinnerService } from 'ngx-spinner';
-import { Router } from '@angular/router';
 
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
@@ -207,7 +206,8 @@ export class TicketsComponent implements OnInit {
       data.prioridad?.nombre?.toLowerCase() || '',
       data.tecnico?.nombre_usuario?.toLowerCase() || '',
       data.id?.toString() || '',
-      data.estado_ticket?.toLowerCase() || ''
+      data.estado_ticket?.toLowerCase() || '',
+      this.getEstadoTexto(data)?.toLowerCase() || ''
     ];
     
     return searchableFields.some(field => field.includes(searchStr));
@@ -337,8 +337,8 @@ export class TicketsComponent implements OnInit {
           return;
         }
         
-        // 🆕 ORDENAR POR SLA - Tickets vencidos aparecen primero
-        const ticketsOrdenados = this.slaCalculator.ordenarTicketsPorSLA(res.data || []);
+        // ORDENAR TICKETS POR PRIORIDAD ÓPTIMA PARA ADMINISTRADOR
+        const ticketsOrdenados = this.ordenarTicketsPorPrioridad(res.data || []);
         this.dataSource.data = ticketsOrdenados;
         this.dataSource.paginator = this.paginator;
         this.aplicarTodosLosFiltros();
@@ -351,10 +351,160 @@ export class TicketsComponent implements OnInit {
     });
   }
 
-  // 🆕 NUEVO MÉTODO para obtener información del SLA
+  /** Ordenar tickets por prioridad óptima para administrador */
+  private ordenarTicketsPorPrioridad(tickets: any[]): any[] {
+    return [...tickets].sort((a, b) => {
+      // 1. Prioridad: REABIERTO y NUEVO primero
+      const ordenEstado: Record<string, number> = {
+        'REABIERTO': 1,
+        'NUEVO': 2,
+        'EN_PROCESO': 3,
+        'EN_ESPERA_CLIENTE': 4,
+        'RESUELTO': 5,
+        'CERRADO': 6
+      };
+      
+      const estadoA = (a.estado_ticket || 'NUEVO') as string;
+      const estadoB = (b.estado_ticket || 'NUEVO') as string;
+      
+      const prioridadA = ordenEstado[estadoA] || 7;
+      const prioridadB = ordenEstado[estadoB] || 7;
+      
+      if (prioridadA !== prioridadB) {
+        return prioridadA - prioridadB;
+      }
+      
+      // 2. Si mismo estado: Tickets vencidos primero
+      const slaA = this.slaCalculator.calcularEstadoSLA(a);
+      const slaB = this.slaCalculator.calcularEstadoSLA(b);
+      
+      if (slaA.estado === 'VENCIDO' && slaB.estado !== 'VENCIDO') return -1;
+      if (slaB.estado === 'VENCIDO' && slaA.estado !== 'VENCIDO') return 1;
+      if (slaA.estado === 'POR_VENCER' && slaB.estado !== 'POR_VENCER') return -1;
+      if (slaB.estado === 'POR_VENCER' && slaA.estado !== 'POR_VENCER') return 1;
+      
+      // 3. Si mismo SLA: Urgentes primero
+      const prioridadNivelA = a.prioridad?.nivel || 1;
+      const prioridadNivelB = b.prioridad?.nivel || 1;
+      
+      if (prioridadNivelA !== prioridadNivelB) {
+        return prioridadNivelB - prioridadNivelA; // Descendente
+      }
+      
+      // 4. Si misma prioridad: Más antiguos primero
+      const fechaA = new Date(a.fecha_creacion || 0);
+      const fechaB = new Date(b.fecha_creacion || 0);
+      
+      return fechaA.getTime() - fechaB.getTime(); // Ascendente (más antiguo primero)
+    });
+  }
+
+  // ================== MÉTODOS PARA EL TEMPLATE ==================
+
+  getDescripcionCorta(ticket: any): string {
+    const descripcion = ticket.descripcion || '';
+    if (!descripcion) return 'Sin descripción';
+    
+    const div = document.createElement('div');
+    div.innerHTML = descripcion;
+    const text = div.textContent || div.innerText || '';
+    return text.length > 60 ? text.substring(0, 60) + '...' : text;
+  }
+
+  getInicialTecnico(ticket: any): string {
+    return ticket.tecnico?.nombre_usuario?.charAt(0).toUpperCase() || 'T';
+  }
+
+  getEstadoInfo(ticket: any) {
+    return TicketUtils.getEstadoInfo(ticket);
+  }
+
+  getEstadoTexto(ticket: any): string {
+    const estadoInfo = this.getEstadoInfo(ticket);
+    return estadoInfo.label;
+  }
+
+  getEstadoClase(ticket: any): string {
+    const estadoInfo = this.getEstadoInfo(ticket);
+    return estadoInfo.badgeClass;
+  }
+
+  getPrioridadTexto(nivel: number): string {
+    switch(nivel) {
+      case 4: return 'Urgente';
+      case 3: return 'Alta';
+      case 2: return 'Media';
+      case 1: return 'Baja';
+      default: return 'Sin prioridad';
+    }
+  }
+
+  getPrioridadClase(ticket: any): string {
+    const nivel = ticket.prioridad?.nivel || 1;
+    switch(nivel) {
+      case 4: return 'bg-red-50 text-red-700 border-red-200';
+      case 3: return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 2: return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 1: return 'bg-green-50 text-green-700 border-green-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  }
+
+  getPrioridadPuntoClase(ticket: any): string {
+    const nivel = ticket.prioridad?.nivel || 1;
+    switch(nivel) {
+      case 4: return 'bg-red-500';
+      case 3: return 'bg-orange-500';
+      case 2: return 'bg-yellow-500';
+      case 1: return 'bg-green-500';
+      default: return 'bg-gray-400';
+    }
+  }
+
+  // ================== MÉTODOS PARA SLA ==================
+
   getSlaInfo(ticket: any): SlaEstado {
     return this.slaCalculator.calcularEstadoSLA(ticket);
   }
+
+  getSlaClase(ticket: any): string {
+  const slaInfo = this.getSlaInfo(ticket);
+  switch(slaInfo.estado) {
+    case 'VENCIDO': return 'bg-red-500';
+    case 'POR_VENCER': return 'bg-yellow-500';
+    case 'DENTRO_TIEMPO': return 'bg-green-500';  
+    case 'SIN_SLA': return 'bg-gray-300';
+    default: return 'bg-gray-300';
+  }
+}
+
+  getSlaPorcentaje(ticket: any): number {
+    const slaInfo = this.getSlaInfo(ticket);
+    return slaInfo.porcentaje;
+  }
+
+  getSlaTexto(ticket: any): string {
+    const slaInfo = this.getSlaInfo(ticket);
+    return slaInfo.texto;
+  }
+
+  getSlaTextoClase(ticket: any): string {
+  const slaInfo = this.getSlaInfo(ticket);
+  switch(slaInfo.estado) {
+    case 'VENCIDO': return 'text-red-700';
+    case 'POR_VENCER': return 'text-yellow-700';
+    case 'DENTRO_TIEMPO': return 'text-green-700';  // Cambia 'EN_TIEMPO' por 'DENTRO_TIEMPO'
+    case 'SIN_SLA': return 'text-gray-700';
+    default: return 'text-gray-700';
+  }
+}
+
+  getSlaTiempoRestante(ticket: any): string {
+    const slaInfo = this.getSlaInfo(ticket);
+    return slaInfo.tiempoRestante || '';
+  }
+
+  // ================== MÉTODOS EXISTENTES ==================
 
   openModal(data?: any) {
     const dialogRef = this.dialog.open(TicketModalComponent, {
@@ -643,15 +793,6 @@ export class TicketsComponent implements OnInit {
     });
   }
 
-  getEstadoInfo(ticket: any) {
-    return TicketUtils.getEstadoInfo(ticket);
-  }
-
-  getPrioridadClase(ticket: any): string {
-    const nivel = ticket.prioridad?.nivel;
-    return TicketUtils.getColorPrioridad(nivel);
-  }
-
   getTiempoTranscurrido(fecha: string): string {
     return TicketUtils.getTiempoTranscurrido(fecha);
   }
@@ -662,8 +803,8 @@ export class TicketsComponent implements OnInit {
         'ID': t.id || '',
         'Título': t.titulo || '',
         'Descripción': t.descripcion || '',
-        'Estado': this.getEstadoInfo(t).label,
-        'SLA': this.getSlaInfo(t).texto,
+        'Estado': this.getEstadoTexto(t),
+        'SLA': this.getSlaTexto(t),
         'Técnico': t.tecnico?.nombre_usuario || 'No asignado',
         'Categoría': t.categoria?.nombre || '',
         'Subcategoría': t.subcategoria?.nombre || '',
@@ -695,8 +836,8 @@ export class TicketsComponent implements OnInit {
       body: this.dataSource.filteredData.map((t: any) => [
         t.id || '',
         t.titulo?.substring(0, 25) + (t.titulo?.length > 25 ? '...' : '') || '',
-        this.getEstadoInfo(t).label,
-        this.getSlaInfo(t).texto,
+        this.getEstadoTexto(t),
+        this.getSlaTexto(t),
         t.tecnico?.nombre_usuario?.substring(0, 12) + (t.tecnico?.nombre_usuario?.length > 12 ? '...' : '') || 'No asignado',
         t.prioridad?.nombre || '',
         new Date(t.fecha_creacion).toLocaleDateString()
